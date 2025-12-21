@@ -4,7 +4,10 @@ import { Elysia } from "elysia";
 import { helmet } from "elysia-helmet";
 import logixlysia from "logixlysia";
 import { auth } from "./auth/auth.config";
-import { userRoutes } from "./routes/user.route";
+import { freeboxRoutes } from "./modules/freebox/freebox.route";
+import { movieRoutes } from "./modules/movie/movie.route";
+import { torrentRoutes } from "./modules/torrent/torrent.route";
+import { userRoutes } from "./modules/user/user.route";
 
 const startTime = Date.now();
 
@@ -13,7 +16,9 @@ export const app = new Elysia()
     logixlysia({
       config: {
         showStartupMessage: false,
-        pino: undefined,
+        pino: {
+          enabled: false,
+        },
         startupMessageFormat: "simple",
         timestamp: {
           translateTime: "yyyy-mm-dd HH:MM:ss",
@@ -25,7 +30,7 @@ export const app = new Elysia()
   .use(
     cors({
       origin: "http://localhost:3000",
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
     }),
@@ -34,6 +39,9 @@ export const app = new Elysia()
   .use(swagger())
   .mount(auth.handler)
   .use(userRoutes)
+  .use(freeboxRoutes)
+  .use(movieRoutes)
+  .use(torrentRoutes)
   .get("/", () => ({ status: "healthy", timestamp: new Date().toISOString() }));
 
 export type App = typeof app;

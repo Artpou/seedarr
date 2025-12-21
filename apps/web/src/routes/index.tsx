@@ -1,22 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
-import { signOut, useSession } from "@/lib/auth";
+import { useTmdb } from "@/hooks/use-tmdb";
 
 export const Route = createFileRoute("/")({
   component: App,
 });
 
 function App() {
-  const { data } = useSession();
-  console.log(data);
+  const { isLogged } = useTmdb();
 
   return (
     <div className="size-full flex flex-col">
-      Hello
-      {data ? (
-        <Button onClick={() => signOut()}>Sign Out</Button>
+      {isLogged ? (
+        <div className="flex flex-col items-center justify-center gap-6 p-8">logged</div>
       ) : (
-        <Button to="/login">Sign In</Button>
+        <div className="flex flex-col items-center justify-center gap-6 p-8">not logged</div>
       )}
     </div>
   );

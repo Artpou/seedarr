@@ -4,6 +4,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import ms from "ms";
 import { useState } from "react";
+import { AppTopbar } from "@/components/app-topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import appCss from "../styles.css?url";
@@ -110,7 +111,10 @@ function RootDocument() {
       </head>
       <body className="dark">
         <QueryClientProvider client={queryClient}>
-          <Outlet />
+          <AppTopbar />
+          <main className="min-h-screen">
+            <Outlet />
+          </main>
           <TanStackDevtools
             config={{
               position: "bottom-right",
