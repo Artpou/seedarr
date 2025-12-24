@@ -1,0 +1,185 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2025-12-24 02:04+0100\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: fr\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+#: src/components/torrent/torrent-table.tsx:178
+msgid "Add"
+msgstr "Ajouter"
+
+#: src/routes/settings.tsx:112
+msgid "API Key"
+msgstr "Clé API"
+
+#: src/routes/index.tsx:79
+msgid "Configure your TMDB API Key in settings to get started."
+msgstr "Configurez votre clé API TMDB dans les paramètres pour commencer."
+
+#: src/routes/settings.tsx:47
+msgid "Configure your torrent indexer to search and download torrents."
+msgstr "Configurez votre indexeur de torrents pour rechercher et télécharger des torrents."
+
+#: src/components/torrent/torrent-table.tsx:174
+msgid "Download"
+msgstr "Télécharger"
+
+#: src/routes/settings.tsx:104
+msgid "Enter your TMDB API key to enable personalized search and detailed movie information."
+msgstr "Entrez votre clé API TMDB pour activer la recherche personnalisée et les informations détaillées sur les films."
+
+#: src/components/torrent/torrent-table.tsx:209
+msgid "Failed to load indexers"
+msgstr "Échec du chargement des indexeurs"
+
+#: src/routes/movies.$movieId.tsx:93
+msgid "Go Back"
+msgstr "Retour"
+
+#: src/components/torrent/torrent-table.tsx:124
+msgid "Health"
+msgstr "Santé"
+
+#: src/components/app-topbar.tsx:37
+msgid "Home"
+msgstr "Accueil"
+
+#: src/components/torrent/torrent-table.tsx:235
+msgid "Indexers"
+msgstr "Indexeurs"
+
+#: src/routes/settings.tsx:57
+msgid "Jackett"
+msgstr "Jackett"
+
+#: src/routes/settings.tsx:68
+msgid "Jackett API Key"
+msgstr "Clé API Jackett"
+
+#: src/routes/settings.tsx:34
+msgid "Manage your application preferences and API integrations."
+msgstr "Gérez vos préférences d'application et vos intégrations API."
+
+#: src/routes/movies.$movieId.tsx:90
+msgid "Movie not found"
+msgstr "Film introuvable"
+
+#: src/routes/index.tsx:96
+msgid "Movies"
+msgstr "Films"
+
+#: src/components/torrent/torrent-table.tsx:188
+msgid "No torrents found"
+msgstr "Aucun torrent trouvé"
+
+#: src/routes/index.tsx:110
+msgid "Now Playing"
+msgstr "À l'affiche"
+
+#: src/routes/index.tsx:125
+msgid "On The Air"
+msgstr "En cours de diffusion"
+
+#: src/components/torrent/torrent-table.tsx:219
+msgid "Please check your API key and make sure {indexerType} is running."
+msgstr "Veuillez vérifier votre clé API et vous assurer que {indexerType} est en cours d'exécution."
+
+#: src/routes/index.tsx:106
+msgid "Popular Movies"
+msgstr "Films populaires"
+
+#: src/routes/index.tsx:121
+msgid "Popular TV Shows"
+msgstr "Séries populaires"
+
+#: src/routes/settings.tsx:60
+msgid "Prowlarr"
+msgstr "Prowlarr"
+
+#: src/routes/settings.tsx:82
+msgid "Prowlarr API Key"
+msgstr "Clé API Prowlarr"
+
+#: src/routes/index.tsx:81
+#: src/routes/index.tsx:103
+#~ msgid "Search a movie or a TV show"
+#~ msgstr "Rechercher un film ou une série"
+
+#: src/components/movies/search-movie.tsx:76
+msgid "Search movies"
+msgstr "Rechercher des films"
+
+#: src/components/app-topbar.tsx:52
+msgid "Server"
+msgstr "Serveur"
+
+#: src/components/app-topbar.tsx:72
+#: src/routes/settings.tsx:31
+msgid "Settings"
+msgstr "Paramètres"
+
+#: src/routes/movies.$movieId.tsx:227
+msgid "Similar Movies"
+msgstr "Films similaires"
+
+#: src/components/torrent/torrent-table.tsx:121
+msgid "Size"
+msgstr "Taille"
+
+#: src/routes/settings.tsx:100
+msgid "TMDB API"
+msgstr "API TMDB"
+
+#: src/routes/index.tsx:114
+#: src/routes/index.tsx:129
+msgid "Top Rated"
+msgstr "Mieux notés"
+
+#: src/routes/settings.tsx:43
+msgid "Torrent Indexer"
+msgstr "Indexeur de torrents"
+
+#: src/components/torrent/torrent-table.tsx:241
+msgid "Torrent Indexers"
+msgstr "Indexeurs de torrents"
+
+#: src/components/torrent/torrent-table.tsx:118
+msgid "Torrent Name"
+msgstr "Nom du torrent"
+
+#: src/components/torrent/torrent-table.tsx:191
+msgid "Try adjusting your search query"
+msgstr "Essayez d'ajuster votre recherche"
+
+#: src/routes/index.tsx:99
+msgid "TV Shows"
+msgstr "Séries"
+
+#: src/components/torrent/torrent-table.tsx:215
+msgid "Unknown error occurred"
+msgstr "Une erreur inconnue s'est produite"
+
+#: src/routes/movies.$movieId.tsx:134
+msgid "WATCH TRAILER"
+msgstr "BANDE-ANNONCE"
+
+#: src/routes/settings.tsx:117
+msgid "Your API key is stored locally in your browser and is never sent to our servers except as an Authorization header."
+msgstr "Votre clé API est stockée localement dans votre navigateur et n'est jamais envoyée à nos serveurs sauf en tant qu'en-tête d'autorisation."
+
+#: src/routes/settings.tsx:73
+msgid "Your Jackett API key is stored locally and used to search torrents."
+msgstr "Votre clé API Jackett est stockée localement et utilisée pour rechercher des torrents."
+
+#: src/routes/settings.tsx:87
+msgid "Your Prowlarr API key is stored locally and used to search torrents."
+msgstr "Votre clé API Prowlarr est stockée localement et utilisée pour rechercher des torrents."

@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { MovieCard } from "@/components/movies/movie-card";
 import {
   Carousel,
@@ -18,7 +19,7 @@ interface MediaItem {
 }
 
 interface MediaCarouselProps {
-  title: string;
+  title: ReactNode;
   data: MediaItem[];
 }
 

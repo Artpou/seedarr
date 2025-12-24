@@ -4,11 +4,18 @@ import { torrentService } from "./torrent.service";
 export const torrentRoutes = new Elysia({ prefix: "/torrents" })
   .get(
     "/indexers",
-    async ({ query }) => {
-      return await torrentService.getIndexers(
-        query.indexer as "jackett" | "prowlarr",
-        query.apiKey,
-      );
+    async ({ query, set }) => {
+      try {
+        return await torrentService.getIndexers(
+          query.indexer as "jackett" | "prowlarr",
+          query.apiKey,
+        );
+      } catch (error) {
+        set.status = 500;
+        return {
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
     },
     {
       query: t.Object({
@@ -19,16 +26,22 @@ export const torrentRoutes = new Elysia({ prefix: "/torrents" })
   )
   .get(
     "/search",
-    async ({ query }) => {
-      console.log(query.indexer);
-      return await torrentService.searchTorrents({
-        q: query.q,
-        t: query.t,
-        year: query.year,
-        indexer: query.indexer as "jackett" | "prowlarr",
-        apiKey: query.apiKey,
-        indexerId: query.indexerId,
-      });
+    async ({ query, set }) => {
+      try {
+        return await torrentService.searchTorrents({
+          q: query.q,
+          t: query.t,
+          year: query.year,
+          indexer: query.indexer as "jackett" | "prowlarr",
+          apiKey: query.apiKey,
+          indexerId: query.indexerId,
+        });
+      } catch (error) {
+        set.status = 500;
+        return {
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
     },
     {
       query: t.Object({

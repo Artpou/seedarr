@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { Search, X } from "lucide-react";
@@ -63,7 +64,9 @@ export function SearchMovie() {
         onClick={() => setIsOpen(true)}
       >
         <Search className="mr-2 size-4 shrink-0" />
-        <span>Search movies...</span>
+        <span>
+          <Trans>Search movies</Trans>...
+        </span>
         <Kbd className="absolute right-1.5 top-1.5">
           <span className="text-xs">⌘</span>K
         </Kbd>

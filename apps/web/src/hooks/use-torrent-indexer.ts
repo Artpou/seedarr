@@ -51,6 +51,8 @@ export function useTorrentIndexer() {
     setProwlarrApiKeyState(key);
   };
 
+  const apiKey = indexerType === "jackett" ? jackettApiKey : prowlarrApiKey;
+
   return {
     indexerType,
     setIndexerType,
@@ -58,5 +60,6 @@ export function useTorrentIndexer() {
     updateJackettApiKey,
     prowlarrApiKey,
     updateProwlarrApiKey,
+    apiKey,
   };
 }

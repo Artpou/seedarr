@@ -24,15 +24,15 @@ export function MovieCard({ movie, size = "md" }: MovieCardProps) {
   const year = releaseDate ? new Date(releaseDate).getFullYear() : "";
 
   return (
-    <Link to="/movies/$movieId" params={{ movieId: movie.id.toString() }}>
-      <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all aspect-2/3 relative pt-0">
+    <Link to="/movies/$movieId" params={{ movieId: movie.id.toString() }} className="group">
+      <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all aspect-2/3 relative pt-0 pb-0">
         <img
           src={getPosterUrl(movie.poster_path, "w500")}
           alt={title}
           className="size-full object-cover"
         />
         <div
-          className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-background via-background/95 to-background/60 ${
+          className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-background via-background/95 to-background/60 transition-all duration-200 translate-y-full group-hover:translate-y-0 ${
             size === "sm" ? "p-2" : "p-3"
           }`}
         >

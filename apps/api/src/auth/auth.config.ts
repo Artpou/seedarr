@@ -22,13 +22,8 @@ if (!apiUrl) {
 export const auth = betterAuth({
   plugins: [openAPI()],
   database: drizzleAdapter(db, {
-    provider: "pg",
-    schema: {
-      user: schema.users,
-      session: schema.session,
-      account: schema.account,
-      verification: schema.verification,
-    },
+    provider: "sqlite",
+    schema,
   }),
   emailAndPassword: {
     enabled: true,

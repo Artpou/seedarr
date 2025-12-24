@@ -1,10 +1,13 @@
 import type { Torrent } from "@basement/api/types";
+import { Trans } from "@lingui/react/macro";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Download, Eye, EyeOff, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, ListFilter, Plus } from "lucide-react";
 import ms from "ms";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { TorrentIndexersTable } from "@/components/torrent/torrent-indexers-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -22,13 +25,11 @@ interface TorrentTableProps {
 }
 
 export function TorrentTable({ search, year }: TorrentTableProps) {
-  const { indexerType, jackettApiKey, prowlarrApiKey } = useTorrentIndexer();
-  const apiKey = indexerType === "jackett" ? jackettApiKey : prowlarrApiKey;
+  const { indexerType, apiKey } = useTorrentIndexer();
 
-  // Track which indexers are visible (all visible by default)
   const [visibleIndexers, setVisibleIndexers] = useState<Set<string>>(new Set());
 
-  const { data: indexersResponse } = useQuery({
+  const { data: indexersResponse, error: indexersError } = useQuery({
     queryKey: ["indexers", indexerType, apiKey],
     queryFn: async () => {
       if (!apiKey) return { data: [] };
@@ -38,30 +39,12 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
     },
     enabled: !!apiKey,
     staleTime: ms("1h"),
+    retry: 1,
   });
 
-  const indexers = indexersResponse?.data ?? [];
+  const indexers = Array.isArray(indexersResponse?.data) ? indexersResponse.data : [];
 
-  // Initialize visible indexers when indexers are loaded
-  useMemo(() => {
-    if (indexers.length > 0 && visibleIndexers.size === 0) {
-      setVisibleIndexers(new Set(indexers.map((i) => i.id)));
-    }
-  }, [indexers, visibleIndexers.size]);
-
-  const toggleIndexerVisibility = (indexerId: string) => {
-    setVisibleIndexers((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(indexerId)) {
-        newSet.delete(indexerId);
-      } else {
-        newSet.add(indexerId);
-      }
-      return newSet;
-    });
-  };
-
-  const torrentQueries = useQueries({
+  const { recommended, others, queries } = useQueries({
     queries: indexers.map((indexer) => ({
       queryKey: ["torrents", indexerType, apiKey, search, year, indexer.id],
       queryFn: () => {
@@ -78,91 +61,36 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
         });
       },
       enabled: !!search && !!apiKey,
+      staleTime: ms("5m"),
+      retry: 1,
     })),
-  });
+    combine: (results) => {
+      const recommended: Torrent[] = [];
+      const others: Torrent[] = [];
 
-  const { recommended, others } = useMemo(() => {
-    const recommended: Torrent[] = [];
-    const others: Torrent[] = [];
+      results.forEach((query, index) => {
+        const indexerId = indexers[index]?.id;
 
-    torrentQueries.forEach((query, index) => {
-      const indexerId = indexers[index]?.id;
-      // Only include results from visible indexers
-      if (query.data?.data && indexerId && visibleIndexers.has(indexerId)) {
-        recommended.push(...query.data.data.recommended);
-        others.push(...query.data.data.others);
-      }
-    });
-
-    return {
-      recommended: recommended.sort((a, b) => b.seeders - a.seeders),
-      others: others.sort((a, b) => b.seeders - a.seeders),
-    };
-  }, [torrentQueries, indexers, visibleIndexers]);
-
-  const fetchedCount = torrentQueries.filter((q) => q.isSuccess || q.isError).length;
-
-  const isFetching = torrentQueries.some((q) => q.isFetching);
-  const hasErrors = torrentQueries.some((q) => q.isError);
-  const failedIndexers = torrentQueries
-    .map((q, i) => (q.isError ? indexers[i]?.name : null))
-    .filter((name): name is string => Boolean(name));
-
-  const indexerStats = useMemo(() => {
-    return indexers.map((indexer, i) => {
-      const query = torrentQueries[i];
-      const torrentCount =
-        (query.data?.data?.recommended.length || 0) + (query.data?.data?.others.length || 0);
-
-      let status: "loading" | "success" | "error" | "idle" = "idle";
-      if (query.isFetching) status = "loading";
-      else if (query.isError) status = "error";
-      else if (query.isSuccess) status = "success";
+        // Only include results from visible indexers
+        if (
+          query.data?.data &&
+          indexerId &&
+          visibleIndexers.has(indexerId) &&
+          "recommended" in query.data.data &&
+          "others" in query.data.data
+        ) {
+          recommended.push(...query.data.data.recommended);
+          others.push(...query.data.data.others);
+        }
+      });
 
       return {
-        name: indexer.name,
-        status,
-        count: torrentCount,
+        recommended: recommended.sort((a, b) => b.seeders - a.seeders),
+        others: others.sort((a, b) => b.seeders - a.seeders),
+        queries: results,
       };
-    });
-  }, [indexers, torrentQueries]);
-
-  const getStatusLabel = () => {
-    if (!apiKey) return <Badge variant="destructive">Not Configured</Badge>;
-
-    if (indexers.length === 0) return <Badge variant="destructive">No Indexers Found</Badge>;
-
-    if (hasErrors && !isFetching) {
-      return (
-        <Badge
-          variant="destructive"
-          className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20"
-        >
-          Some indexers failed ({failedIndexers.length})
-        </Badge>
-      );
-    }
-
-    if (isFetching) {
-      return (
-        <Badge
-          variant="secondary"
-          className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-yellow-500/20"
-        >
-          Fetching ({fetchedCount}/{indexers.length})
-        </Badge>
-      );
-    }
-
-    return (
-      <Badge
-        variant="default"
-        className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20"
-      >
-        Fetched ({indexers.length} indexers)
-      </Badge>
-    );
-  };
+    },
+  });
 
   const renderTable = (data: Torrent[], title: string, showEmpty = false) => {
     if (data.length === 0 && !showEmpty) return null;
@@ -172,15 +100,19 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
         <h3 className="pl-1 text-sm font-bold tracking-wider text-muted-foreground uppercase">
           {title} ({data.length})
         </h3>
-        <div className="w-full overflow-hidden border rounded-sm border-border">
+        <div className="w-full overflow-hidden">
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-full">Torrent Name</TableHead>
-                <TableHead>Tracker</TableHead>
-                <TableHead>Quality</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead className="pr-8 text-right">Health</TableHead>
+                <TableHead className="w-full">
+                  <Trans>Torrent Name</Trans>
+                </TableHead>
+                <TableHead>
+                  <Trans>Size</Trans>
+                </TableHead>
+                <TableHead className="pr-8 text-right">
+                  <Trans>Health</Trans>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -188,40 +120,28 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
                 data.map((torrent) => (
                   <TableRow key={torrent.guid || torrent.link} className="relative group">
                     <TableCell className="w-full max-w-0">
-                      <a
-                        href={torrent.detailsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-full font-medium truncate transition-colors text-muted-foreground group-hover:text-foreground hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {torrent.title}
-                      </a>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="h-4 px-1.5 text-[10px] font-black tracking-wider uppercase rounded-none bg-primary/10 border-primary/40 text-primary"
-                      >
-                        {torrent.tracker}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {torrent.quality && (
-                        <Badge
-                          variant="secondary"
-                          className="h-5 px-1.5 text-[10px] font-black rounded-sm"
+                      <div className="flex flex-col gap-2">
+                        <a
+                          href={torrent.detailsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full font-medium truncate text-muted-foreground"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {torrent.quality}
-                        </Badge>
-                      )}
+                          {torrent.title}
+                        </a>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="default">{torrent.tracker}</Badge>
+                          {torrent.quality && <Badge variant="secondary">{torrent.quality}</Badge>}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span className="font-medium text-muted-foreground">
                         {(torrent.size / 1e9).toFixed(2)} GB
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="relative">
                       <div className="flex items-center justify-end gap-3 pr-4">
                         <div className="flex items-center gap-1 font-bold text-green-500">
                           <ArrowUp className="size-3" />
@@ -232,26 +152,28 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
                           <span className="text-xs">{torrent.peers}</span>
                         </div>
                       </div>
+                      <div className="absolute inset-y-0 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                        <Button variant="secondary" asChild>
+                          <a href={torrent.link}>
+                            <Plus /> <Trans>Download</Trans>
+                          </a>
+                        </Button>
+                        <Button onClick={(e) => e.stopPropagation()}>
+                          <Download /> <Trans>Add</Trans>
+                        </Button>
+                      </div>
                     </TableCell>
-                    <div className="absolute inset-y-0 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                      <Button variant="secondary" size="sm" asChild>
-                        <a href={torrent.link}>
-                          <Plus /> Download
-                        </a>
-                      </Button>
-                      <Button size="sm" onClick={(e) => e.stopPropagation()}>
-                        <Download /> Add
-                      </Button>
-                    </div>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center">
+                  <TableCell colSpan={3} className="py-10 text-center">
                     <div className="p-10 border border-dashed rounded-sm bg-muted border-border">
-                      <p className="font-bold uppercase text-muted-foreground">No torrents found</p>
+                      <p className="font-bold uppercase text-muted-foreground">
+                        <Trans>No torrents found</Trans>
+                      </p>
                       <p className="mt-1 text-xs uppercase text-muted-foreground/50">
-                        Try adjusting your search query
+                        <Trans>Try adjusting your search query</Trans>
                       </p>
                     </div>
                   </TableCell>
@@ -264,45 +186,53 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
     );
   };
 
-  const getStatusBadge = (status: "loading" | "success" | "error" | "idle") => {
-    switch (status) {
-      case "loading":
-        return (
-          <Badge
-            variant="secondary"
-            className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-          >
-            Loading
-          </Badge>
-        );
-      case "error":
-        return (
-          <Badge variant="destructive" className="bg-red-500/10 text-red-500 border-red-500/20">
-            Error
-          </Badge>
-        );
-      case "success":
-        return (
-          <Badge
-            variant="default"
-            className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-          >
-            Success
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="outline" className="text-muted-foreground">
-            Idle
-          </Badge>
-        );
-    }
-  };
+  if (indexersError) {
+    return (
+      <div className="w-full">
+        <div className="p-10 border border-dashed rounded-sm bg-muted border-destructive/50">
+          <p className="font-bold uppercase text-destructive">
+            <Trans>Failed to load indexers</Trans>
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {indexersError instanceof Error ? (
+              indexersError.message
+            ) : (
+              <Trans>Unknown error occurred</Trans>
+            )}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            <Trans>Please check your API key and make sure {indexerType} is running.</Trans>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
       <div className="xl:hidden mb-8">
-        <div className="flex items-center justify-between">{getStatusLabel()}</div>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm">
+              <ListFilter className="h-4 w-4" />
+              <Trans>Indexers</Trans> ({indexers.length})
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>
+                <Trans>Torrent Indexers</Trans>
+              </SheetTitle>
+            </SheetHeader>
+            <div className="px-4">
+              <TorrentIndexersTable
+                indexers={indexers}
+                torrentQueries={queries}
+                onVisibilityChange={setVisibleIndexers}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       <div className="w-full xl:grid xl:grid-cols-4 xl:gap-6">
@@ -318,59 +248,11 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
         </div>
 
         <div className="hidden xl:block xl:col-span-1">
-          <div className="space-y-3 sticky top-4">
-            <h3 className="pl-1 text-sm font-bold tracking-wider text-muted-foreground uppercase">
-              Indexers ({indexers.length})
-            </h3>
-            <div className="w-full overflow-hidden border rounded-sm border-border">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-10"></TableHead>
-                    <TableHead className="w-full">Name</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Found</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {indexerStats.length > 0 ? (
-                    indexerStats.map((stat, index) => {
-                      const indexerId = indexers[index]?.id;
-                      const isVisible = indexerId ? visibleIndexers.has(indexerId) : true;
-
-                      return (
-                        <TableRow key={stat.name} className={!isVisible ? "opacity-50" : ""}>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => indexerId && toggleIndexerVisibility(indexerId)}
-                            >
-                              {isVisible ? (
-                                <Eye className="h-3.5 w-3.5" />
-                              ) : (
-                                <EyeOff className="h-3.5 w-3.5" />
-                              )}
-                            </Button>
-                          </TableCell>
-                          <TableCell className="font-medium text-sm">{stat.name}</TableCell>
-                          <TableCell>{getStatusBadge(stat.status)}</TableCell>
-                          <TableCell className="text-right font-bold">{stat.count}</TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-6">
-                        <p className="text-sm text-muted-foreground">No indexers configured</p>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+          <TorrentIndexersTable
+            indexers={indexers}
+            torrentQueries={queries}
+            onVisibilityChange={setVisibleIndexers}
+          />
         </div>
       </div>
     </div>

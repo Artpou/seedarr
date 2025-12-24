@@ -1,3 +1,4 @@
+import { setI18n } from "@lingui/react/server";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
@@ -5,7 +6,9 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import ms from "ms";
 import { useState } from "react";
 import { AppTopbar } from "@/components/app-topbar";
+import { LinguiClientProvider } from "@/components/lingui-client-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getI18nInstance } from "@/i18n";
 
 import appCss from "../styles.css?url";
 
@@ -104,8 +107,18 @@ function RootDocument() {
       }),
   );
 
+  // Always use "en" for SSR and initial client render to avoid hydration mismatch
+  // The actual locale detection happens in LinguiClientProvider after hydration
+  const locale = "en";
+
+  // Create i18n instance for English
+  const i18n = getI18nInstance(locale);
+
+  // Make i18n available for server-side rendering
+  setI18n(i18n);
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <head>
         <HeadContent />
       </head>
@@ -113,26 +126,28 @@ function RootDocument() {
         {/* Modern gradient background */}
         <div className="fixed inset-0 -z-10 bg-linear-to-br from-primary/12 via-background to-accent/5" />
 
-        <QueryClientProvider client={queryClient}>
-          <div className="h-screen flex flex-col">
-            <AppTopbar />
-            <main className="flex-1 overflow-y-auto">
-              <Outlet />
-            </main>
-          </div>
-          <TanStackDevtools
-            config={{
-              position: "bottom-right",
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
-          <Scripts />
-        </QueryClientProvider>
+        <LinguiClientProvider initialLocale={locale} initialMessages={i18n.messages}>
+          <QueryClientProvider client={queryClient}>
+            <div className="h-screen flex flex-col">
+              <AppTopbar />
+              <main className="flex-1 overflow-y-auto">
+                <Outlet />
+              </main>
+            </div>
+            <TanStackDevtools
+              config={{
+                position: "bottom-right",
+              }}
+              plugins={[
+                {
+                  name: "Tanstack Router",
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+              ]}
+            />
+            <Scripts />
+          </QueryClientProvider>
+        </LinguiClientProvider>
       </body>
     </html>
   );

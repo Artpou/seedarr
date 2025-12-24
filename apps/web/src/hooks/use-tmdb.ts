@@ -12,14 +12,17 @@ export function useTmdb() {
   });
 
   const [tmdb, setTmdb] = useState<TMDB | null>(null);
+  const [tmdbLoading, setTmdbLoading] = useState(true);
 
   useEffect(() => {
+    setTmdbLoading(true);
     if (apiKey) {
       const instance = new TMDB(apiKey);
       setTmdb(instance);
     } else {
       setTmdb(null);
     }
+    setTmdbLoading(false);
   }, [apiKey]);
 
   const updateApiKey = (key: string | null) => {
@@ -38,5 +41,6 @@ export function useTmdb() {
     isLogged,
     updateApiKey,
     tmdb,
+    tmdbLoading,
   };
 }

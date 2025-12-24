@@ -46,10 +46,10 @@ export type App = typeof app;
 
 const start = async () => {
   if (!process.env.API_PORT) {
-    console.log("API_PORT is not set, using default 3001");
+    console.log("API_PORT is not set, using default 3002");
   }
 
-  const port = parseInt(process.env.API_PORT || "3001", 10);
+  const port = parseInt(process.env.API_PORT || "3002", 10);
   console.log(`[STARTUP] About to listen on port ${port}`);
   await app.listen(port);
   console.log(`[STARTUP] Server is now listening`);

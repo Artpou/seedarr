@@ -1,6 +1,6 @@
 import "./env";
 import { db } from "./db";
-import { users } from "./schema";
+import { user } from "./schema";
 
 async function seed() {
   console.log("🌱 Starting database seed...");
@@ -9,11 +9,14 @@ async function seed() {
     // Create users
     console.log("👤 Creating users...");
     const [user1] = await db
-      .insert(users)
+      .insert(user)
       .values({
         id: "seed_user_1",
         email: "john.doe@acme.com",
         name: "John Doe",
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
 

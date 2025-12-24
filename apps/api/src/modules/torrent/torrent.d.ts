@@ -50,6 +50,7 @@ export interface JackettSearchResponse {
 }
 
 export interface ProwlarrSearchItem {
+  quality: TorrentQuality;
   guid: string;
   age: number;
   ageHours: number;

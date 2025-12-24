@@ -38,3 +38,8 @@ coverage/
 # Storybook
 storybook-static/
 
+# Database
+*.db
+*.db-shm
+*.db-wal
+
