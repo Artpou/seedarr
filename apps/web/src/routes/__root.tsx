@@ -1,54 +1,14 @@
-import { setI18n } from "@lingui/react/server";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import ms from "ms";
 import { useState } from "react";
 import { LinguiClientProvider } from "@/components/lingui-client-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getI18nInstance } from "@/i18n";
-import { detectLocale } from "@/lib/local.server";
-import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
-  loader: async () => {
-    return { locale: await detectLocale() };
-  },
-  head: () => ({
-    meta: [
-      {
-        charSet: "utf-8",
-      },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      },
-      {
-        title: "Basement",
-      },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com",
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap",
-      },
-    ],
-  }),
-
   errorComponent: ({ error }) => (
     <div className="min-h-screen flex items-center justify-center px-6">
       <Card className="max-w-2xl w-full text-center">
@@ -93,67 +53,70 @@ export const Route = createRootRoute({
     </div>
   ),
 
-  shellComponent: RootDocument,
+  component: RootComponent,
 });
 
-function ProtectedContent() {
-  // Authentication is now handled by layout routes
-  // _app routes are protected by _app.tsx layout
-  // _auth routes are public
-  return <Outlet />;
-}
-
-function RootDocument() {
+function RootComponent() {
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: ms("5s"),
+            staleTime: ms("5m"),
+            gcTime: ms("30m"),
             retry: false,
+            refetchOnWindowFocus: false,
           },
         },
       }),
   );
 
-  // Get locale from loader (reads from cookie in SSR)
-  const { locale } = Route.useLoaderData();
+  // Get initial country code from browser locale (e.g., "en-US" -> "US")
+  const getInitialCountry = () => {
+    if (typeof window === "undefined") return "US";
+    const browserLocale = navigator.language || "en-US";
+    const countryCode = browserLocale.split("-")[1] || "US";
+    return countryCode;
+  };
 
-  // Create i18n instance with user's preferred locale
-  const i18n = getI18nInstance(locale);
+  const initialCountry = getInitialCountry();
 
-  // Make i18n available for server-side rendering
-  setI18n(i18n);
+  // Get the language for UI translations (e.g., "US" -> "en", "FR" -> "fr")
+  const getLanguageFromCountry = (country: string): string => {
+    const intlLocale = new Intl.Locale(`und-${country}`).maximize();
+    const language = intlLocale.language;
+    // Default to English if language not supported
+    return ["en", "fr"].includes(language) ? language : "en";
+  };
+
+  const uiLanguage = getLanguageFromCountry(initialCountry);
+
+  // Create i18n instance with UI language for messages, but use country as locale ID
+  const i18n = getI18nInstance(uiLanguage);
 
   return (
-    <html lang={locale}>
-      <head>
-        <HeadContent />
-      </head>
-      <body className="dark h-screen overflow-hidden">
-        {/* Modern gradient background */}
-        <div className="fixed inset-0 -z-10 bg-linear-to-br from-primary/12 via-background to-accent/5" />
+    <>
+      {/* Modern gradient background */}
+      <div className="fixed inset-0 -z-10 bg-linear-to-br from-primary/12 via-background to-accent/5" />
 
-        <LinguiClientProvider initialLocale={locale} initialMessages={i18n.messages}>
-          <QueryClientProvider client={queryClient}>
-            <div className="h-screen flex flex-col">
-              <ProtectedContent />
-            </div>
-            <TanStackDevtools
-              config={{
-                position: "bottom-right",
-              }}
-              plugins={[
-                {
-                  name: "Tanstack Router",
-                  render: <TanStackRouterDevtoolsPanel />,
-                },
-              ]}
-            />
-            <Scripts />
-          </QueryClientProvider>
-        </LinguiClientProvider>
-      </body>
-    </html>
+      <LinguiClientProvider initialLocale={initialCountry} initialMessages={i18n.messages}>
+        <QueryClientProvider client={queryClient}>
+          <div className="h-screen flex flex-col">
+            <Outlet />
+          </div>
+          <TanStackDevtools
+            config={{
+              position: "bottom-right",
+            }}
+            plugins={[
+              {
+                name: "Tanstack Router",
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+            ]}
+          />
+        </QueryClientProvider>
+      </LinguiClientProvider>
+    </>
   );
 }

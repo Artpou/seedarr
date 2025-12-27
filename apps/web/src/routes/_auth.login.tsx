@@ -1,6 +1,5 @@
 import { signInSchema } from "@basement/validators/auth.validators";
 import { typeboxResolver } from "@hookform/resolvers/typebox";
-import type { Static } from "@sinclair/typebox";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useForm } from "react-hook-form";
@@ -22,11 +21,9 @@ export const Route = createFileRoute("/_auth/login")({
   component: Login,
 });
 
-type LoginFormValues = Static<typeof signInSchema>;
-
 function Login() {
   const navigate = useNavigate();
-  const form = useForm<LoginFormValues>({
+  const form = useForm({
     resolver: typeboxResolver(signInSchema),
     defaultValues: {
       username: "",
@@ -52,7 +49,7 @@ function Login() {
       }
 
       // Redirect to home after successful login
-      navigate({ to: "/" });
+      navigate({ to: "/", search: {} });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred. Please try again.");
     } finally {

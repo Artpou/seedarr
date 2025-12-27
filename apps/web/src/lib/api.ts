@@ -9,6 +9,7 @@ export const getBaseUrl = () => {
 };
 
 // Client-side API with credentials
+// @ts-expect-error - Elysia types are not compatible with the latest version
 export const api = treaty<App>(getBaseUrl(), {
   fetch: {
     credentials: "include",

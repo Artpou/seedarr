@@ -1,7 +1,6 @@
 import { Trans } from "@lingui/react/macro";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { Download, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -9,41 +8,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
-import { getApiServer } from "@/lib/api.server";
 import { authClient } from "@/lib/auth";
-
-export const getIndexers = createServerFn({ method: "GET" }).handler(async () => {
-  const serverApi = getApiServer();
-  const { data, error } = await serverApi.indexers.get();
-
-  if (error) throw new Error("Accès refusé");
-  return data;
-});
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
-  loader: async () => {
-    const indexers = await getIndexers();
-    return { indexers };
-  },
 });
 
 function SettingsPage() {
   const queryClient = useQueryClient();
-  const { indexers } = Route.useLoaderData();
-
   const [selectedTab, setSelectedTab] = useState<"jackett" | "prowlarr">("jackett");
 
-  const upsertMutation = useMutation({
+  // Fetch indexers using React Query
+  const { data: indexers = [], isLoading } = useQuery({
+    queryKey: ["indexers"],
+    queryFn: async () => {
+      const response = await api.indexers.get();
+      return response.data || [];
+    },
+  });
+
+  const { mutate: upsertIndexer } = useMutation({
     mutationFn: async (data: { name: "jackett" | "prowlarr"; apiKey: string }) =>
       api.indexers.post(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["indexers"] });
     },
+    onError: (error) => {
+      console.error(error);
+    },
   });
 
-  const jackettIndexer = indexers.find((i) => i.name === "jackett");
-  const prowlarrIndexer = indexers.find((i) => i.name === "prowlarr");
+  const jackettIndexer = indexers.find((i: { name: string }) => i.name === "jackett");
+  const prowlarrIndexer = indexers.find((i: { name: string }) => i.name === "prowlarr");
 
   return (
     <div className="container mx-auto p-8 max-w-2xl">
@@ -91,7 +87,7 @@ function SettingsPage() {
                     defaultValue={jackettIndexer?.apiKey || ""}
                     onBlur={(e) => {
                       console.log(e.target.value);
-                      upsertMutation.mutate({
+                      upsertIndexer({
                         name: "jackett",
                         apiKey: e.target.value,
                       });
@@ -111,6 +107,12 @@ function SettingsPage() {
                     placeholder="Enter your Prowlarr API key..."
                     label={<Trans>Prowlarr API Key</Trans>}
                     defaultValue={prowlarrIndexer?.apiKey || ""}
+                    onBlur={(e) => {
+                      upsertIndexer({
+                        name: "prowlarr",
+                        apiKey: e.target.value,
+                      });
+                    }}
                   />
                   <p className="text-xs text-muted-foreground">
                     <Trans>

@@ -24,27 +24,24 @@
     "db:generate": "bunx dotenvx run -f ../../.env -- drizzle-kit generate",
     "db:migrate": "bunx dotenvx run -f ../../.env -- drizzle-kit migrate",
     "db:push": "bunx dotenvx run -f ../../.env -- drizzle-kit push",
-    "db:studio": "bunx dotenvx run -f ../../.env -- drizzle-kit studio",
-    "db:seed": "bunx dotenvx run -f ../../.env -- bun src/db/seed.ts"
+    "db:studio": "bunx dotenvx run -f ../../.env -- drizzle-kit studio"
   },
   "dependencies": {
     "@basement/validators": "workspace:*",
-    "@bogeychan/elysia-logger": "^0.1.10",
     "@dotenvx/dotenvx": "catalog:",
     "@elysiajs/cors": "1.4.0",
     "@elysiajs/swagger": "1.3.1",
-    "basic-ftp": "^5.0.5",
     "better-auth": "catalog:",
     "drizzle-orm": "^0.44.7",
-    "elysia": "catalog:",
+    "elysia": "1.4.19",
     "elysia-helmet": "^3.0.0"
   },
   "devDependencies": {
+    "@libsql/client": "^0.15.15",
     "@types/bun": "^1.3.5",
     "@types/ms": "catalog:",
     "@types/node": "catalog:",
     "drizzle-kit": "^0.31.8",
-    "tsx": "catalog:",
     "typescript": "catalog:"
   }
 }

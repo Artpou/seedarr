@@ -1,4 +1,4 @@
-import { getTorrentQuality } from "@/helpers/video";
+import { getTorrentQuality } from "@/helpers/video.helper";
 import { IndexerAdapter, Torrent, TorrentIndexer, TorrentQuality } from "./base.adapter";
 
 interface ProwlarrSearchItem {
@@ -65,6 +65,7 @@ export class ProwlarrAdapter implements IndexerAdapter {
     });
 
     if (!response.ok) {
+      console.log(response.json());
       throw new Error(`Prowlarr indexer ${query.indexerId} failed: ${response.statusText}`);
     }
 

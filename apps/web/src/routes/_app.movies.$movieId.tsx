@@ -1,12 +1,17 @@
+import type { Torrent } from "@basement/api/types";
+import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
+import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog";
+import type { UseQueryResult } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { Play } from "lucide-react";
-import { type AvailableLanguage, TMDB, WatchLocale } from "tmdb-ts";
+import ms from "ms";
+import { useEffect, useState } from "react";
+import { TMDB, type WatchLocale } from "tmdb-ts";
 import { MovieCard } from "@/components/movies/movie-card";
 import { MovieDetailsSkeleton } from "@/components/movies/movie-details-skeleton";
 import { TorrentTable } from "@/components/torrent/torrent-table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Carousel,
@@ -15,45 +20,149 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { CircularProgress } from "@/components/ui/circular-progress";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { formatRuntime } from "@/helpers/date";
-import { getBackdropUrl, getPosterUrl } from "@/helpers/movie.helper";
-import { getTMDBLanguage } from "@/lib/local.server";
-
-const getMovie = createServerFn({ method: "GET" })
-  .inputValidator((movieId: string) => movieId)
-  .handler(async ({ data: movieId }) => {
-    const apiKey = import.meta.env.VITE_TMDB_API_KEY || "";
-    const language = await getTMDBLanguage();
-
-    const tmdb = new TMDB(apiKey);
-
-    const [movie, providers, similarMovies] = await Promise.all([
-      tmdb.movies.details(Number(movieId), undefined, language),
-      tmdb.movies.watchProviders(Number(movieId)),
-      tmdb.movies.similar(Number(movieId), { language }),
-    ]);
-
-    return { language, movie, providers, similarMovies };
-  });
+import { countryToTmdbLocale } from "@/i18n";
+import { api } from "@/lib/api";
+import { Badge } from "../components/ui/badge";
+import { CircularProgress } from "../components/ui/circular-progress";
+import { formatRuntime } from "../helpers/date";
+import { getBackdropUrl, getPosterUrl } from "../helpers/movie.helper";
 
 export const Route = createFileRoute("/_app/movies/$movieId")({
-  component: MovieDetails,
-  loader: async ({ params }) => {
-    return await getMovie({ data: params.movieId });
-  },
+  component: MovieDetailsPage,
   pendingComponent: () => <MovieDetailsSkeleton />,
 });
 
-function MovieDetails() {
-  const { language, movie, providers: providersData, similarMovies } = Route.useLoaderData();
+export type IndexerType = "jackett" | "prowlarr";
 
-  // Extract country code from language (e.g., "fr-FR" -> "FR")
-  const countryCode = language?.split("-")[1] as keyof WatchLocale | undefined;
+function MovieDetailsPage() {
+  const params = Route.useParams();
+  const movieId = params.movieId;
+  const [selectedIndexerType, setSelectedIndexerType] = useState<IndexerType | null>(null);
+  const [visibleIndexers, setVisibleIndexers] = useState<Set<string>>(new Set());
 
-  const providers =
-    (countryCode && providersData?.results?.[countryCode]) || providersData?.results?.US;
+  // Get current locale from Lingui (country code) and convert to TMDB locale
+  const { i18n } = useLingui();
+  const tmdbLocale = countryToTmdbLocale(i18n.locale);
+
+  // Fetch movie details from TMDB
+  const { data: movieData, isLoading: isLoadingMovie } = useQuery({
+    queryKey: ["movie", movieId, tmdbLocale],
+    queryFn: async () => {
+      const apiKey = import.meta.env.VITE_TMDB_API_KEY || "";
+      const tmdb = new TMDB(apiKey);
+
+      const [movie, providers, similarMovies] = await Promise.all([
+        tmdb.movies.details(Number(movieId), undefined, tmdbLocale),
+        tmdb.movies.watchProviders(Number(movieId)),
+        tmdb.movies.similar(Number(movieId), { language: tmdbLocale }),
+      ]);
+
+      return { movie, providers, similarMovies };
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnWindowFocus: false,
+  });
+  // Fetch user indexers
+  const { data: userIndexers = [] } = useQuery({
+    queryKey: ["indexers"],
+    queryFn: async () => {
+      const response = await api.indexers.get();
+      return response.data || [];
+    },
+  });
+
+  // Default to first available indexer if none selected
+  useEffect(() => {
+    if (!selectedIndexerType && userIndexers.length > 0) {
+      setSelectedIndexerType(userIndexers[0].name as IndexerType);
+    }
+  }, [userIndexers, selectedIndexerType]);
+
+  const currentIndexer = userIndexers.find((i) => i.name === selectedIndexerType);
+
+  // Fetch available indexers from the selected indexer type
+  const { data: indexersResponse } = useQuery({
+    queryKey: ["indexers", selectedIndexerType],
+    queryFn: async () => {
+      if (!selectedIndexerType) return { data: [] };
+      return api.indexers.get({ query: { indexer: selectedIndexerType } });
+    },
+    enabled: !!selectedIndexerType && !!currentIndexer,
+    staleTime: ms("1h"),
+    retry: 1,
+  });
+
+  const indexers = Array.isArray(indexersResponse?.data)
+    ? (indexersResponse.data as Array<{ id: string; name: string }>)
+    : [];
+
+  // Get movie data with fallback
+  const movie = movieData?.movie;
+  const providersData = movieData?.providers;
+  const similarMovies = movieData?.similarMovies;
+
+  // Search query parameters
+  const search = movie?.original_title || "";
+  const release_year = movie?.release_date
+    ? new Date(movie.release_date).getFullYear().toString()
+    : undefined;
+
+  // Fetch torrents from all indexers
+  const { recommended, others, queries } = useQueries({
+    queries: indexers.map((indexer) => ({
+      queryKey: ["torrents", selectedIndexerType, search, release_year, indexer.id],
+      queryFn: () => {
+        if (!selectedIndexerType) throw new Error("No indexer selected");
+        return api.torrents.search.get({
+          query: {
+            q: search,
+            t: "movie",
+            year: release_year,
+            indexer: selectedIndexerType,
+            indexerId: indexer.id,
+          },
+        });
+      },
+      enabled: !!search && !!selectedIndexerType && !!currentIndexer,
+      staleTime: ms("5m"),
+      retry: 1,
+    })),
+    combine: (results) => {
+      const recommended: Torrent[] = [];
+      const others: Torrent[] = [];
+
+      for (const [index, query] of results.entries()) {
+        const indexerId = indexers[index]?.id;
+
+        // Only include results from visible indexers
+        if (
+          query.data?.data &&
+          indexerId &&
+          visibleIndexers.has(indexerId) &&
+          typeof query.data.data === "object" &&
+          query.data.data !== null &&
+          "recommended" in query.data.data &&
+          "others" in query.data.data
+        ) {
+          const data = query.data.data as { recommended: Torrent[]; others: Torrent[] };
+          recommended.push(...data.recommended);
+          others.push(...data.others);
+        }
+      }
+
+      return {
+        recommended: recommended.sort((a, b) => b.seeders - a.seeders),
+        others: others.sort((a, b) => b.seeders - a.seeders),
+        queries: results,
+      };
+    },
+  });
+
+  // Extract country code from tmdbLocale (e.g., "fr-FR" -> "FR")
+  const countryCode = (tmdbLocale?.split("-")[1] || "US") as keyof WatchLocale;
+
+  const providers = providersData?.results?.[countryCode] || providersData?.results?.US;
 
   const allProviders = providers
     ? [...("flatrate" in providers ? providers.flatrate || [] : [])]
@@ -63,6 +172,11 @@ function MovieDetails() {
   const uniqueProviders = allProviders.filter(
     (v, i, a) => a.findIndex((t) => t.provider_id === v.provider_id) === i,
   );
+
+  // Show loading state after all hooks
+  if (isLoadingMovie || !movieData) {
+    return <MovieDetailsSkeleton />;
+  }
 
   if (!movie) {
     return (
@@ -76,8 +190,6 @@ function MovieDetails() {
       </div>
     );
   }
-
-  const release_year = new Date(movie.release_date).getFullYear().toString();
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -127,7 +239,7 @@ function MovieDetails() {
                   <div className="flex items-center gap-3 text-sm font-medium">
                     {movie.release_date && (
                       <Badge variant="secondary">
-                        {new Date(movie.release_date).toLocaleDateString(language)}
+                        {new Date(movie.release_date).toLocaleDateString(tmdbLocale)}
                       </Badge>
                     )}
                     <span className="opacity-30">•</span>
@@ -229,7 +341,14 @@ function MovieDetails() {
         {/* Torrents List */}
         <div className="space-y-6 pt-10 pb-20 w-full">
           <div className="w-full">
-            <TorrentTable search={movie.original_title} year={release_year} />
+            <TorrentTable
+              recommended={recommended}
+              others={others}
+              indexers={indexers}
+              torrentQueries={queries as UseQueryResult<unknown, Error>[]}
+              visibleIndexers={visibleIndexers}
+              onVisibilityChange={setVisibleIndexers}
+            />{" "}
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
 import { helmet } from "elysia-helmet";
 import { auth } from "./auth/auth.config";
+import { colors, logRequest } from "./helpers/logger.helper";
 import { freeboxRoutes } from "./modules/freebox/freebox.route";
 import { indexerRoutes } from "./modules/indexer/indexer.route";
 import { torrentRoutes } from "./modules/torrent/torrent.route";
@@ -10,9 +11,28 @@ import { userRoutes } from "./modules/user/user.route";
 
 const startTime = Date.now();
 
+// Store request start times
+const requestTimes = new WeakMap<Request, number>();
+
 export const app = new Elysia()
+  .onRequest(({ request }) => {
+    requestTimes.set(request, Date.now());
+  })
   .onAfterResponse(({ request, set }) => {
-    console.log(`${request.method} ${request.url} ${set.status}`);
+    const startTime = requestTimes.get(request) || Date.now();
+    const duration = Date.now() - startTime;
+    logRequest(request.method, request.url, set.status || 200, duration);
+  })
+  .onError(({ code, error }) => {
+    if (code === "VALIDATION") {
+      error.all.forEach((err) => {
+        console.error(err.summary);
+      });
+    } else if (code === "NOT_FOUND") {
+      console.error(error.message);
+    } else {
+      console.error(error);
+    }
   })
   .use(
     cors({
@@ -44,10 +64,14 @@ const start = async () => {
   console.log(`[STARTUP] Server is now listening`);
 
   console.log(
-    `\n  \x1b[1m\x1b[33m🦊 ELYSIA\x1b[0m \x1b[33mv${require("elysia/package.json").version}\x1b[0m  ready in ${Date.now() - startTime} ms\n`,
+    `\n  ${colors.bold}${colors.yellow}🦊 ELYSIA${colors.reset} ${
+      colors.yellow
+    }v${require("elysia/package.json").version}${colors.reset}  ready in ${
+      Date.now() - startTime
+    } ms\n`,
   );
   console.log(
-    `  \x1b[1m\x1b[33m➜\x1b[0m  \x1b[1mLocal:\x1b[0m   \x1b[36mhttp://${app.server?.hostname}:\x1b[1m${app.server?.port}\x1b[0m\x1b[36m/\x1b[0m\n`,
+    `  ${colors.bold}${colors.yellow}➜${colors.reset}  ${colors.bold}Local:${colors.reset}   ${colors.cyan}http://${app.server?.hostname}:${colors.bold}${app.server?.port}${colors.reset}${colors.cyan}/${colors.reset}\n`,
   );
 };
 

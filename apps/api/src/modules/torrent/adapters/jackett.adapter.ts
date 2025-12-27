@@ -1,4 +1,4 @@
-import { getTorrentQuality } from "@/helpers/video";
+import { getTorrentQuality } from "@/helpers/video.helper";
 import { IndexerAdapter, Torrent, TorrentIndexer } from "./base.adapter";
 
 interface JackettSearchItem {
@@ -31,7 +31,11 @@ export class JackettAdapter implements IndexerAdapter {
       throw new Error(`Jackett indexers failed: ${response.statusText}`);
     }
 
-    const data = (await response.json()) as { ID: string; Name: string; Type: string }[];
+    const data = (await response.json()) as {
+      ID: string;
+      Name: string;
+      Type: string;
+    }[];
 
     return data.map((indexer) => ({
       id: indexer.ID,

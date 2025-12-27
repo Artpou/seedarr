@@ -13,10 +13,6 @@ build/
 .env.local
 .env.*.local
 
-# IDE
-.vscode/
-.idea/
-
 # turbo
 .turbo/
 
@@ -34,7 +30,6 @@ coverage/
 # Misc
 .cache/
 .temp/
-
 
 # Database
 *.db

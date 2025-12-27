@@ -1,6 +1,5 @@
 import { useLingui } from "@lingui/react";
-import { useMemo, useState } from "react";
-import type { WatchLocale } from "tmdb-ts";
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -9,45 +8,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useLocale } from "@/hooks/use-locale";
+// @ts-expect-error - Compiled message files don't have type definitions
+import { messages as enMessages } from "@/locales/en/messages.mjs";
+// @ts-expect-error - Compiled message files don't have type definitions
+import { messages as frMessages } from "@/locales/fr/messages.mjs";
 
-// Language to country mapping (one country per language)
-const LANGUAGE_TO_COUNTRY = {
-  cs: "CZ",
-  da: "DK",
-  de: "DE",
-  et: "EE",
-  es: "ES",
-  fi: "FI",
-  fr: "FR",
-  el: "GR",
-  hu: "HU",
-  id: "ID",
-  hi: "IN",
-  it: "IT",
-  ja: "JP",
-  ko: "KR",
-  lt: "LT",
-  lv: "LV",
-  ms: "MY",
-  nl: "NL",
-  no: "NO",
-  pl: "PL",
-  pt: "PT",
-  ro: "RO",
-  ru: "RU",
-  sv: "SE",
-  th: "TH",
-  tr: "TR",
-  en: "US",
-} as const;
+const TMDB_COUNTRIES = [
+  "CZ",
+  "DK",
+  "DE",
+  "EE",
+  "ES",
+  "FI",
+  "FR",
+  "GR",
+  "HU",
+  "ID",
+  "IN",
+  "IT",
+  "JP",
+  "KR",
+  "LT",
+  "LV",
+  "MY",
+  "NL",
+  "NO",
+  "PL",
+  "PT",
+  "RO",
+  "RU",
+  "SE",
+  "TH",
+  "TR",
+  "US",
+] as const;
 
-const TMDB_COUNTRIES = Object.values(LANGUAGE_TO_COUNTRY);
 const UI_LOCALES = ["en", "fr"] as const;
 
+const MESSAGES_MAP = {
+  en: enMessages,
+  fr: frMessages,
+};
+
 export function LanguageSelector() {
-  const { locale: initialLocale } = useLocale();
-  const [currentCountry, setCurrentCountry] = useState(initialLocale);
+  const { i18n } = useLingui();
+  const currentCountry = i18n.locale;
 
   const locales = useMemo(() => {
     const all = TMDB_COUNTRIES.map((country) => {
@@ -65,6 +70,7 @@ export function LanguageSelector() {
 
       return {
         country,
+        language,
         displayName,
         isUiSupported: UI_LOCALES.includes(language as (typeof UI_LOCALES)[number]),
       };
@@ -86,19 +92,20 @@ export function LanguageSelector() {
   }, [currentCountry]);
 
   const handleChange = (country: string) => {
-    const selectedCountry = country as keyof WatchLocale;
-    setCurrentCountry(selectedCountry);
-
-    // Get language from country using Intl
-    const intlLocale = new Intl.Locale(`und-${selectedCountry}`).maximize();
+    // Get language from country
+    const intlLocale = new Intl.Locale(`und-${country}`).maximize();
     const language = intlLocale.language;
-    const fullLocale = `${language}-${selectedCountry}`;
 
-    localStorage.setItem("locale", fullLocale);
-    document.cookie = `locale=${language}; path=/; max-age=31536000; SameSite=Lax`;
-
-    // Reload page to apply new locale
-    window.location.reload();
+    // Update Lingui locale to the country code (this becomes our source of truth)
+    // Load UI messages if language is supported, otherwise keep current
+    if (UI_LOCALES.includes(language as (typeof UI_LOCALES)[number])) {
+      const messages = MESSAGES_MAP[language as keyof typeof MESSAGES_MAP];
+      i18n.load(language, messages);
+      i18n.activate(country); // Use country as locale ID
+    } else {
+      // Just change the locale ID, keeping current UI messages
+      i18n.activate(country);
+    }
   };
 
   return (

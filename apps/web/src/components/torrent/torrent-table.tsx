@@ -1,9 +1,7 @@
 import type { Torrent } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Download, ListFilter, Plus } from "lucide-react";
-import ms from "ms";
-import { useEffect, useState } from "react";
 import { TorrentIndexersTable } from "@/components/torrent/torrent-indexers-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,130 +14,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api } from "@/lib/api";
 
-export type IndexerType = "jackett" | "prowlarr";
-
-interface TorrentTableProps {
-  search: string;
-  year?: string;
+interface Indexer {
+  id: string;
+  name: string;
 }
 
-export function TorrentTable({ search, year }: TorrentTableProps) {
-  const [selectedIndexerType, setSelectedIndexerType] = useState<IndexerType | null>(null);
-  const [visibleIndexers, setVisibleIndexers] = useState<Set<string>>(new Set());
+interface TorrentTableProps {
+  recommended: Torrent[];
+  others: Torrent[];
+  indexers: Indexer[];
+  torrentQueries: UseQueryResult<unknown, Error>[];
+  visibleIndexers: Set<string>;
+  onVisibilityChange: (visibleIndexers: Set<string>) => void;
+}
 
-  const { data: userIndexers = [] } = useQuery({
-    queryKey: ["indexers"],
-    queryFn: async () => {
-      const response = await api.indexers.get();
-      return response.data || [];
-    },
-  });
-
-  // Default to first available indexer if none selected
-  useEffect(() => {
-    if (!selectedIndexerType && userIndexers.length > 0) {
-      setSelectedIndexerType(userIndexers[0].name as IndexerType);
-    }
-  }, [userIndexers, selectedIndexerType]);
-
-  const currentIndexer = userIndexers.find((i) => i.name === selectedIndexerType);
-
-  const { data: indexersResponse, error: indexersError } = useQuery({
-    queryKey: ["indexers", selectedIndexerType],
-    queryFn: async () => {
-      if (!selectedIndexerType) return { data: [] };
-      const apiWithTorrents = (
-        api as unknown as {
-          torrents: {
-            indexers: {
-              get: (params: { $query: { indexer: IndexerType } }) => Promise<{ data: unknown }>;
-            };
-          };
-        }
-      ).torrents;
-      return apiWithTorrents.indexers.get({
-        $query: { indexer: selectedIndexerType },
-      });
-    },
-    enabled: !!selectedIndexerType && !!currentIndexer,
-    staleTime: ms("1h"),
-    retry: 1,
-  });
-
-  const indexers = Array.isArray(indexersResponse?.data) ? indexersResponse.data : [];
-
-  const { recommended, others, queries } = useQueries({
-    queries: indexers.map((indexer: { id: string }) => ({
-      queryKey: ["torrents", selectedIndexerType, search, year, indexer.id],
-      queryFn: () => {
-        if (!selectedIndexerType) throw new Error("No indexer selected");
-        const apiWithTorrents = (
-          api as unknown as {
-            torrents: {
-              search: {
-                get: (params: {
-                  $query: {
-                    q: string;
-                    t: string;
-                    year?: string;
-                    indexer: IndexerType;
-                    indexerId?: string;
-                  };
-                }) => Promise<{
-                  data: { recommended: unknown[]; others: unknown[] };
-                }>;
-              };
-            };
-          }
-        ).torrents;
-        return apiWithTorrents.search.get({
-          $query: {
-            q: search,
-            t: "movie",
-            year,
-            indexer: selectedIndexerType,
-            indexerId: indexer.id,
-          },
-        });
-      },
-      enabled: !!search && !!selectedIndexerType && !!currentIndexer,
-      staleTime: ms("5m"),
-      retry: 1,
-    })),
-    combine: (results) => {
-      const recommended: Torrent[] = [];
-      const others: Torrent[] = [];
-
-      results.forEach((query, index) => {
-        const indexerId = indexers[index]?.id;
-
-        // Only include results from visible indexers
-        if (
-          query.data?.data &&
-          indexerId &&
-          visibleIndexers.has(indexerId) &&
-          "recommended" in query.data.data &&
-          "others" in query.data.data
-        ) {
-          const data = query.data.data as {
-            recommended: Torrent[];
-            others: Torrent[];
-          };
-          recommended.push(...data.recommended);
-          others.push(...data.others);
-        }
-      });
-
-      return {
-        recommended: recommended.sort((a, b) => b.seeders - a.seeders),
-        others: others.sort((a, b) => b.seeders - a.seeders),
-        queries: results,
-      };
-    },
-  });
-
+export function TorrentTable({
+  recommended,
+  others,
+  indexers,
+  torrentQueries,
+  onVisibilityChange,
+}: TorrentTableProps) {
   const renderTable = (data: Torrent[], title: string, showEmpty = false) => {
     if (data.length === 0 && !showEmpty) return null;
 
@@ -234,28 +130,6 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
     );
   };
 
-  if (indexersError) {
-    return (
-      <div className="w-full">
-        <div className="p-10 border border-dashed rounded-sm bg-muted border-destructive/50">
-          <p className="font-bold uppercase text-destructive">
-            <Trans>Failed to load indexers</Trans>
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {indexersError instanceof Error ? (
-              indexersError.message
-            ) : (
-              <Trans>Unknown error occurred</Trans>
-            )}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            <Trans>Please check your API key and make sure {selectedIndexerType} is running.</Trans>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full">
       <div className="xl:hidden mb-8">
@@ -275,8 +149,8 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
             <div className="px-4">
               <TorrentIndexersTable
                 indexers={indexers}
-                torrentQueries={queries}
-                onVisibilityChange={setVisibleIndexers}
+                torrentQueries={torrentQueries}
+                onVisibilityChange={onVisibilityChange}
               />
             </div>
           </SheetContent>
@@ -298,8 +172,8 @@ export function TorrentTable({ search, year }: TorrentTableProps) {
         <div className="hidden xl:block xl:col-span-1">
           <TorrentIndexersTable
             indexers={indexers}
-            torrentQueries={queries}
-            onVisibilityChange={setVisibleIndexers}
+            torrentQueries={torrentQueries}
+            onVisibilityChange={onVisibilityChange}
           />
         </div>
       </div>
