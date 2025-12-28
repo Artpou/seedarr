@@ -71,16 +71,14 @@ function App() {
       const tmdb = new TMDB(apiKey);
 
       if (tab === "tv") {
-        const [popularTV, latestTV, topRatedTV] = await Promise.all([
+        const [popularTV, topRatedTV] = await Promise.all([
           tmdb.tvShows.popular({ language: tmdbLocale }),
-          tmdb.tvShows.onTheAir({ language: tmdbLocale }),
           tmdb.tvShows.topRated({ language: tmdbLocale }),
         ]);
 
         return {
           tab: "tv" as const,
           popularTV,
-          latestTV,
           topRatedTV,
         };
       }
@@ -88,7 +86,6 @@ function App() {
       // Default: fetch movies
       const [popularMovies, topRatedMovies] = await Promise.all([
         tmdb.movies.popular({ language: tmdbLocale }),
-        tmdb.movies.nowPlaying({ language: tmdbLocale }),
         tmdb.movies.topRated({ language: tmdbLocale }),
       ]);
 
@@ -152,16 +149,10 @@ function App() {
           {data.tab === "movie" && (
             <>
               {recentlyViewedMovies.length > 0 && (
-                <MediaCarousel title={<Trans>Recently Viewed</Trans>} data={recentlyViewedMovies} />
+                <MediaCarousel title="Recently Viewed" data={recentlyViewedMovies} />
               )}
-              <MediaCarousel
-                title={<Trans>Popular Movies</Trans>}
-                data={data.popularMovies.results || []}
-              />
-              <MediaCarousel
-                title={<Trans>Top Rated</Trans>}
-                data={data.topRatedMovies.results || []}
-              />
+              <MediaCarousel title="Popular Movies" data={data.popularMovies.results || []} />
+              <MediaCarousel title="Top Rated" data={data.topRatedMovies.results || []} />
             </>
           )}
         </TabsContent>
@@ -170,17 +161,10 @@ function App() {
           {data.tab === "tv" && (
             <>
               {recentlyViewedTV.length > 0 && (
-                <MediaCarousel title={<Trans>Recently Viewed</Trans>} data={recentlyViewedTV} />
+                <MediaCarousel title="Recently Viewed" data={recentlyViewedTV} />
               )}
-              <MediaCarousel
-                title={<Trans>Popular TV Shows</Trans>}
-                data={data.popularTV.results || []}
-              />
-              <MediaCarousel title={<Trans>On The Air</Trans>} data={data.latestTV.results || []} />
-              <MediaCarousel
-                title={<Trans>Top Rated</Trans>}
-                data={data.topRatedTV.results || []}
-              />
+              <MediaCarousel title="Popular TV Shows" data={data.popularTV.results || []} />
+              <MediaCarousel title="Top Rated" data={data.topRatedTV.results || []} />
             </>
           )}
         </TabsContent>

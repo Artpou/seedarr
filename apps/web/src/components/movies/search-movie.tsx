@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { Search, X } from "lucide-react";
@@ -13,14 +13,19 @@ import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
 import { parseJustWatchResponse } from "@/lib/movie.parser";
 import { useTmdbStore } from "@/stores/tmdb-store";
+import { countryToTmdbLocale } from "../../i18n";
 
 const UNLOGGED_URL = "https://imdb.iamidiotareyoutoo.com";
 
 export function SearchMovie() {
   const { apiKey, tmdb } = useTmdbStore();
+  const { i18n } = useLingui();
+
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
+
+  const tmdbLocale = countryToTmdbLocale(i18n.locale);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -35,7 +40,7 @@ export function SearchMovie() {
   }, []);
 
   const { data: searchResults, isLoading } = useQuery({
-    queryKey: ["movies", debouncedSearch, apiKey],
+    queryKey: ["movies", debouncedSearch, tmdbLocale],
     queryFn: async () => {
       if (!apiKey) {
         return await fetch(`${UNLOGGED_URL}/justwatch?q=${debouncedSearch}&L=fr_FR`)
@@ -44,10 +49,10 @@ export function SearchMovie() {
       }
 
       if (!tmdb) return { page: 1, results: [], total_pages: 0, total_results: 0 };
-      return await tmdb.search.multi({ query: debouncedSearch });
+      return await tmdb.search.multi({ query: debouncedSearch, language: tmdbLocale });
     },
     enabled: debouncedSearch.length > 0,
-    staleTime: ms("5 minutes"),
+    staleTime: ms("5m"),
   });
 
   const movies =

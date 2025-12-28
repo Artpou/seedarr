@@ -1,5 +1,5 @@
 import type { MediaItem } from "@basement/api/types";
-import { ReactNode } from "react";
+import { Trans } from "@lingui/react/macro";
 import { MovieCard } from "@/components/movies/movie-card";
 import {
   Carousel,
@@ -8,30 +8,36 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
 
 interface MediaCarouselProps {
-  title: ReactNode;
+  title: string;
   data: MediaItem[];
+  classname?: string;
+  hideArrows?: boolean;
 }
 
-export function MediaCarousel({ title, data }: MediaCarouselProps) {
+export function MediaCarousel({ title, data, classname, hideArrows = false }: MediaCarouselProps) {
   if (!data || data.length === 0) return null;
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold tracking-tight px-1">{title}</h2>
+      <h2>
+        <Trans>{title}</Trans>
+      </h2>
       <Carousel
         opts={{
           align: "start",
+          dragFree: true,
           loop: true,
         }}
         className="w-full"
       >
-        <CarouselContent className="-ml-4">
-          {data.map((item) => (
+        <CarouselContent className={cn(hideArrows && "-ml-4")}>
+          {data.map((item, index) => (
             <CarouselItem
-              key={item.id}
-              className="pl-4 basis-1/2 md:basis-1/4 lg:basis-1/5 xl:basis-1/6"
+              key={item.id || index}
+              className={cn("pl-4 basis-1/2 md:basis-1/4 lg:basis-1/5 xl:basis-1/6", classname)}
             >
               <div className="p-1">
                 <MovieCard movie={item} />
@@ -39,8 +45,12 @@ export function MediaCarousel({ title, data }: MediaCarouselProps) {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="left-2" />
-        <CarouselNext className="right-2" />
+        {!hideArrows && (
+          <>
+            <CarouselPrevious />
+            <CarouselNext />
+          </>
+        )}
       </Carousel>
     </div>
   );
