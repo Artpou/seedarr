@@ -9,7 +9,7 @@
     "ignoreUnknown": false,
     "includes": [
       "**/src/**/*",
-      "**/*.{json,md}",
+      "!README.md",
       "!**/routeTree.gen.ts",
       "!**/drizzle/**/*",
       "!**/locales/**/messages.mjs"
