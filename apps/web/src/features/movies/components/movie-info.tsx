@@ -2,13 +2,12 @@ import { useMemo } from "react";
 
 import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
-import { ClockPlus, Heart, Info, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { AppendToResponse, Flatrate, MovieDetails, WatchLocale } from "tmdb-ts";
 
 import { cn } from "@/lib/utils";
 import { formatRuntime } from "@/shared/helpers/date";
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
-import { Button } from "@/shared/ui/button";
 import { CircularProgress } from "@/shared/ui/circular-progress";
 import {
   DropdownMenu,
@@ -51,17 +50,22 @@ const ProviderIcon = ({ provider, movieName }: { provider: Flatrate; movieName: 
   console.log(provider);
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: we want to open the link in a new tab
-    <img
-      src={getBackdropUrl(provider.logo_path, "original")}
-      alt={provider.provider_name}
-      title={provider.provider_name}
+    <button
+      type="button"
       onClick={() => !!redirectUrl && window.open(redirectUrl, "_blank")}
       className={cn(
-        "size-12 rounded-full border border-border shadow-sm",
-        redirectUrl && "cursor-pointer hover:scale-110 transition-transform",
+        "relative size-12 rounded-full border-2 border-border shadow-sm transition-all",
+        redirectUrl && "cursor-pointer hover:border-primary/50 hover:scale-105",
       )}
-    />
+      title={provider.provider_name}
+      disabled={!redirectUrl}
+    >
+      <img
+        src={getBackdropUrl(provider.logo_path, "original")}
+        alt={provider.provider_name}
+        className="size-full rounded-full object-cover"
+      />
+    </button>
   );
 };
 
@@ -144,7 +148,7 @@ export function MovieInfo({ movie }: MovieInfoProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="size-12 rounded-full border border-border shadow-sm bg-background hover:scale-110 transition-transform flex items-center justify-center cursor-pointer"
+                  className="size-12 rounded-full border-2 border-border shadow-sm bg-background hover:border-primary/50 hover:scale-105 transition-all flex items-center justify-center cursor-pointer"
                   title={`See all (${uniqueProviders.flatrate.length + uniqueProviders.buyRent.length})`}
                 >
                   <Plus className="size-5" />

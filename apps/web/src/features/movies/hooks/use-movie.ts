@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useTMDB } from "@/shared/hooks/use-tmdb";
 
 import { tmdbMovieToMedia } from "@/features/media/helpers/media.helper";
+import { useMovieStore } from "@/features/movies/store/movie-store";
 
 export function useMovieDetails(id: string) {
   const { tmdb, tmdbLocale } = useTMDB();
@@ -67,12 +68,67 @@ export function useMovieDiscover(options: MovieQueryOptions = {}) {
 
 export function useMovieGenres() {
   const { tmdb, tmdbLocale } = useTMDB();
+  const { movieGenres, setMovieGenres } = useMovieStore();
 
   return useQuery({
     queryKey: ["movie-genres", tmdbLocale],
     queryFn: async () => {
+      if (movieGenres[tmdbLocale]) {
+        return movieGenres[tmdbLocale];
+      }
+
       const data = await tmdb.genres.movies({ language: tmdbLocale });
+      setMovieGenres(tmdbLocale, data.genres);
       return data.genres;
+    },
+  });
+}
+
+export function useMovieProviders() {
+  const { tmdb, tmdbLocale } = useTMDB();
+  const { movieProviders, setMovieProviders } = useMovieStore();
+
+  const NUMBER_OF_PROVIDERS = 5;
+
+  return useQuery({
+    queryKey: ["movie-providers", tmdbLocale],
+    queryFn: async () => {
+      if (movieProviders[tmdbLocale]) {
+        return movieProviders[tmdbLocale].slice(0, NUMBER_OF_PROVIDERS);
+      }
+
+      const data = await tmdb.watchProviders.getMovieProviders();
+      // Extract country code from locale (e.g., "fr-FR" -> "FR")
+      const country = tmdbLocale.split("-")[1] || "US";
+
+      const sortedProviders = data.results
+        .filter(
+          (provider: { logo_path: string; display_priorities: Record<string, number> }) =>
+            provider.logo_path && provider.display_priorities?.[country],
+        )
+        .sort(
+          (
+            a: { display_priorities: Record<string, number> },
+            b: { display_priorities: Record<string, number> },
+          ) => a.display_priorities[country] - b.display_priorities[country],
+        );
+
+      // Deduplicate by provider_name (keeps first occurrence)
+      const providerMap = new Map();
+      for (const provider of sortedProviders) {
+        if (!providerMap.has(provider.provider_name)) {
+          providerMap.set(provider.provider_name, provider);
+        }
+      }
+
+      const result = Array.from(providerMap.values()).map((provider) => {
+        // don't need display_priorities for the UI
+        provider.display_priorities = {} as typeof provider.display_priorities;
+        return provider;
+      });
+
+      setMovieProviders(tmdbLocale, result);
+      return result.slice(0, NUMBER_OF_PROVIDERS);
     },
   });
 }

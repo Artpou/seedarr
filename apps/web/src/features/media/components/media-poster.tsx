@@ -44,7 +44,7 @@ export function MediaPoster({ media, movieId }: MediaPosterProps) {
 
       {youtubeTrailer && (
         <Dialog>
-          <DialogTrigger asChild>
+          <DialogTrigger className="cursor-pointer" asChild>
             <Button variant="secondary" className="w-full">
               <Play className="size-3 fill-current mr-2" />
               <Trans>Watch Trailer</Trans>

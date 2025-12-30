@@ -12,11 +12,13 @@ import { MediaCategoryCarousel } from "@/features/media/components/media-categor
 import { MediaGrid } from "@/features/media/components/media-grid";
 import { MediaSortTabs } from "@/features/media/components/media-sort-tabs";
 import { useRecentlyViewed } from "@/features/media/hooks/use-media";
+import { TVProviderTabs } from "@/features/tv/components/tv-provider-tabs";
 import { useTVDiscover } from "@/features/tv/hook/use-tv";
 
 export interface TVSearchParams {
   sort_by?: SortOption;
   with_genres?: string;
+  with_watch_providers?: string;
 }
 
 export const Route = createFileRoute("/_app/tv")({
@@ -27,6 +29,8 @@ export const Route = createFileRoute("/_app/tv")({
         ? search.sort_by
         : "popularity.desc") as SortOption,
       with_genres: typeof search.with_genres === "string" ? search.with_genres : undefined,
+      with_watch_providers:
+        typeof search.with_watch_providers === "string" ? search.with_watch_providers : undefined,
     };
   },
 });
@@ -35,10 +39,7 @@ function TVPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const { data: recentlyViewedTV = [] } = useRecentlyViewed("tv", 20);
-  // biome-ignore lint/suspicious/noExplicitAny: TMDB library type limitation with string sort_by
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useTVDiscover(
-    search as any,
-  );
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useTVDiscover(search);
 
   const tvShows = useMemo(() => {
     return data?.pages.flatMap((page) => page.results) ?? [];
@@ -76,10 +77,13 @@ function TVPage() {
       )}
 
       <div className="space-y-4">
-        <MediaSortTabs
-          value={search.sort_by ?? "popularity.desc"}
-          onValueChange={handleSearchChange}
-        />
+        <div className="flex items-center justify-between gap-4">
+          <MediaSortTabs
+            value={search.sort_by ?? "popularity.desc"}
+            onValueChange={handleSearchChange}
+          />
+          <TVProviderTabs value={search.with_watch_providers} onValueChange={handleSearchChange} />
+        </div>
         <MediaGrid
           items={tvShows}
           isLoading={isLoading || isFetchingNextPage}

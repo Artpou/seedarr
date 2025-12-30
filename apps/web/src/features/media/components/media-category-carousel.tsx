@@ -22,7 +22,7 @@ export function MediaCategoryCarousel({ type, onValueChange }: MediaCategoryCaro
 
   const genres = type === "movie" ? movieGenres : tvGenres;
   const isLoading = type === "movie" ? isLoadingMovies : isLoadingTV;
-  const selectedGenreId = search.with_genres ? Number.parseInt(search.with_genres) : undefined;
+  const selectedGenreId = search.with_genres ? Number.parseInt(search.with_genres, 10) : undefined;
 
   const handleGenreClick = (genreId: number) => {
     // Toggle: if clicking the same genre, deactivate it
@@ -50,7 +50,10 @@ export function MediaCategoryCarousel({ type, onValueChange }: MediaCategoryCaro
   return (
     <CarouselWrapper>
       {genres.map((genre) => (
-        <CarouselItem key={genre.id}>
+        <CarouselItem
+          className={cn(selectedGenreId === genre.id && "border-primary!")}
+          key={genre.id}
+        >
           <Card
             className="group h-32 py-0 cursor-pointer overflow-hidden"
             onClick={() => handleGenreClick(genre.id)}

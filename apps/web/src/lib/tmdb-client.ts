@@ -14,11 +14,15 @@ const fetchTMDB = (apiKey: string, language?: AvailableLanguage) => {
 
     if (options) {
       for (const [key, value] of Object.entries(options)) {
-        if (value !== undefined) {
-          const paramValue = Array.isArray(value) ? value.join(",") : value;
-          const snakeCaseKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-          fullUrl.searchParams.set(snakeCaseKey, paramValue);
+        if (value === undefined) continue;
+
+        if (key === "with_watch_providers") {
+          fullUrl.searchParams.set("watch_region", language?.split("-")[1] || "US");
         }
+
+        const paramValue = Array.isArray(value) ? value.join(",") : value;
+        const snakeCaseKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+        fullUrl.searchParams.set(snakeCaseKey, paramValue);
       }
     }
 
@@ -39,6 +43,7 @@ export interface TMDBClientType {
   discover: Pick<TMDB["discover"], "movie" | "tvShow">;
   genres: Pick<TMDB["genres"], "movies" | "tvShows">;
   collections: Pick<TMDB["collections"], "details">;
+  watchProviders: Pick<TMDB["watchProviders"], "getMovieProviders" | "getTvProviders">;
 }
 
 export const tmdbClient = ({
@@ -77,6 +82,12 @@ export const tmdbClient = ({
     },
     collections: {
       details: async (id) => request(`/collection/${id}`),
+    },
+    watchProviders: {
+      getMovieProviders: async (options = {}) =>
+        request("/watch/providers/movie", toGenericOptions(options)),
+      getTvProviders: async (options = {}) =>
+        request("/watch/providers/tv", toGenericOptions(options)),
     },
   };
 };

@@ -1,18 +1,22 @@
 import { useMemo } from "react";
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { FilterIcon } from "lucide-react";
 import { SortOption } from "tmdb-ts";
 
+import { Button } from "@/shared/ui/button";
 import { Container } from "@/shared/ui/container";
 
 import { MediaCategoryCarousel } from "@/features/media/components/media-category-carousel";
 import { MediaGrid } from "@/features/media/components/media-grid";
 import { MediaSortTabs } from "@/features/media/components/media-sort-tabs";
+import { MovieProviderTabs } from "@/features/movies/components/movie-provider-tabs";
 import { useMovieDiscover } from "@/features/movies/hooks/use-movie";
 
 export interface MovieSearchParams {
   sort_by?: SortOption;
   with_genres?: string;
+  with_watch_providers?: string;
 }
 
 export const Route = createFileRoute("/_app/movies/")({
@@ -21,6 +25,7 @@ export const Route = createFileRoute("/_app/movies/")({
     return {
       sort_by: search.sort_by ?? "popularity.desc",
       with_genres: search.with_genres,
+      with_watch_providers: search.with_watch_providers,
     };
   },
 });
@@ -31,6 +36,7 @@ function MoviesPage() {
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useMovieDiscover({
     sort_by: search.sort_by,
     with_genres: search.with_genres,
+    with_watch_providers: search.with_watch_providers,
   });
 
   const movies = useMemo(() => {
@@ -58,7 +64,19 @@ function MoviesPage() {
       <MediaCategoryCarousel type="movie" onValueChange={handleSearchChange} />
 
       <div className="space-y-4">
-        <MediaSortTabs value={search.sort_by} onValueChange={handleSearchChange} />
+        <div className="flex items-center justify-between gap-4">
+          <MediaSortTabs value={search.sort_by} onValueChange={handleSearchChange} />
+          <div className="flex items-center gap-2">
+            <MovieProviderTabs
+              className="hidden xl:flex"
+              value={search.with_watch_providers}
+              onValueChange={handleSearchChange}
+            />
+            <Button variant="secondary" size="icon-lg">
+              <FilterIcon />
+            </Button>
+          </div>
+        </div>
         <MediaGrid
           items={movies}
           isLoading={isLoading || isFetchingNextPage}
