@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
-import { ClockPlusIcon, HeartIcon } from "lucide-react";
+import { ClockPlusIcon, FilmIcon, HeartIcon, TvIcon } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -14,9 +14,10 @@ const MAX_OVERVIEW_LENGTH = 100;
 
 interface MediaCardProps {
   media: Media;
+  withType?: boolean;
 }
 
-export function MediaCard({ media }: MediaCardProps) {
+export function MediaCard({ media, withType = false }: MediaCardProps) {
   const year = media.release_date ? new Date(media.release_date).getFullYear() : "";
 
   const cardContent = (
@@ -33,6 +34,11 @@ export function MediaCard({ media }: MediaCardProps) {
         </p>
         <p className="text-xs font-bold">{year}</p>
       </div>
+      {withType && (
+        <div className="bg-background/80 rounded-md p-2 absolute top-2 left-2 block group-hover:hidden">
+          {media.type === "movie" ? <FilmIcon className="size-4" /> : <TvIcon className="size-4" />}
+        </div>
+      )}
       <div className="absolute top-2 left-2 right-2 flex justify-between gap-1">
         <div className="flex gap-1">
           {[

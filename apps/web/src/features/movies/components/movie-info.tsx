@@ -2,12 +2,12 @@ import { useMemo } from "react";
 
 import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
-import type { AppendToResponse, MovieDetails, WatchLocale } from "tmdb-ts";
+import { Plus } from "lucide-react";
+import type { AppendToResponse, Flatrate, MovieDetails, WatchLocale } from "tmdb-ts";
 
+import { cn } from "@/lib/utils";
 import { formatRuntime } from "@/shared/helpers/date";
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
 import { CircularProgress } from "@/shared/ui/circular-progress";
 import {
   DropdownMenu,
@@ -23,6 +23,46 @@ import { getBackdropUrl } from "@/features/media/helpers/media.helper";
 interface MovieInfoProps {
   movie: AppendToResponse<MovieDetails, "watch/providers"[], "movie">;
 }
+
+const ProviderIcon = ({ provider, movieName }: { provider: Flatrate; movieName: string }) => {
+  const redirectUrl = useMemo(() => {
+    const encodedMovieName = encodeURIComponent(movieName);
+    switch (provider.provider_name.toLowerCase()) {
+      case "netflix":
+        return `https://www.netflix.com/search?q=${encodedMovieName}`;
+      case "disney plus":
+        return `https://www.disneyplus.com/`;
+      case "canal+":
+        return `https://www.canalplus.fr/`;
+      case "hbo max":
+        return `https://www.hbomax.com/`;
+      case "amazon prime video":
+        return `https://www.primevideo.com/search?phrase=${encodedMovieName}`;
+      case "apple tv+":
+        return `https://www.apple.com/apple-tv-plus/`;
+      case "peacock":
+        return `https://www.peacocktv.com/`;
+      case "paramount+":
+        return `https://www.paramountplus.com/`;
+    }
+  }, [provider.provider_name, movieName]);
+
+  console.log(provider);
+
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: we want to open the link in a new tab
+    <img
+      src={getBackdropUrl(provider.logo_path, "original")}
+      alt={provider.provider_name}
+      title={provider.provider_name}
+      onClick={() => !!redirectUrl && window.open(redirectUrl, "_blank")}
+      className={cn(
+        "size-12 rounded-full border border-border shadow-sm",
+        redirectUrl && "cursor-pointer hover:scale-110 transition-transform",
+      )}
+    />
+  );
+};
 
 export function MovieInfo({ movie }: MovieInfoProps) {
   const { i18n } = useLingui();
@@ -51,8 +91,8 @@ export function MovieInfo({ movie }: MovieInfoProps) {
   }, [movie, tmdbLocale]);
 
   const firstProviders = useMemo(() => {
-    if (uniqueProviders.flatrate.length > 0) return uniqueProviders.flatrate.slice(0, 5);
-    if (uniqueProviders.buyRent.length > 0) return uniqueProviders.buyRent.slice(0, 5);
+    if (uniqueProviders.flatrate.length > 0) return uniqueProviders.flatrate.slice(0, 4);
+    if (uniqueProviders.buyRent.length > 0) return uniqueProviders.buyRent.slice(0, 4);
     return [];
   }, [uniqueProviders]);
 
@@ -60,17 +100,16 @@ export function MovieInfo({ movie }: MovieInfoProps) {
     <div className="dark text-foreground flex flex-col gap-4">
       <div>
         <h1 className="text-4xl md:text-5xl font-black tracking-tight">{movie.title}</h1>
-        <div className="flex items-center gap-3 text-sm font-medium mt-4">
-          {movie.release_date && (
-            <Badge variant="secondary">
-              {new Date(movie.release_date).toLocaleDateString(tmdbLocale)}
-            </Badge>
-          )}
+        {movie.title !== movie.original_title && (
+          <p className="mt-1 text-sm text-muted-foreground font-medium">{movie.original_title}</p>
+        )}
+        <div className="flex items-center gap-2 text-sm font-medium mt-4">
+          {movie.release_date && <span>{new Date(movie.release_date).getFullYear()}</span>}
           <span className="opacity-30">•</span>
           {movie.runtime && <span>{formatRuntime(movie.runtime)}</span>}
           <span className="opacity-30">•</span>
           {movie.genres && movie.genres.length > 0 && (
-            <span>
+            <span className="max-w-[50%] truncate">
               {movie.genres
                 .slice(0, 3)
                 .map((genre) => (typeof genre === "string" ? genre : genre.name))
@@ -85,7 +124,9 @@ export function MovieInfo({ movie }: MovieInfoProps) {
           {movie.tagline && (
             <p className="text-muted-foreground italic font-bold">{movie.tagline}</p>
           )}
-          {movie.overview && <p className="text-sm leading-relaxed">{movie.overview}</p>}
+          {movie.overview && (
+            <p className="text-sm font-medium leading-relaxed">{movie.overview}</p>
+          )}
         </div>
       )}
 
@@ -94,23 +135,19 @@ export function MovieInfo({ movie }: MovieInfoProps) {
 
         <div className="flex items-center gap-1.5 border-l border-white/10 pl-4">
           {firstProviders.map((provider) => (
-            <img
-              key={provider.provider_id}
-              src={getBackdropUrl(provider.logo_path, "original")}
-              alt={provider.provider_name}
-              title={provider.provider_name}
-              className="size-9 rounded-full border border-white/10 shadow-sm transition-transform hover:scale-110"
-            />
+            <ProviderIcon key={provider.provider_id} provider={provider} movieName={movie.title} />
           ))}
           {firstProviders.length <
             uniqueProviders.flatrate.length + uniqueProviders.buyRent.length && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Trans>
-                    See all ({uniqueProviders.flatrate.length + uniqueProviders.buyRent.length})
-                  </Trans>
-                </Button>
+                <button
+                  type="button"
+                  className="size-12 rounded-full border border-border shadow-sm bg-background hover:scale-110 transition-transform flex items-center justify-center cursor-pointer"
+                  title={`See all (${uniqueProviders.flatrate.length + uniqueProviders.buyRent.length})`}
+                >
+                  <Plus className="size-5" />
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-80">
                 {uniqueProviders.flatrate.length > 0 && (
@@ -120,12 +157,10 @@ export function MovieInfo({ movie }: MovieInfoProps) {
                     </DropdownMenuLabel>
                     <div className="flex flex-wrap gap-2 p-2">
                       {uniqueProviders.flatrate.map((provider) => (
-                        <img
+                        <ProviderIcon
                           key={provider.provider_id}
-                          src={getBackdropUrl(provider.logo_path, "original")}
-                          alt={provider.provider_name}
-                          title={provider.provider_name}
-                          className="size-9 rounded-full border border-white/10 shadow-sm"
+                          provider={provider}
+                          movieName={movie.title}
                         />
                       ))}
                     </div>
@@ -140,12 +175,10 @@ export function MovieInfo({ movie }: MovieInfoProps) {
                       </DropdownMenuLabel>
                       <div className="flex flex-wrap gap-2 p-2">
                         {uniqueProviders.buyRent.map((provider) => (
-                          <img
+                          <ProviderIcon
                             key={provider.provider_id}
-                            src={getBackdropUrl(provider.logo_path, "original")}
-                            alt={provider.provider_name}
-                            title={provider.provider_name}
-                            className="size-9 rounded-full border border-white/10 shadow-sm"
+                            provider={provider}
+                            movieName={movie.title}
                           />
                         ))}
                       </div>

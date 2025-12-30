@@ -1,27 +1,26 @@
-import { AvailableLanguage, TMDB } from "tmdb-ts";
+import { AvailableLanguage, DiscoverQueryOptions, TMDB } from "tmdb-ts";
 
 const TMDB_API_URL = "https://api.themoviedb.org/3";
 // Yes, API key is shared, but it's only in read-only with api-v3.
 const DEFAULT_TMDB_API_KEY = "29f788393063cd24bfb885d7d6ee9ae4";
 
+// In fetchTMDB function, update the options type:
 const fetchTMDB = (apiKey: string, language?: AvailableLanguage) => {
-  return async (
-    url: string,
-    options?: {
-      appendToResponse?: string[];
-      query?: string;
-      with_genres?: string;
-    },
-  ) => {
+  return async (url: string, options?: Record<string, string | string[] | undefined>) => {
     const fullUrl = new URL(`${TMDB_API_URL}${url}`);
     fullUrl.searchParams.set("api_key", apiKey);
 
     if (language) fullUrl.searchParams.set("language", language);
 
-    if (options?.appendToResponse)
-      fullUrl.searchParams.set("append_to_response", options.appendToResponse.join(","));
-    if (options?.query) fullUrl.searchParams.set("query", options.query);
-    if (options?.with_genres) fullUrl.searchParams.set("with_genres", options.with_genres);
+    if (options) {
+      for (const [key, value] of Object.entries(options)) {
+        if (value !== undefined) {
+          const paramValue = Array.isArray(value) ? value.join(",") : value;
+          const snakeCaseKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+          fullUrl.searchParams.set(snakeCaseKey, paramValue);
+        }
+      }
+    }
 
     const res = await fetch(fullUrl.toString());
 
@@ -34,10 +33,12 @@ const fetchTMDB = (apiKey: string, language?: AvailableLanguage) => {
 };
 
 export interface TMDBClientType {
-  movies: Pick<TMDB["movies"], "popular" | "topRated" | "upcoming" | "nowPlaying" | "details">;
-  tvShows: Pick<TMDB["tvShows"], "popular" | "topRated" | "onTheAir" | "airingToday" | "details">;
+  movies: Pick<TMDB["movies"], "details">;
+  tvShows: Pick<TMDB["tvShows"], "details">;
   search: Pick<TMDB["search"], "multi">;
   discover: Pick<TMDB["discover"], "movie" | "tvShow">;
+  genres: Pick<TMDB["genres"], "movies" | "tvShows">;
+  collections: Pick<TMDB["collections"], "details">;
 }
 
 export const tmdbClient = ({
@@ -49,27 +50,33 @@ export const tmdbClient = ({
 }): TMDBClientType => {
   const request = fetchTMDB(apiKey, language);
 
+  const toGenericOptions = (options: DiscoverQueryOptions) => {
+    if (options.sort_by === "vote_average.desc") {
+      options["vote_count.gte"] = 300;
+    }
+    return Object.fromEntries(Object.entries(options).filter(([_, value]) => value !== undefined));
+  };
+
   return {
     movies: {
-      popular: async () => request("/movie/popular"),
-      topRated: async () => request("/movie/top_rated"),
-      upcoming: async () => request("/movie/upcoming"),
-      nowPlaying: async () => request("/movie/now_playing"),
       details: async (id, appendToResponse) => request(`/movie/${id}`, { appendToResponse }),
     },
     tvShows: {
-      popular: async () => request("/tv/popular"),
-      topRated: async () => request("/tv/top_rated"),
-      onTheAir: async () => request("/tv/on_the_air"),
-      airingToday: async () => request("/tv/airing_today"),
       details: async (id, appendToResponse) => request(`/tv/${id}`, { appendToResponse }),
     },
     search: {
       multi: async ({ query }) => request("/search/multi", { query }),
     },
     discover: {
-      movie: async ({ with_genres } = {}) => request("/discover/movie", { with_genres }),
-      tvShow: async ({ with_genres } = {}) => request("/discover/tv", { with_genres }),
+      movie: async (options = {}) => request("/discover/movie", toGenericOptions(options)),
+      tvShow: async (options = {}) => request("/discover/tv", toGenericOptions(options)),
+    },
+    genres: {
+      movies: async () => request("/genre/movie/list"),
+      tvShows: async () => request("/genre/tv/list"),
+    },
+    collections: {
+      details: async (id) => request(`/collection/${id}`),
     },
   };
 };

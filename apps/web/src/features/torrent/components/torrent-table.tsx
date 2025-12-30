@@ -103,10 +103,10 @@ export function TorrentTable({ movieTitle, releaseYear }: TorrentTableProps) {
               <TableHead className="w-full">
                 <Trans>Torrent Name</Trans>
               </TableHead>
-              <TableHead>
+              <TableHead className="hidden sm:table-cell text-center">
                 <Trans>Size</Trans>
               </TableHead>
-              <TableHead className="pr-8 text-right">
+              <TableHead className="hidden sm:table-cell pr-8 text-right">
                 <Trans>Health</Trans>
               </TableHead>
             </TableRow>
@@ -132,12 +132,12 @@ export function TorrentTable({ movieTitle, releaseYear }: TorrentTableProps) {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <span className="font-medium text-muted-foreground">
                       {(torrent.size / 1e9).toFixed(2)} GB
                     </span>
                   </TableCell>
-                  <TableCell className="relative">
+                  <TableCell className="hidden sm:table-cell relative">
                     <div className="flex items-center justify-end gap-3 pr-4">
                       <div className="flex items-center gap-1 font-bold text-green-500">
                         <ArrowUp className="size-3" />
@@ -191,7 +191,7 @@ export function TorrentTable({ movieTitle, releaseYear }: TorrentTableProps) {
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="recommended">
-                <Trans>Recommended Torrents</Trans> ({recommended.length})
+                <Trans>Recommended</Trans> ({recommended.length})
               </TabsTrigger>
               <TabsTrigger value="others">
                 <Trans>Others</Trans> ({others.length})
@@ -202,7 +202,9 @@ export function TorrentTable({ movieTitle, releaseYear }: TorrentTableProps) {
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm">
                     <ListFilter className="h-4 w-4" />
-                    <Trans>Indexers</Trans> ({indexers.length})
+                    <div className="hidden sm:block">
+                      <Trans>Indexers</Trans> ({indexers.length})
+                    </div>
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-full sm:max-w-md">

@@ -36,31 +36,29 @@ export function MovieRelated({ movie, collection }: MovieRelatedProps) {
   if (!hasCollection && !hasRecommendations) return null;
 
   return (
-    <section className="container mx-auto px-6 md:px-12 py-8">
-      <MediaCarousel
-        title={
-          hasCollection ? (
-            <Tabs
-              value={activeTab}
-              onValueChange={(value) => setActiveTab(value as "collection" | "recommendations")}
-            >
-              <TabsList>
-                <TabsTrigger value="collection">
-                  <Trans>{collection?.name}</Trans> ({collectionMovies.length})
-                </TabsTrigger>
-                <TabsTrigger value="recommendations">
-                  <Trans>Recommended</Trans> ({recommendedMovies.length})
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          ) : (
-            <Trans>Related</Trans>
-          )
-        }
-        data={
-          activeTab === "recommendations" || !hasCollection ? recommendedMovies : collectionMovies
-        }
-      />
-    </section>
+    <MediaCarousel
+      title={
+        hasCollection ? (
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as "collection" | "recommendations")}
+          >
+            <TabsList>
+              <TabsTrigger value="collection">
+                <Trans>{collection?.name}</Trans> ({collectionMovies.length})
+              </TabsTrigger>
+              <TabsTrigger value="recommendations">
+                <Trans>Recommended</Trans> ({recommendedMovies.length})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        ) : (
+          <Trans>Related</Trans>
+        )
+      }
+      data={
+        activeTab === "recommendations" || !hasCollection ? recommendedMovies : collectionMovies
+      }
+    />
   );
 }

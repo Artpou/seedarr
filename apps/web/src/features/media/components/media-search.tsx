@@ -26,7 +26,7 @@ export function MediaSearch() {
         replace: location.pathname === "/search",
       });
     } else if (searchParams.q) {
-      navigate({ to: "/movies" });
+      navigate({ to: "/" });
     }
 
     isTypingRef.current = false;

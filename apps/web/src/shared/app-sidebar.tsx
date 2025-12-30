@@ -44,10 +44,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b px-4 py-3 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
-          <Link
-            to="/movies"
-            className="flex items-center gap-2 group-data-[collapsible=icon]:hidden"
-          >
+          <Link to="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
             <img src="/logo192.png" alt="Seedarr" className="size-8" />
             <span className="text-lg font-semibold">Seedarr</span>
           </Link>

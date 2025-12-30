@@ -1,4 +1,4 @@
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useSearch } from "@tanstack/react-router";
 
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/shared/ui/card";
@@ -6,35 +6,30 @@ import { CarouselItem } from "@/shared/ui/carousel";
 import { CarouselWrapper } from "@/shared/ui/carousel-wrapper";
 import { Skeleton } from "@/shared/ui/skeleton";
 
-import { useMovieGenres, useTVGenres } from "@/features/media/hooks/use-media";
 import { Media } from "@/features/media/media";
+import { useMovieGenres } from "@/features/movies/hooks/use-movie";
+import { useTVGenres } from "@/features/tv/hook/use-tv";
 
 interface MediaCategoryCarouselProps {
   type: Media["type"];
+  onValueChange?: (updates: { with_genres?: string }) => void;
 }
 
-export function MediaCategoryCarousel({ type }: MediaCategoryCarouselProps) {
+export function MediaCategoryCarousel({ type, onValueChange }: MediaCategoryCarouselProps) {
   const { data: movieGenres = [], isLoading: isLoadingMovies } = useMovieGenres();
   const { data: tvGenres = [], isLoading: isLoadingTV } = useTVGenres();
-  const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as { genre?: string };
+  const search = useSearch({ from: type === "movie" ? "/_app/movies/" : "/_app/tv" });
 
   const genres = type === "movie" ? movieGenres : tvGenres;
   const isLoading = type === "movie" ? isLoadingMovies : isLoadingTV;
-  const selectedGenreId = search.genre ? Number.parseInt(search.genre) : undefined;
+  const selectedGenreId = search.with_genres ? Number.parseInt(search.with_genres) : undefined;
 
   const handleGenreClick = (genreId: number) => {
     // Toggle: if clicking the same genre, deactivate it
     if (selectedGenreId === genreId) {
-      navigate({
-        to: type === "movie" ? "/movies" : "/tv",
-        search: {},
-      });
+      onValueChange?.({ with_genres: undefined });
     } else {
-      navigate({
-        to: type === "movie" ? "/movies" : "/tv",
-        search: { genre: genreId.toString() },
-      });
+      onValueChange?.({ with_genres: genreId.toString() });
     }
   };
 

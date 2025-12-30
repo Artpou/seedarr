@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, Search } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
+import { Container } from "@/shared/ui/container";
 import { SeedarrLoader } from "@/shared/ui/seedarr-loader";
 
 import { MediaGrid } from "@/features/media/components/media-grid";
@@ -35,7 +36,7 @@ function SearchPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 pb-20">
+    <Container>
       {!q ? (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
           <Search className="size-16 text-muted-foreground/20 mb-4" />
@@ -56,7 +57,7 @@ function SearchPage() {
               <Trans>Search Results for "{q}"</Trans>
             </h2>
           </div>
-          <MediaGrid items={searchResults} />
+          <MediaGrid items={searchResults} withType />
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
@@ -69,6 +70,6 @@ function SearchPage() {
           </p>
         </div>
       )}
-    </div>
+    </Container>
   );
 }

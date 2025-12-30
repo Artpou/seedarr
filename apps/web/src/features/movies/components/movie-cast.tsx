@@ -33,17 +33,15 @@ export function MovieCast({ movie }: MovieCastProps) {
   if (castAndCrew.length === 0) return null;
 
   return (
-    <section className="container mx-auto px-6 md:px-12 py-8">
-      <CarouselWrapper title={<Trans>Cast & Crew</Trans>}>
-        {castAndCrew.map((person) => (
-          <CarouselItem
-            key={`${person.id}-${person.role}`}
-            className="basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/7 xl:basis-1/8"
-          >
-            <PersonCard {...person} />
-          </CarouselItem>
-        ))}
-      </CarouselWrapper>
-    </section>
+    <CarouselWrapper title={<Trans>Cast & Crew</Trans>}>
+      {castAndCrew.map((person) => (
+        <CarouselItem
+          key={`${person.id}-${person.role}`}
+          className="basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/7 xl:basis-1/8"
+        >
+          <PersonCard {...person} />
+        </CarouselItem>
+      ))}
+    </CarouselWrapper>
   );
 }

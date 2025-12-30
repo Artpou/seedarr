@@ -33,7 +33,7 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
       className={cn(
         "sticky top-0 z-50 w-full transition-all duration-200",
         isScrolled
-          ? "border-b border-border bg-background/50"
+          ? "border-b border-border bg-sidebar"
           : "border-b border-transparent bg-transparent",
       )}
     >

@@ -31,7 +31,7 @@ function TorrentPage() {
 
   useEffect(() => {
     if (!q) {
-      router.navigate({ to: "/movies" });
+      router.navigate({ to: "/" });
     }
   }, [q, router]);
 

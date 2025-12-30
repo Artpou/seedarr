@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import { Play, Search } from "lucide-react";
+import { AppendToResponse, MovieDetails } from "tmdb-ts";
 
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/shared/ui/dialog";
@@ -10,19 +11,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/shared/ui/dialog";
 import { getPosterUrl } from "@/features/media/helpers/media.helper";
 
 interface MediaPosterProps {
-  media: {
-    poster_path?: string;
-    title?: string;
-    original_title?: string;
-    release_date?: string;
-    videos?: {
-      results?: {
-        site?: string;
-        type?: string;
-        key?: string;
-      }[];
-    };
-  };
+  media: AppendToResponse<MovieDetails, "videos"[], "movie">;
   movieId?: number;
 }
 
@@ -46,7 +35,7 @@ export function MediaPoster({ media, movieId }: MediaPosterProps) {
   }, [media]);
 
   return (
-    <div className="flex flex-col shrink-0 space-y-2 items-center">
+    <div className="flex flex-col shrink-0 space-y-2 items-center max-w-[230px]">
       <img
         src={getPosterUrl(media.poster_path, "w500")}
         alt={media.title}

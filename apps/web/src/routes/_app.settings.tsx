@@ -9,6 +9,7 @@ import { Download, LogOut } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Container } from "@/shared/ui/container";
 import { Input } from "@/shared/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
@@ -70,7 +71,7 @@ function SettingsPage() {
   ];
 
   return (
-    <div className="container mx-auto p-8 max-w-2xl">
+    <Container>
       <div className="flex flex-col gap-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -157,6 +158,6 @@ function SettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </Container>
   );
 }

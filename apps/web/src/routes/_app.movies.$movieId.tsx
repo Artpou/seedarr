@@ -1,11 +1,17 @@
+import { useState } from "react";
+
 import { useLingui } from "@lingui/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Info } from "lucide-react";
 import { TMDB } from "tmdb-ts";
 
 import { api } from "@/lib/api";
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
+import { Button } from "@/shared/ui/button";
+import { Container } from "@/shared/ui/container";
 import { SeedarrLoader } from "@/shared/ui/seedarr-loader";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/ui/sheet";
 
 import { MediaPoster } from "@/features/media/components/media-poster";
 import { getBackdropUrl } from "@/features/media/helpers/media.helper";
@@ -23,6 +29,7 @@ function MoviePage() {
   const { i18n } = useLingui();
   const tmdbLocale = countryToTmdbLocale(i18n.locale);
   const queryClient = useQueryClient();
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["movie-full", params.movieId, tmdbLocale],
@@ -81,31 +88,54 @@ function MoviePage() {
       <div className="relative w-full pb-6 pt-6 sm:pt-12">
         {/* Background - full width */}
         <div
-          className="absolute inset-0 bg-cover bg-center -z-10"
+          className="absolute inset-0 bg-cover bg-center -z-10 filter"
           style={{
             backgroundImage: `url(${getBackdropUrl(movie.backdrop_path)})`,
           }}
         >
-          <div className="absolute inset-0 bg-black/50" />
-          <div className="absolute inset-0 bg-linear-to-b from-black via-background/10 to-background" />
-          {/* <div className="absolute inset-0 bg-black/50" />
-          <div className="absolute inset-0 bg-linear-to-b from-transparent via-background/60 to-background" /> */}
+          <div className="absolute inset-0 bg-linear-to-r from-[oklch(0.22_0.004_240/0.95)] via-[oklch(0.22_0.004_240/0.75)] to-[oklch(0.22_0.004_240/0.75)]" />
+          <div className="absolute inset-0 bg-linear-to-b from-black/70 via-background/10 dark:to-background" />
         </div>
 
         {/* Content */}
-        <div className="container mx-auto px-4 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+        <Container className="flex flex-col lg:flex-row gap-8 items-center lg:items-start relative">
+          {/* Mobile/Tablet Details Button - Absolute positioned */}
+          <div className="xl:hidden absolute top-0 right-4 lg:right-8 z-10">
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button size="icon" variant="outline" className="rounded-full size-12 shadow-lg">
+                  <Info className="size-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[350px] sm:w-[400px]">
+                <SheetHeader>
+                  <SheetTitle>{movie.title}</SheetTitle>
+                </SheetHeader>
+                <div className="mx-4">
+                  <MovieDetails movie={movie} />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div className="lg:w-1/4 max-w-[250px] justify-items-center">
             <MediaPoster media={movie} movieId={movie.id} />
-            <div className="md:col-span-3">
-              <MovieInfo movie={movie} />
-            </div>
+          </div>
+          <div className="lg:w-3/4">
+            <MovieInfo movie={movie} />
+          </div>
+          <div className="hidden xl:block w-[300px]">
             <MovieDetails movie={movie} />
           </div>
-        </div>
+        </Container>
       </div>
 
-      <MovieCast movie={movie} />
-      <MovieRelated movie={movie} collection={collection} />
+      <Container className="flex gap-8 pt-6">
+        <div className="w-full flex flex-col gap-8">
+          <MovieCast movie={movie} />
+          <MovieRelated movie={movie} collection={collection} />
+        </div>
+      </Container>
     </div>
   );
 }
