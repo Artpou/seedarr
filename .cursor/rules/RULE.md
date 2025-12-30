@@ -137,6 +137,13 @@ src/
 - Use `cn()` utility for className merging
 - Variants via `class-variance-authority` (cva)
 
+### Hooks
+
+- Use `@uidotdev/usehooks` for common React patterns when available
+- Examples: `useIntersectionObserver`, `useDebounce`, `useLocalStorage`
+- Custom hooks in `shared/hooks/` for global behavior
+- Feature-specific hooks in `features/[feature]/hooks/`
+
 ### State Management
 
 - Zustand stores in `features/[feature]/[feature]-store.ts`

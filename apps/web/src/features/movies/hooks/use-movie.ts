@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MovieQueryOptions } from "tmdb-ts";
 
 import { api } from "@/lib/api";
@@ -48,12 +48,20 @@ export function useMovieDetails(id: string) {
 export function useMovieDiscover(options: MovieQueryOptions = {}) {
   const { tmdb, tmdbLocale } = useTMDB();
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["movie-discover", tmdbLocale, JSON.stringify(options)],
-    queryFn: async () => {
-      const data = await tmdb.discover.movie(options);
-      return data.results.map(tmdbMovieToMedia);
+    queryFn: async ({ pageParam = 1 }) => {
+      const data = await tmdb.discover.movie({ ...options, page: pageParam });
+      return {
+        results: data.results.map(tmdbMovieToMedia),
+        page: data.page,
+        totalPages: data.total_pages,
+      };
     },
+    getNextPageParam: (lastPage) => {
+      return lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
   });
 }
 

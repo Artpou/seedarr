@@ -1,8 +1,9 @@
 import { Trans } from "@lingui/react/macro";
-import { ExternalLink } from "lucide-react";
+import { ClockPlus, ExternalLink, Heart } from "lucide-react";
 import type { AppendToResponse, MovieDetails as TMDBMovieDetails } from "tmdb-ts";
 
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 
 interface MovieDetailsProps {
   movie: AppendToResponse<TMDBMovieDetails, "external_ids"[], "movie">;
@@ -28,6 +29,15 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
 
   return (
     <dl className="dark text-foreground space-y-4">
+      <div className="flex gap-3">
+        <Button size="icon-lg" variant="outline" rounded>
+          <Heart />
+        </Button>
+        <Button size="icon-lg" variant="outline" rounded>
+          <ClockPlus />
+        </Button>
+      </div>
+
       {!!movie.status && (
         <div>
           <dt className="text-sm text-muted-foreground font-medium mb-1">

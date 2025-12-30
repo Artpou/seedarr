@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import { Trans } from "@lingui/react/macro";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { EyeIcon } from "lucide-react";
@@ -8,7 +10,7 @@ import { Container } from "@/shared/ui/container";
 import { MediaCarousel } from "@/features/media/components/media-carousel";
 import { MediaCategoryCarousel } from "@/features/media/components/media-category-carousel";
 import { MediaGrid } from "@/features/media/components/media-grid";
-import { MediaListDropdown } from "@/features/media/components/media-list-dropdown";
+import { MediaSortTabs } from "@/features/media/components/media-sort-tabs";
 import { useRecentlyViewed } from "@/features/media/hooks/use-media";
 import { useTVDiscover } from "@/features/tv/hook/use-tv";
 
@@ -34,7 +36,13 @@ function TVPage() {
   const search = Route.useSearch();
   const { data: recentlyViewedTV = [] } = useRecentlyViewed("tv", 20);
   // biome-ignore lint/suspicious/noExplicitAny: TMDB library type limitation with string sort_by
-  const { data: tvShows = [], isLoading } = useTVDiscover(search as any);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useTVDiscover(
+    search as any,
+  );
+
+  const tvShows = useMemo(() => {
+    return data?.pages.flatMap((page) => page.results) ?? [];
+  }, [data]);
 
   const handleSearchChange = (updates: Partial<TVSearchParams>) => {
     navigate({
@@ -44,6 +52,12 @@ function TVPage() {
         ...updates,
       },
     });
+  };
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
   };
 
   return (
@@ -62,11 +76,15 @@ function TVPage() {
       )}
 
       <div className="space-y-4">
-        <MediaListDropdown
+        <MediaSortTabs
           value={search.sort_by ?? "popularity.desc"}
           onValueChange={handleSearchChange}
         />
-        <MediaGrid items={tvShows} isLoading={isLoading} />
+        <MediaGrid
+          items={tvShows}
+          isLoading={isLoading || isFetchingNextPage}
+          onLoadMore={handleLoadMore}
+        />
       </div>
     </Container>
   );

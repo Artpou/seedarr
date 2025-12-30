@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useLingui } from "@lingui/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Info } from "lucide-react";
+import { ClockPlus, Heart, Info } from "lucide-react";
 import { TMDB } from "tmdb-ts";
 
 import { api } from "@/lib/api";
@@ -85,7 +85,7 @@ function MoviePage() {
   return (
     <div className="pb-20">
       {/* Hero Section with full-width background */}
-      <div className="relative w-full pb-6 pt-6 sm:pt-12">
+      <div className="relative w-full pb-6 pt-6">
         {/* Background - full width */}
         <div
           className="absolute inset-0 bg-cover bg-center -z-10 filter"
@@ -100,12 +100,20 @@ function MoviePage() {
         {/* Content */}
         <Container className="flex flex-col lg:flex-row gap-8 items-center lg:items-start relative">
           {/* Mobile/Tablet Details Button - Absolute positioned */}
-          <div className="xl:hidden absolute top-0 right-4 lg:right-8 z-10">
+          <div className="xl:hidden fixed mt-20 top-0 right-4 lg:right-8 z-10">
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
-                <Button size="icon" variant="outline" className="rounded-full size-12 shadow-lg">
-                  <Info className="size-5" />
-                </Button>
+                <div className="flex flex-col gap-3">
+                  <Button size="icon-lg" variant="outline" rounded>
+                    <Info />
+                  </Button>
+                  <Button size="icon-lg" variant="outline" rounded>
+                    <Heart />
+                  </Button>
+                  <Button size="icon-lg" variant="outline" rounded>
+                    <ClockPlus />
+                  </Button>
+                </div>
               </SheetTrigger>
               <SheetContent side="right" className="w-[350px] sm:w-[400px]">
                 <SheetHeader>

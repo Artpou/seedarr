@@ -16,7 +16,7 @@ const MovieImage = forwardRef<HTMLImageElement, MovieImageProps>(
     const [imageError, setImageError] = useState(false);
     const hasValidSrc = src && !imageError;
 
-    const posterUrl = getPosterUrl(src, "w500");
+    const posterUrl = getPosterUrl(src, "w342");
 
     const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
       setImageError(true);

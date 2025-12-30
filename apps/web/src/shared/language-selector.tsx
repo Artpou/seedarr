@@ -107,7 +107,7 @@ export function LanguageSelector() {
 
   return (
     <Select value={currentCountry} onValueChange={handleChange}>
-      <SelectTrigger className="h-9 w-fit gap-2 px-2">
+      <SelectTrigger className="h-9 w-fit gap-2 py-5 px-2">
         <SelectValue>
           <img
             src={`https://flagsapi.com/${currentCountry}/flat/64.png`}

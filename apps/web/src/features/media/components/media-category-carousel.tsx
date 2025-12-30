@@ -64,14 +64,10 @@ export function MediaCategoryCarousel({ type, onValueChange }: MediaCategoryCaro
                   selectedGenreId !== undefined && selectedGenreId !== genre.id && "grayscale",
                 )}
               />
-              <div
-                className={cn(
-                  `absolute inset-0 transition-all duration-300`,
-                  selectedGenreId === genre.id
-                    ? "bg-linear-to-t from-primary/80 via-primary/40 to-transparent"
-                    : "bg-linear-to-t from-black/80 via-black/40 to-transparent",
-                )}
-              />
+              {selectedGenreId !== genre.id && (
+                <div className="absolute inset-0 bg-linear-to-r from-[oklch(0.22_0.004_240/0.9)] via-[oklch(0.22_0.004_240/0.25)] to-[oklch(0.22_0.004_240/0.9)]" />
+              )}
+
               <div className="relative flex h-full items-center justify-center">
                 <h3 className="text-lg font-bold text-white drop-shadow-lg">{genre.name}</h3>
               </div>

@@ -35,9 +35,14 @@ export function MediaCard({ media, withType = false }: MediaCardProps) {
         <p className="text-xs font-bold">{year}</p>
       </div>
       {withType && (
-        <div className="bg-background/80 rounded-md p-2 absolute top-2 left-2 block group-hover:hidden">
-          {media.type === "movie" ? <FilmIcon className="size-4" /> : <TvIcon className="size-4" />}
-        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute top-2 left-2 group-hover:hidden"
+          aria-label={media.type === "movie" ? "Movie" : "TV"}
+        >
+          {media.type === "movie" ? <FilmIcon /> : <TvIcon />}
+        </Button>
       )}
       <div className="absolute top-2 left-2 right-2 flex justify-between gap-1">
         <div className="flex gap-1">
@@ -63,17 +68,17 @@ export function MediaCard({ media, withType = false }: MediaCardProps) {
             return (
               <Button
                 key={action.id}
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 tooltip={action.tooltip}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 size-8 bg-background/80 hover:bg-background backdrop-blur-sm"
+                className="sm:opacity-0 group-hover:opacity-100"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   action.onClick();
                 }}
               >
-                <Icon className="size-4" />
+                <Icon />
               </Button>
             );
           })}

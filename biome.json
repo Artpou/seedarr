@@ -10,7 +10,6 @@
     "includes": [
       "**/src/**/*",
       "**/*.{json}",
-      "!README.md",
       "!**/routeTree.gen.ts",
       "!**/drizzle/**/*",
       "!**/locales/**/messages.mjs"

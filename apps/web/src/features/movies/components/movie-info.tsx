@@ -2,12 +2,13 @@ import { useMemo } from "react";
 
 import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
-import { Plus } from "lucide-react";
+import { ClockPlus, Heart, Info, Plus } from "lucide-react";
 import type { AppendToResponse, Flatrate, MovieDetails, WatchLocale } from "tmdb-ts";
 
 import { cn } from "@/lib/utils";
 import { formatRuntime } from "@/shared/helpers/date";
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
+import { Button } from "@/shared/ui/button";
 import { CircularProgress } from "@/shared/ui/circular-progress";
 import {
   DropdownMenu,
