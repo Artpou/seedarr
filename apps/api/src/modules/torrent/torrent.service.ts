@@ -1,11 +1,9 @@
 import { IndexerManagerService } from "@/modules/indexer-manager/indexer-manager.service";
 import { AuthenticatedService } from "../../classes/authenticated-service";
-import { IndexerManager } from "../../db/schema";
+import { type IndexerType, type Media } from "../../db/schema";
 import type { IndexerAdapter, Torrent, TorrentIndexer } from "./adapters/base.adapter";
 import { JackettAdapter } from "./adapters/jackett.adapter";
 import { ProwlarrAdapter } from "./adapters/prowlarr.adapter";
-
-type IndexerType = "jackett" | "prowlarr";
 
 export class TorrentService extends AuthenticatedService {
   private readonly adapters: Record<IndexerType, IndexerAdapter> = {
@@ -17,30 +15,48 @@ export class TorrentService extends AuthenticatedService {
     return this.adapters[indexer];
   }
 
-  async listIndexers(indexerManager: IndexerManager): Promise<TorrentIndexer[]> {
-    return await this.getAdapter(indexerManager.name).getIndexers(indexerManager.apiKey || "");
+  async getIndexers(): Promise<TorrentIndexer[]> {
+    const indexerConfig = await new IndexerManagerService(this.user).getSelected();
+
+    if (!indexerConfig) throw new Error(`No indexer is configured for this user`);
+    if (indexerConfig.apiKey === null) throw new Error(`No API key is configured for this indexer`);
+
+    return this.getAdapter(indexerConfig.name).getIndexers(indexerConfig.apiKey);
   }
 
-  async searchTorrents(query: {
-    q: string;
-    t: string;
-    year?: string;
-    indexer: IndexerType;
-    indexerId?: string;
-  }): Promise<{ recommended: Torrent[]; others: Torrent[] }> {
-    const indexerConfig = await new IndexerManagerService(this.user).getByName(query.indexer);
+  async searchTorrents(media: Media, indexerId: string): Promise<Torrent[]> {
+    const indexerConfig = await new IndexerManagerService(this.user).getSelected();
 
-    if (!indexerConfig) throw new Error(`${query.indexer} is not configured for this user`);
-    if (!indexerConfig.apiKey) throw new Error(`No API key is configured for this indexer`);
+    if (!indexerConfig) throw new Error(`No indexer is configured for this user`);
+    if (indexerConfig.apiKey === null) throw new Error(`No API key is configured for this indexer`);
 
-    const sanitizedQuery = this.sanitizeQuery(query.q);
+    const apiKey = indexerConfig.apiKey;
+    const year = media.release_date ? media.release_date.split("-")[0] : undefined;
+    const categories = media.type === "movie" ? ["2000"] : ["5000"];
 
-    const torrents = await this.getAdapter(query.indexer).search(
-      { q: sanitizedQuery, t: query.t, indexerId: query.indexerId },
-      indexerConfig.apiKey,
-    );
+    const search = async (query: string) => {
+      return await this.getAdapter(indexerConfig.name).search(
+        {
+          q: this.sanitizeQuery(query),
+          t: media.type,
+          indexerId,
+          categories,
+        },
+        apiKey,
+      );
+    };
 
-    return this.sortAndFilterTorrents(torrents, query.year);
+    let torrents = await search(`${media.original_title}.${year || ""}`);
+
+    if (torrents.length === 0 && media.title && media.title !== media.original_title) {
+      torrents = await search(`${media.title}.${year || ""}`);
+    }
+
+    if (torrents.length === 0) {
+      torrents = await search(`${media.title}`);
+    }
+
+    return torrents.sort((a, b) => b.seeders - a.seeders);
   }
 
   private sanitizeQuery(query: string): string {
@@ -48,20 +64,5 @@ export class TorrentService extends AuthenticatedService {
       .replace(/[:;|<>"/\\*?]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-  }
-
-  private sortAndFilterTorrents(
-    torrents: Torrent[],
-    year?: string,
-  ): { recommended: Torrent[]; others: Torrent[] } {
-    torrents.sort((a, b) => b.seeders - a.seeders);
-
-    if (year) {
-      const recommended = torrents.filter((t) => t.title.includes(year));
-      const others = torrents.filter((t) => !t.title.includes(year));
-      return { recommended, others };
-    }
-
-    return { recommended: torrents, others: [] };
   }
 }

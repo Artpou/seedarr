@@ -1,4 +1,4 @@
-import type { ApiData, ApiDataItem, api } from "@/lib/api";
+import type { ApiData, api } from "@/lib/api";
 
-export type Torrent = ApiData<ReturnType<typeof api.torrents.search.get>>["recommended"][number];
-export type TorrentIndexer = ApiDataItem<ReturnType<typeof api.torrents.indexers.get>>;
+export type Torrent = ApiData<ReturnType<typeof api.torrents.search.post>>[number];
+export type TorrentIndexer = ApiData<ReturnType<typeof api.torrents.indexers.get>>[number];

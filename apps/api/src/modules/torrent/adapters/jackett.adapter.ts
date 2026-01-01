@@ -46,13 +46,16 @@ export class JackettAdapter implements IndexerAdapter {
   }
 
   async search(
-    query: { q: string; t: string; indexerId?: string },
+    query: { q: string; t: string; indexerId?: string; categories?: string[] },
     apiKey: string,
   ): Promise<Torrent[]> {
     const url = new URL(`${this.baseUrl}/indexers/all/results`);
     url.searchParams.set("apikey", apiKey);
     url.searchParams.set("Query", query.q);
     url.searchParams.set("Type", query.t);
+
+    // Jackett uses the Type parameter for filtering rather than category IDs
+    // Categories parameter is included for interface consistency but not used
 
     if (query.indexerId) {
       url.searchParams.append("Tracker[]", query.indexerId);

@@ -29,6 +29,13 @@
       "when": 1767143089027,
       "tag": "0003_lonely_quentin_quire",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1767293007392,
+      "tag": "0004_clumsy_proudstar",
+      "breakpoints": true
     }
   ]
 }

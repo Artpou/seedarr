@@ -121,6 +121,7 @@ src/
 - Route groups: `_app.*` (authenticated), `_auth.*` (public)
 - Use `beforeLoad` for auth checks and redirects
 - Protected routes check auth via `api.auth.me.get()`
+- Wrap route content in `<Container>` component for consistent layout and spacing
 
 ### API Client
 
@@ -134,6 +135,7 @@ src/
 - Radix UI primitives in `shared/ui/`
 - Feature components in `features/[feature]/components/`
 - Shared layout components in `shared/`
+- Use `<Container>` from `shared/ui/container` for route page layouts (handles max-width, padding, centering)
 - Use `cn()` utility for className merging
 - Variants via `class-variance-authority` (cva)
 

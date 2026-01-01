@@ -29,7 +29,7 @@ import { MovieDetails } from "@/features/movies/components/movie-details";
 import { MovieInfo } from "@/features/movies/components/movie-info";
 import { MovieRelated } from "@/features/movies/components/movie-related";
 
-export const Route = createFileRoute("/_app/movies/$movieId")({
+export const Route = createFileRoute("/_app/movies/$movieId/")({
   component: MoviePage,
 });
 
@@ -63,6 +63,7 @@ function MoviePage() {
         ...movieData,
         id: Number(params.movieId),
         title: movieData.title || movieData.original_title,
+        original_title: movieData.original_title ?? null,
         poster_path: movieData.poster_path ?? null,
       });
 

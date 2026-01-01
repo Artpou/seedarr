@@ -24,5 +24,8 @@ export interface Torrent {
 
 export interface IndexerAdapter {
   getIndexers(apiKey: string): Promise<TorrentIndexer[]>;
-  search(query: { q: string; t: string; indexerId?: string }, apiKey: string): Promise<Torrent[]>;
+  search(
+    query: { q: string; t: string; indexerId?: string; categories?: string[] },
+    apiKey: string,
+  ): Promise<Torrent[]>;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { LanguageSelector } from "@/shared/language-selector";
+import { LanguageDropdown } from "@/shared/language-dropdown";
 
 import { MediaSearch } from "@/features/media/components/media-search";
 
@@ -47,7 +47,7 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
 
             {/* Right: Language */}
             <div className="flex items-center gap-2">
-              <LanguageSelector />
+              <LanguageDropdown />
             </div>
           </>
         ) : (
@@ -55,7 +55,7 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
             {/* When not authenticated: only show language selector */}
             <div className="flex-1" />
             <div className="flex items-center gap-2">
-              <LanguageSelector />
+              <LanguageDropdown />
             </div>
           </>
         )}

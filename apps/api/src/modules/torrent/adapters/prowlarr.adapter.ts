@@ -47,14 +47,19 @@ export class ProwlarrAdapter implements IndexerAdapter {
   }
 
   async search(
-    query: { q: string; t: string; indexerId?: string },
+    query: { q: string; t: string; indexerId?: string; categories?: string[] },
     apiKey: string,
   ): Promise<Torrent[]> {
     const url = new URL(`${this.baseUrl}/search`);
     url.searchParams.set("query", query.q);
     url.searchParams.set("limit", "100");
-    url.searchParams.append("categories", "2000");
-    url.searchParams.append("categories", "5000");
+
+    // Add categories if provided
+    if (query.categories && query.categories.length > 0) {
+      for (const category of query.categories) {
+        url.searchParams.append("categories", category);
+      }
+    }
 
     if (query.indexerId) {
       url.searchParams.set("indexerIds", query.indexerId);

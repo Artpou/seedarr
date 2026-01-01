@@ -26,16 +26,6 @@ export function MediaPoster({ media, movieId }: MediaPosterProps) {
     return trailer || media.videos.results.find((video) => video.site === "YouTube");
   }, [media?.videos]);
 
-  const releaseYear = media?.release_date ? media.release_date.split("-")[0] : undefined;
-
-  const sanitizedMovieTitle = useMemo(() => {
-    const clean = (t?: string) => t?.normalize("NFD").replace(/[\u0300-\u036f]/g, "") || "";
-    const isLatin = (t: string) => !/[^\u0020-\u02AF]/.test(t);
-    const original = clean(media?.original_title);
-    const title = clean(media?.title);
-    return isLatin(original) ? original : isLatin(title) ? title : original || title;
-  }, [media]);
-
   return (
     <div className="flex flex-col shrink-0 space-y-2 items-center max-w-[230px]">
       <img
@@ -67,16 +57,9 @@ export function MediaPoster({ media, movieId }: MediaPosterProps) {
         </Dialog>
       )}
 
-      {media && role !== "viewer" && (
+      {media && role !== "viewer" && movieId && (
         <Button className="w-full" asChild>
-          <Link
-            to="/torrent"
-            search={{
-              q: sanitizedMovieTitle,
-              movie: movieId,
-              year: releaseYear,
-            }}
-          >
+          <Link to="/movies/$movieId/torrents" params={{ movieId: movieId.toString() }}>
             <Search className="size-3 mr-2" />
             <Trans>Search Torrent</Trans>
           </Link>

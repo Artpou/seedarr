@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { useLingui } from "@lingui/react";
 
+import { getFlagUrl } from "@/shared/helpers/lang.helper";
 import { Badge } from "@/shared/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
@@ -47,7 +48,7 @@ const MESSAGES_MAP = {
   fr: frMessages,
 };
 
-export function LanguageSelector() {
+export function LanguageDropdown() {
   const { i18n } = useLingui();
   const currentCountry = i18n.locale;
 
@@ -110,7 +111,7 @@ export function LanguageSelector() {
       <SelectTrigger className="h-9 w-fit gap-2 py-5 px-2">
         <SelectValue>
           <img
-            src={`https://flagsapi.com/${currentCountry}/flat/64.png`}
+            src={getFlagUrl(currentCountry)}
             alt={currentCountry}
             className="size-5 rounded-sm object-cover"
           />

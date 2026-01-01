@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { Trans } from "@lingui/react/macro";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -8,12 +9,11 @@ import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
-import { TorrentIndexer } from "@/features/torrent/torrent";
+import type { Torrent, TorrentIndexer } from "@/features/torrent/torrent";
 
 interface TorrentIndexersTableProps {
   indexers: TorrentIndexer[];
-  // biome-ignore lint/suspicious/noExplicitAny: any is used to avoid type errors
-  torrentQueries: UseQueryResult<any, Error>[];
+  torrentQueries: UseQueryResult<Torrent[], Error>[];
   onVisibilityChange: (visibleIndexers: Set<string>) => void;
 }
 
@@ -22,10 +22,28 @@ export function TorrentIndexersTable({
   torrentQueries,
   onVisibilityChange,
 }: TorrentIndexersTableProps) {
-  // Track which indexers are visible (all visible by default)
   const [visibleIndexers, setVisibleIndexers] = useState<Set<string>>(new Set());
 
-  // Initialize visible indexers when indexers are loaded
+  const indexerStats = useMemo(() => {
+    return indexers.map((indexer, i) => {
+      const query = torrentQueries[i];
+      const data = query?.data;
+      const torrentCount = Array.isArray(data) ? data.length : 0;
+
+      let status: "loading" | "success" | "error" | "idle" = "idle";
+      if (query?.isFetching) status = "loading";
+      else if (query?.isError) status = "error";
+      else if (query?.isSuccess) status = "success";
+
+      return {
+        id: indexer.id,
+        name: indexer.name,
+        status,
+        count: torrentCount,
+      };
+    });
+  }, [indexers, torrentQueries]);
+
   useEffect(() => {
     if (indexers.length > 0 && visibleIndexers.size === 0) {
       const newSet = new Set(indexers.map((i) => i.id));
@@ -47,25 +65,6 @@ export function TorrentIndexersTable({
     });
   };
 
-  const indexerStats = useMemo(() => {
-    return indexers.map((indexer, i) => {
-      const query = torrentQueries[i];
-      const torrentCount =
-        (query?.data?.data?.recommended.length || 0) + (query?.data?.data?.others.length || 0);
-
-      let status: "loading" | "success" | "error" | "idle" = "idle";
-      if (query?.isFetching) status = "loading";
-      else if (query?.isError) status = "error";
-      else if (query?.isSuccess) status = "success";
-
-      return {
-        name: indexer.name,
-        status,
-        count: torrentCount,
-      };
-    });
-  }, [indexers, torrentQueries]);
-
   const getStatusBadge = (status: "loading" | "success" | "error" | "idle") => {
     switch (status) {
       case "loading":
@@ -74,13 +73,13 @@ export function TorrentIndexersTable({
             variant="secondary"
             className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
           >
-            Loading
+            <Trans>Loading</Trans>
           </Badge>
         );
       case "error":
         return (
           <Badge variant="destructive" className="bg-red-500/10 text-red-500 border-red-500/20">
-            Error
+            <Trans>Error</Trans>
           </Badge>
         );
       case "success":
@@ -89,13 +88,13 @@ export function TorrentIndexersTable({
             variant="default"
             className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
           >
-            Success
+            <Trans>Success</Trans>
           </Badge>
         );
       default:
         return (
           <Badge variant="outline" className="text-muted-foreground">
-            Idle
+            <Trans>Idle</Trans>
           </Badge>
         );
     }
@@ -104,32 +103,37 @@ export function TorrentIndexersTable({
   return (
     <div className="space-y-3 sticky top-4">
       <h3 className="pl-1 text-sm font-bold tracking-wider text-muted-foreground uppercase">
-        Indexers ({indexers.length})
+        <Trans>Indexers</Trans> ({indexerStats.length})
       </h3>
       <div className="w-full overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-10"></TableHead>
-              <TableHead className="w-full">Name</TableHead>
-              <TableHead className="whitespace-nowrap">Status</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Found</TableHead>
+              <TableHead className="w-full">
+                <Trans>Name</Trans>
+              </TableHead>
+              <TableHead className="whitespace-nowrap">
+                <Trans>Status</Trans>
+              </TableHead>
+              <TableHead className="text-right whitespace-nowrap">
+                <Trans>Found</Trans>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {indexerStats.length > 0 ? (
-              indexerStats.map((stat, index) => {
-                const indexerId = indexers[index]?.id;
-                const isVisible = indexerId ? visibleIndexers.has(indexerId) : true;
+              indexerStats.map((stat) => {
+                const isVisible = visibleIndexers.has(stat.id);
 
                 return (
-                  <TableRow key={stat.name} className={!isVisible ? "opacity-50" : ""}>
+                  <TableRow key={stat.id} className={!isVisible ? "opacity-50" : ""}>
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => indexerId && toggleIndexerVisibility(indexerId)}
+                        onClick={() => toggleIndexerVisibility(stat.id)}
                       >
                         {stat.status === "loading" ? (
                           <Spinner />
@@ -149,7 +153,9 @@ export function TorrentIndexersTable({
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-6">
-                  <p className="text-sm text-muted-foreground">No indexers configured</p>
+                  <p className="text-sm text-muted-foreground">
+                    <Trans>No indexers configured</Trans>
+                  </p>
                 </TableCell>
               </TableRow>
             )}

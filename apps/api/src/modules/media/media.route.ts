@@ -14,12 +14,12 @@ export const mediaRoutes = new Elysia({ prefix: "/media" })
   .use(authGuard())
   .get("/:id", ({ user, params }) => new MediaService(user).get(params.id), {
     params: t.Object({
-      id: t.Number(),
+      id: t.Numeric(),
     }),
   })
   .get("/:id/status", ({ user, params }) => new MediaService(user).getMediaStatus(params.id), {
     params: t.Object({
-      id: t.Number(),
+      id: t.Numeric(),
     }),
   })
   .post(
