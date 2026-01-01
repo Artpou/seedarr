@@ -49,10 +49,10 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
-      "biome check --write"
+      "biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"
     ],
     "*.{json,md}": [
-      "biome format --write"
+      "biome format --write --files-ignore-unknown=true --no-errors-on-unmatched"
     ]
   }
 }
