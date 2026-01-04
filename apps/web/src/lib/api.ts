@@ -1,5 +1,5 @@
-import type { App } from "@basement/api";
-import { treaty } from "@elysiajs/eden";
+import type { AppType } from "@basement/api";
+import { hc } from "hono/client";
 
 export const getBaseUrl = () => {
   if (typeof window !== "undefined") {
@@ -8,16 +8,29 @@ export const getBaseUrl = () => {
   return process.env.INTERNAL_API_URL || "http://localhost:3002";
 };
 
-// Client-side API with credentials
-// @ts-expect-error - Elysia types are not compatible with the latest version
-export const api = treaty<App>(getBaseUrl(), {
-  fetch: {
+// Client-side API with credentials using Hono RPC
+export const api = hc<AppType>(getBaseUrl(), {
+  init: {
     credentials: "include",
   },
 });
 
-// @ts-expect-error - data is not a property of the Awaited type
-export type ApiData<T> = NonNullable<Awaited<T>["data"]>;
+// Type helpers for Hono RPC
+export type ApiResponse<T> = T extends Promise<infer R> ? R : T;
+export type ApiData<T> = ApiResponse<T> extends { json: () => Promise<infer R> } ? R : never;
+export type ApiDataItem<T> = ApiData<T> extends (infer U)[] ? U : never;
 
-// @ts-expect-error - data is not a property of the Awaited type
-export type ApiDataItem<T> = NonNullable<Awaited<T>["data"]>[number];
+/**
+ * Unwrap API response and handle errors
+ * Throws an error if the response is not ok, otherwise returns the JSON data
+ */
+export async function unwrap<T>(
+  response: Promise<{ ok: boolean; json: () => Promise<T> } | Response>,
+): Promise<T> {
+  const res = await response;
+  if (!res.ok) {
+    const status = "status" in res ? res.status : "unknown";
+    throw new Error(`API Error: ${status}`);
+  }
+  return res.json() as Promise<T>;
+}

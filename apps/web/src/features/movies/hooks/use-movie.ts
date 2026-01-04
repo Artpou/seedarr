@@ -22,18 +22,23 @@ export function useMovieDetails(id: string) {
         "recommendations",
         "external_ids",
         "release_dates",
+        "alternative_titles",
       ]);
 
-      console.log(movieData.release_dates);
+      const usTitle = movieData.alternative_titles?.titles?.find(
+        (title) => title.iso_3166_1 === "US" && title.type === "",
+      )?.title;
 
       // Track the movie view
-      await api.media.track.post({
-        type: "movie",
-        ...movieData,
-        id: Number(id),
-        title: movieData.title || movieData.original_title,
-        original_title: movieData.original_title ?? null,
-        poster_path: movieData.poster_path ?? null,
+      await api.media.track.$post({
+        json: {
+          type: "movie",
+          ...movieData,
+          id: Number(id),
+          title: movieData.title || movieData.original_title,
+          original_title: usTitle ?? movieData.original_title ?? null,
+          poster_path: movieData.poster_path ?? null,
+        },
       });
 
       // Invalidate recently-viewed cache after tracking

@@ -21,6 +21,9 @@ export interface Torrent {
   language?: string;
   detailsUrl?: string;
   indexerType: IndexerType;
+  // Optional fields from different indexers
+  downloadUrl?: string; // OxTorrent, etc.
+  magnetUrl?: string; // Prowlarr redirect URL
 }
 
 export interface IndexerAdapter {

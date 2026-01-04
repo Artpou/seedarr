@@ -32,9 +32,10 @@ const navItems = [
 export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
     try {
-      const response = await api.auth.me.get();
-      if (response.data) {
-        useAuth.getState().setUser(response.data);
+      const response = await api.auth.me.$get();
+      if (response.ok) {
+        const data = await response.json();
+        useAuth.getState().setUser(data);
       } else {
         throw redirect({ to: "/login" });
       }

@@ -14,9 +14,12 @@ import { useAuth } from "@/features/auth/auth-store";
 export const Route = createFileRoute("/_auth/signup")({
   component: Signup,
   beforeLoad: async () => {
-    const response = await api.auth["has-owner"].get();
-    if (response.data?.hasOwner) {
-      throw redirect({ to: "/login" });
+    const response = await api.auth["has-owner"].$get();
+    if (response.ok) {
+      const data = await response.json();
+      if (data.hasOwner) {
+        throw redirect({ to: "/login" });
+      }
     }
   },
 });
@@ -53,19 +56,20 @@ function Signup() {
     }
 
     try {
-      const response = await api.auth.register.post({
-        username: data.username,
-        password: data.password,
+      const response = await api.auth.register.$post({
+        json: {
+          username: data.username,
+          password: data.password,
+        },
       });
 
-      if (response.error) {
+      if (!response.ok) {
         throw new Error("Registration failed");
       }
 
-      if (response.data) {
-        setUser(response.data);
-        navigate({ to: "/", search: { tab: "movie" } });
-      }
+      const userData = await response.json();
+      setUser(userData);
+      navigate({ to: "/", search: { tab: "movie" } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

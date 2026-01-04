@@ -61,8 +61,6 @@ function MoviePage() {
     toggleWatchList.mutate(tmdbMovieToMedia(movie));
   };
 
-  console.log(getBackdropUrl(movie.backdrop_path));
-
   return (
     <div className="pb-20">
       {/* Hero Section with full-width background */}

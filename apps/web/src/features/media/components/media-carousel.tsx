@@ -1,11 +1,12 @@
 import { ReactNode, useMemo } from "react";
 
+import type { Media } from "@basement/api/types";
+
 import { CarouselItem } from "@/shared/ui/carousel";
 import { CarouselWrapper } from "@/shared/ui/carousel-wrapper";
 
 import { MediaCard } from "@/features/media/components/media-card";
 import { useMediaStatusBatch } from "@/features/media/hooks/use-media";
-import { Media } from "@/features/media/media";
 
 const MAX_ITEMS = 20;
 interface MediaCarouselProps {

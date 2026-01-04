@@ -15,25 +15,30 @@ A modern, self-hosted media discovery and torrent search platform powered by TMD
 ## ✨ Features
 
 - **TMDB Integration** - Browse movies and TV shows with rich metadata, ratings, and artwork
-- **Torrent Search** - Search for torrents directly through Prowlarr or Jackett
-- **Genre Discovery** - Explore content by genre with beautiful category cards
-- **Recently Viewed** - Keep track of your viewing history
+- **Torrent Search & Download** - Search for torrents directly through Prowlarr or Jackett
+- **WebTorrent Integration** - Download torrents directly in the app with real-time progress
+- **Video Streaming** - Stream downloaded videos directly in the browser (MP4 support)
+- **Personal Lists** - Like, watch list, and viewing history tracking
 - **Multi-language Support** - Available in English and French (more coming soon!)
-- **Dark Mode** - Beautiful Nord-inspired green theme with light/dark modes
-- **Responsive Design** - Works seamlessly on desktop, tablet, and mobile
+- **Role-Based Access** - User roles (viewer, member, admin, owner) with different permissions
+- **Responsive Design** - Beautiful UI that works seamlessly on desktop, tablet, and mobile
 
 ## 🚀 Tech Stack
 
 - **Frontend**: React 19 + TanStack Router + Vite
-- **Backend**: Elysia (Bun runtime)
+- **Backend**: Hono + Node.js (tsx runtime)
 - **Database**: SQLite with Drizzle ORM
 - **Styling**: Tailwind CSS v4 + Radix UI
-- **Type Safety**: TypeScript with TypeBox validation
+- **Type Safety**: TypeScript with Zod validation
+- **Package Manager**: pnpm
 - **Linting**: Biome
+- **Torrent**: WebTorrent for downloads and streaming
 
 ## 📋 Prerequisites
 
-- [Bun](https://bun.sh/) v1.3.1 or higher
+- [Node.js](https://nodejs.org/) v18.0.0 or higher
+- [pnpm](https://pnpm.io/) v9.0.0 or higher
+- (Optional) [FFmpeg](https://ffmpeg.org/) for video remuxing (MKV to MP4)
 - (Optional) A [TMDB API key](https://www.themoviedb.org/settings/api)
 - (Optional) Prowlarr or Jackett instance for torrent search
 
@@ -49,7 +54,7 @@ A modern, self-hosted media discovery and torrent search platform powered by TMD
 2. **Install dependencies**
 
    ```bash
-   bun install
+   pnpm install
    ```
 
 3. **Set up environment variables**
@@ -68,17 +73,16 @@ A modern, self-hosted media discovery and torrent search platform powered by TMD
 4. **Initialize the database**
 
    ```bash
-   bun db:push
+   pnpm db:push
    ```
 
 5. **Start the development servers**
 
    ```bash
-   bun dev
+   pnpm dev
    ```
 
    The application will be available at:
-
    - **Web**: http://localhost:3000
    - **API**: http://localhost:3002
 
@@ -94,13 +98,14 @@ A modern, self-hosted media discovery and torrent search platform powered by TMD
 ```
 .
 └── 📁 apps/
-    ├── 📁 api/                      # Elysia Backend (Port 3002)
+    ├── 📁 api/                      # Hono Backend (Port 3002)
     │   ├── 📁 src/
     │   │   ├── 📁 auth/            # Authentication utilities
     │   │   ├── 📁 db/              # Database schema & migrations
     │   │   ├── 📁 helpers/         # Utility functions
-    │   │   ├── 📁 modules/         # Feature modules
-    │   │   └── server.ts           # Elysia app entry point
+    │   │   ├── 📁 modules/         # Feature modules (routes & services)
+    │   │   └── server.ts           # Hono app entry point
+    │   ├── 📁 downloads/            # Downloaded torrent files
     │   └── drizzle.config.ts
     │
     └── 📁 web/                      # React Frontend (Port 3000)
@@ -125,34 +130,43 @@ A modern, self-hosted media discovery and torrent search platform powered by TMD
 - **`apps/api/src/modules/`** - Each module contains routes, services, and business logic for a specific feature
 - **`apps/web/src/features/`** - Feature-based architecture with components, hooks, and helpers co-located
 - **`apps/web/src/shared/`** - Reusable components and utilities used across features
-- **`packages/validators/`** - Type-safe validation schemas shared between API and web
+- **`apps/web/src/routes/`** - TanStack Router file-based routing
 
 ## 🧪 Development
 
 ```bash
 # Run both API and web
-bun dev
+pnpm dev
 
 # Run API only
-bun dev:api
+pnpm dev:api
 
 # Run web only
-bun dev:web
+pnpm dev:web
 
 # Lint all packages
-bun lint
+pnpm lint
+
+# Fix linting issues
+pnpm lint:fix
 
 # Format code
-bun format
+pnpm format
 
 # Type check
-bun type-check
+pnpm type-check
 
 # Database commands
-bun db:generate    # Generate migrations
-bun db:push        # Push schema to database
-bun db:studio      # Open Drizzle Studio
+pnpm db:generate    # Generate migrations
+pnpm db:push        # Push schema to database
+pnpm db:studio      # Open Drizzle Studio
 ```
+
+## ⚙️ Configuration
+
+For detailed configuration options (especially for Docker and indexer setup), see:
+
+- [API Configuration Guide](apps/api/CONFIGURATION.md)
 
 ## 📝 License
 
@@ -166,4 +180,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-<p align="center">Made with ❤️ using Bun and React</p>
+<p align="center">Made with ❤️ using pnpm, Hono, and React</p>

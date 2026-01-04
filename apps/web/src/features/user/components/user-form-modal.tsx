@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 
+import type { User } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import { useMutation } from "@tanstack/react-query";
 import { Crown, Glasses, ShieldCheck, UserCheck } from "lucide-react";
@@ -20,7 +21,6 @@ import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 import { useRole } from "@/features/auth/hooks/use-role";
-import type { User } from "@/features/user/user.types";
 
 interface UserFormData {
   username: string;
@@ -101,7 +101,7 @@ export function UserFormModal({ open, onClose, user }: UserFormModalProps) {
       password: string;
       role: "owner" | "admin" | "member" | "viewer";
     }) => {
-      await api.user.post(data);
+      await api.users.$post({ json: data });
     },
     onSuccess: () => {
       onClose();
@@ -115,7 +115,7 @@ export function UserFormModal({ open, onClose, user }: UserFormModalProps) {
       role?: "owner" | "admin" | "member" | "viewer";
     }) => {
       if (!user) return;
-      await api.user({ id: user.id }).put(data);
+      await api.users[":id"].$put({ param: { id: user.id }, json: data });
     },
     onSuccess: () => {
       onClose();

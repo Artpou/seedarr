@@ -8,6 +8,7 @@ import type { AppendToResponse, Flatrate, MovieDetails, WatchLocale } from "tmdb
 import { cn } from "@/lib/utils";
 import { formatRuntime } from "@/shared/helpers/date";
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
+import { getFlagUrl } from "@/shared/helpers/lang.helper";
 import { CircularProgress } from "@/shared/ui/circular-progress";
 import {
   DropdownMenu,
@@ -99,13 +100,21 @@ export function MovieInfo({ movie }: MovieInfoProps) {
     return [];
   }, [uniqueProviders]);
 
+  console.log(movie);
+
   return (
     <div className="dark text-foreground flex flex-col gap-4">
       <div>
         <h1 className="text-4xl md:text-5xl font-black tracking-tight">{movie.title}</h1>
-        {movie.title !== movie.original_title && (
-          <p className="mt-1 text-sm text-muted-foreground font-medium">{movie.original_title}</p>
-        )}
+        <div className="flex items-center mt-1 gap-2">
+          <img
+            src={getFlagUrl(movie.original_language)}
+            alt={movie.original_language}
+            className="size-6"
+          />
+          <p className="text-sm text-muted-foreground font-medium">{movie.original_title}</p>
+        </div>
+
         <div className="flex items-center gap-2 text-sm font-medium mt-4">
           {movie.release_date && <span>{new Date(movie.release_date).getFullYear()}</span>}
           <span className="opacity-30">•</span>

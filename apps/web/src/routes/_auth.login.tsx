@@ -15,9 +15,12 @@ import { useAuth } from "@/features/auth/auth-store";
 export const Route = createFileRoute("/_auth/login")({
   component: Login,
   beforeLoad: async () => {
-    const response = await api.auth["has-owner"].get();
-    if (!response.data?.hasOwner) {
-      throw redirect({ to: "/signup" });
+    const response = await api.auth["has-owner"].$get();
+    if (response.ok) {
+      const data = await response.json();
+      if (!data.hasOwner) {
+        throw redirect({ to: "/signup" });
+      }
     }
   },
 });
@@ -40,11 +43,11 @@ function Login() {
 
   const { mutate: login, isPending } = useMutation({
     mutationFn: async (data: LoginForm) => {
-      const response = await api.auth.login.post(data);
-      if (response.error) {
+      const response = await api.auth.login.$post({ json: data });
+      if (!response.ok) {
         throw new Error("Login failed");
       }
-      return response.data;
+      return await response.json();
     },
     onSuccess: (data) => {
       if (data) {

@@ -16,21 +16,14 @@ function ServerPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["freebox", "files", currentPath],
     queryFn: async () => {
-      const apiWithFreebox = (
-        api as unknown as {
-          freebox: {
-            files: {
-              get: (params: {
-                $query: { path: string };
-              }) => Promise<{ data: { files: unknown[] } }>;
-            };
-          };
-        }
-      ).freebox;
-      const response = await apiWithFreebox.files.get({
-        $query: { path: currentPath },
+      const response = await api.freebox.files.$get({
+        query: { path: currentPath },
       });
-      return { files: response.data.files as FileItem[] };
+      if (response.ok) {
+        const data = await response.json();
+        return { files: data.files as FileItem[] };
+      }
+      return { files: [] };
     },
   });
 

@@ -1,9 +1,10 @@
-import type { CreateIndexerManager } from "@basement/validators/indexerManager.validators";
 import { eq } from "drizzle-orm";
 
 import { AuthenticatedService } from "@/classes/authenticated-service";
 import { db } from "@/db/db";
 import { type IndexerType, indexerManager, type NewIndexerManager } from "@/db/schema";
+
+type CreateIndexerManager = NewIndexerManager;
 
 export class IndexerManagerService extends AuthenticatedService {
   private query = db.select().from(indexerManager);

@@ -59,9 +59,6 @@ function MovieTorrentsPage() {
     return allTorrents.filter((t) => t.indexerId && visibleIndexers.has(t.indexerId));
   }, [allTorrents, visibleIndexers]);
 
-  console.log(allTorrents.map((torrent) => torrent.title));
-  console.log(filteredTorrents.map((torrent) => torrent.title));
-
   const isLoading =
     isMediaLoading || isIndexersLoading || !torrentQueries.some((query) => !query.isLoading);
 

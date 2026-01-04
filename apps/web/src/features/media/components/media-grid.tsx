@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from "react";
 
+import type { Media } from "@basement/api/types";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 
 import { Skeleton } from "@/shared/ui/skeleton";
 
 import { useMediaStatusBatch } from "@/features/media/hooks/use-media";
-import { Media } from "@/features/media/media";
 import { MediaCard } from "./media-card";
 
 interface MediaGridProps {

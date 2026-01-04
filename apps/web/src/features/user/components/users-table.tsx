@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import type { User } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import { useMutation } from "@tanstack/react-query";
 import { Crown, Glasses, Pencil, ShieldCheck, Trash2, UserCheck } from "lucide-react";
@@ -20,7 +21,6 @@ import { Button } from "@/shared/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
 import { useRole } from "@/features/auth/hooks/use-role";
-import type { User } from "@/features/user/user.types";
 
 interface UsersTableProps {
   users: User[];
@@ -58,7 +58,7 @@ export function UsersTable({ users, isLoading, onEditUser, onRefetch }: UsersTab
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      await api.user({ id: userId }).delete();
+      await api.users[":id"].$delete({ param: { id: userId } });
     },
     onSuccess: () => {
       setUserToDelete(null);
@@ -90,7 +90,7 @@ export function UsersTable({ users, isLoading, onEditUser, onRefetch }: UsersTab
     return canEditUser(targetUser);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat(navigator.language, {
       year: "numeric",
       month: "long",

@@ -3,49 +3,30 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "bun run --cwd apps/api dev & bun run --cwd apps/web dev",
-    "dev:api": "bun run --cwd apps/api dev",
-    "dev:web": "bun run --cwd apps/web dev",
-    "build": "bun run --cwd apps/api build && bun run --cwd apps/web build",
-    "lint": "bun run --cwd apps/api lint && bun run --cwd apps/web lint && bun run --cwd packages/validators lint",
-    "lint:fix": "bun run --cwd apps/api lint:fix && bun run --cwd apps/web lint:fix",
-    "type-check": "bun run --cwd apps/api build && bun run --cwd apps/api type-check && bun run --cwd apps/web type-check && bun run --cwd packages/validators type-check",
-    "check": "bun run lint:fix && bun run type-check && bun run lint",
-    "format": "bun run --cwd apps/api format && bun run --cwd apps/web format && bun run --cwd packages/validators format",
-    "db:generate": "bun run --cwd apps/api db:generate",
-    "db:migrate": "bun run --cwd apps/api db:migrate",
-    "db:push": "bun run --cwd apps/api db:push",
-    "db:studio": "bun run --cwd apps/api db:studio",
+    "dev": "pnpm --parallel --filter \"@basement/*\" dev",
+    "dev:api": "pnpm --filter @basement/api dev",
+    "dev:web": "pnpm --filter web dev",
+    "build": "pnpm --filter @basement/api build && pnpm --filter web build",
+    "lint": "pnpm --filter @basement/api lint && pnpm --filter web lint",
+    "lint:fix": "pnpm --filter @basement/api lint:fix && pnpm --filter web lint:fix",
+    "type-check": "pnpm --filter @basement/api build && pnpm --filter @basement/api type-check && pnpm --filter web type-check",
+    "check": "pnpm run lint:fix && pnpm run type-check && pnpm run lint",
+    "format": "pnpm --filter @basement/api format && pnpm --filter web format",
+    "db:generate": "pnpm --filter @basement/api db:generate",
+    "db:migrate": "pnpm --filter @basement/api db:migrate",
+    "db:push": "pnpm --filter @basement/api db:push",
+    "db:studio": "pnpm --filter @basement/api db:studio",
     "prepare": "husky"
-  },
-  "workspaces": {
-    "packages": [
-      "apps/*",
-      "packages/*"
-    ],
-    "catalog": {
-      "@dotenvx/dotenvx": "^1.38.0",
-      "@sinclair/typebox": "^0.34.0",
-      "@types/ms": "^2.1.0",
-      "@types/node": "^24.10.0",
-      "better-auth": "^1.4.9",
-      "ms": "^2.1.3",
-      "typescript": "^5.9.3"
-    }
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6"
   },
-  "packageManager": "bun@1.3.1",
-  "resolutions": {
-    "esbuild": "^0.27.2",
-    "elysia": "1.4.19"
-  },
+  "packageManager": "pnpm@9.15.3",
   "engines": {
     "node": ">=18.0.0",
-    "bun": ">=1.0.0"
+    "pnpm": ">=9.0.0"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

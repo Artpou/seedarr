@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import type { User } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
@@ -13,7 +14,6 @@ import { useAuth } from "@/features/auth/auth-store";
 import { useRole } from "@/features/auth/hooks/use-role";
 import { UserFormModal } from "@/features/user/components/user-form-modal";
 import { UsersTable } from "@/features/user/components/users-table";
-import type { User } from "@/features/user/user.types";
 
 export const Route = createFileRoute("/_app/users")({
   component: UsersPage,
@@ -37,8 +37,11 @@ function UsersPage() {
   } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      const response = await api.user.get();
-      return response.data || [];
+      const response = await api.users.$get();
+      if (response.ok) {
+        return await response.json();
+      }
+      return [];
     },
   });
 

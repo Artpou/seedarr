@@ -58,6 +58,9 @@
       },
       "security": {
         "noGlobalEval": "off"
+      },
+      "complexity": {
+        "noThisInStatic": "off"
       }
     }
   },

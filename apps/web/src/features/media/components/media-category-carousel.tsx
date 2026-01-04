@@ -1,3 +1,4 @@
+import type { Media } from "@basement/api/types";
 import { useSearch } from "@tanstack/react-router";
 
 import { cn } from "@/lib/utils";
@@ -6,7 +7,6 @@ import { CarouselItem } from "@/shared/ui/carousel";
 import { CarouselWrapper } from "@/shared/ui/carousel-wrapper";
 import { Skeleton } from "@/shared/ui/skeleton";
 
-import { Media } from "@/features/media/media";
 import { useMovieGenres } from "@/features/movies/hooks/use-movie";
 import { useTVGenres } from "@/features/tv/hook/use-tv";
 

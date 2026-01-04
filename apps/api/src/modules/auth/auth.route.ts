@@ -1,5 +1,8 @@
-import { Elysia, t } from "elysia";
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import ms from "ms";
+import { z } from "zod";
 
 import { hashPassword, verifyPassword } from "@/auth/password.util";
 import { createSession, deleteSession, validateSession } from "@/auth/session.util";
@@ -12,98 +15,85 @@ const isProduction = process.env.NODE_ENV === "production";
 const cookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  maxAge: ms("7d") / 1000, // Convert to seconds
+  maxAge: Math.floor(ms("7d") / 1000), // Convert to seconds
   path: "/",
   sameSite: "lax" as const,
 };
 
-export const authRoutes = new Elysia({ prefix: "/auth" })
-  .get("/has-owner", async () => {
+const registerSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(8),
+});
+
+const loginSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+});
+
+export const authRoutes = new Hono()
+  .get("/has-owner", async (c) => {
     const userService = new UserService();
     const hasOwner = await userService.hasOwner();
-    return { hasOwner };
+    return c.json({ hasOwner });
   })
-  .post(
-    "/register",
-    async ({ body, cookie }) => {
-      const { username, password } = body;
-      const userService = new UserService();
+  .post("/register", zValidator("json", registerSchema), async (c) => {
+    const { username, password } = c.req.valid("json");
+    const userService = new UserService();
 
-      // Check if owner exists
-      const hasOwner = await userService.hasOwner();
+    // Check if owner exists
+    const hasOwner = await userService.hasOwner();
 
-      // If owner already exists, disable signup
-      if (hasOwner) {
-        throw new Error("Registration is closed. Contact an administrator.");
-      }
+    // If owner already exists, disable signup
+    if (hasOwner) {
+      throw new Error("Registration is closed. Contact an administrator.");
+    }
 
-      const existingUser = await userService.getByUsername(username);
-      if (existingUser) throw new Error("Username already exists");
+    const existingUser = await userService.getByUsername(username);
+    if (existingUser) throw new Error("Username already exists");
 
-      // First user becomes owner
-      const newUser = await userService.create({
-        username,
-        password: hashPassword(password),
-        role: "owner",
-      });
-      const sessionToken = await createSession(newUser.id);
+    // First user becomes owner
+    const newUser = await userService.create({
+      username,
+      password: hashPassword(password),
+      role: "owner",
+    });
+    const sessionToken = await createSession(newUser.id);
 
-      cookie[SESSION_COOKIE_NAME].set({
-        value: sessionToken,
-        ...cookieOptions,
-      });
+    setCookie(c, SESSION_COOKIE_NAME, sessionToken, cookieOptions);
 
-      return newUser;
-    },
-    {
-      body: t.Object({
-        username: t.String({ minLength: 3 }),
-        password: t.String({ minLength: 8 }),
-      }),
-    },
-  )
-  .post(
-    "/login",
-    async ({ body, cookie }) => {
-      const { username, password } = body;
+    return c.json(newUser);
+  })
+  .post("/login", zValidator("json", loginSchema), async (c) => {
+    const { username, password } = c.req.valid("json");
 
-      const userService = new UserService();
+    const userService = new UserService();
 
-      const existingUser = await userService.getFullUser(username);
-      if (!existingUser) throw new Error("Invalid username or password");
+    const existingUser = await userService.getFullUser(username);
+    if (!existingUser) throw new Error("Invalid username or password");
 
-      const isValid = verifyPassword(password, existingUser.password);
-      if (!isValid) throw new Error("Invalid username or password");
+    const isValid = verifyPassword(password, existingUser.password);
+    if (!isValid) throw new Error("Invalid username or password");
 
-      const sessionToken = await createSession(existingUser.id);
+    const sessionToken = await createSession(existingUser.id);
 
-      cookie[SESSION_COOKIE_NAME].set({
-        value: sessionToken,
-        ...cookieOptions,
-      });
+    setCookie(c, SESSION_COOKIE_NAME, sessionToken, cookieOptions);
 
-      return await userService.getById(existingUser.id);
-    },
-    {
-      body: t.Object({
-        username: t.String(),
-        password: t.String(),
-      }),
-    },
-  )
-  .post("/logout", async ({ cookie }) => {
-    const sessionToken = cookie[SESSION_COOKIE_NAME].value;
+    const user = await userService.getById(existingUser.id);
+    return c.json(user);
+  })
+  .post("/logout", async (c) => {
+    const sessionToken = getCookie(c, SESSION_COOKIE_NAME);
 
     if (typeof sessionToken === "string") {
       await deleteSession(sessionToken);
     }
 
-    cookie[SESSION_COOKIE_NAME].remove();
+    deleteCookie(c, SESSION_COOKIE_NAME);
 
-    return { success: true };
+    return c.json({ success: true });
   })
-  .get("/me", async ({ cookie }) => {
-    const sessionToken = cookie[SESSION_COOKIE_NAME].value;
+  .get("/me", async (c) => {
+    const sessionToken = getCookie(c, SESSION_COOKIE_NAME);
 
     if (typeof sessionToken !== "string") throw new Error("Not authenticated");
 
@@ -113,5 +103,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     const currentUser = await new UserService().getById(userId);
     if (!currentUser) throw new Error("User not found");
 
-    return currentUser;
+    return c.json(currentUser);
   });
+
+export type AuthRoutesType = typeof authRoutes;

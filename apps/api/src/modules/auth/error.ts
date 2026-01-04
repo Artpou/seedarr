@@ -5,3 +5,12 @@ export class UnauthorizedError extends Error {
     super(message);
   }
 }
+
+export class ForbiddenError extends Error {
+  status = 403;
+
+  constructor(message = "Forbidden") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}

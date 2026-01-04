@@ -111,6 +111,53 @@ export const userWatchList = sqliteTable(
   (table) => [primaryKey({ columns: [table.userId, table.mediaId] })],
 );
 
+// Torrent download status enum
+export const torrentStatusEnum = [
+  "queued",
+  "downloading",
+  "completed",
+  "failed",
+  "paused",
+] as const;
+export type TorrentStatus = (typeof torrentStatusEnum)[number];
+
+// TorrentDownload table - Track user torrent downloads
+// Note: Volatile data (progress, speeds, peers) comes from WebTorrent live, not DB
+export const torrentDownload = sqliteTable("torrentDownload", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  mediaId: integer("mediaId").references(() => media.id, { onDelete: "set null" }), // Optional link to media
+
+  // Torrent metadata (for restoration after restart)
+  magnetUri: text("magnetUri").notNull(),
+  infoHash: text("infoHash").notNull().unique(),
+  name: text("name").notNull(),
+  size: integer("size").notNull().default(0), // Total size (fixed once known)
+
+  // Status and history
+  status: text("status", { enum: torrentStatusEnum }).notNull().default("queued"),
+  savePath: text("savePath"), // Relative path in downloads directory
+
+  // Torrent source metadata
+  origin: text("origin"), // Tracker name (e.g., "The Pirate Bay")
+  quality: text("quality"), // Quality tier (SD, HD, 2K, 4K)
+  language: text("language"), // Content language
+
+  // Timestamps
+  createdAt: integer("createdAt", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  startedAt: integer("startedAt", { mode: "timestamp" }),
+  completedAt: integer("completedAt", { mode: "timestamp" }),
+
+  // Error handling
+  error: text("error"),
+});
+
 // Export types
 export type User = Omit<typeof user.$inferSelect, "password">;
 export type NewUser = typeof user.$inferInsert;
@@ -126,3 +173,5 @@ export type UserLikes = typeof userLikes.$inferSelect;
 export type NewUserLikes = typeof userLikes.$inferInsert;
 export type UserWatchList = typeof userWatchList.$inferSelect;
 export type NewUserWatchList = typeof userWatchList.$inferInsert;
+export type TorrentDownload = typeof torrentDownload.$inferSelect;
+export type NewTorrentDownload = typeof torrentDownload.$inferInsert;

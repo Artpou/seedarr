@@ -1,8 +1,8 @@
-import { cors } from "@elysiajs/cors";
-import { swagger } from "@elysiajs/swagger";
-import { Elysia } from "elysia";
-import { helmet } from "elysia-helmet";
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
 
+import * as fs from "node:fs/promises";
 import { colors, logRequest } from "./helpers/logger.helper";
 import { authRoutes } from "./modules/auth/auth.route";
 import { freeboxRoutes } from "./modules/freebox/freebox.route";
@@ -10,75 +10,66 @@ import { indexerManagerRoutes } from "./modules/indexer-manager/indexer-manager.
 import { mediaRoutes } from "./modules/media/media.route";
 import { torrentRoutes } from "./modules/torrent/torrent.route";
 import { userRoutes } from "./modules/user/user.route";
+import type { HonoVariables } from "./types/hono";
 
 const startTime = Date.now();
 
 // Store request start times
 const requestTimes = new WeakMap<Request, number>();
 
-export const app = new Elysia()
-  .onRequest(({ request }) => {
-    requestTimes.set(request, Date.now());
-  })
-  .onAfterResponse(({ request, set }) => {
-    const startTime = requestTimes.get(request) || Date.now();
-    const duration = Date.now() - startTime;
-    logRequest(request.method, request.url, set.status || 200, duration);
-  })
-  .onError(({ code, error, request, set }) => {
-    const startTime = requestTimes.get(request) || Date.now();
-    const duration = Date.now() - startTime;
-    logRequest(request.method, request.url, set.status || 500, duration);
-
-    if (code === "VALIDATION") {
-      error.all.forEach((err) => {
-        console.error(err.summary);
-      });
-    } else if (code === "NOT_FOUND") {
-      console.error(error.message);
-    } else {
-      console.error(error);
-    }
+export const app = new Hono<{ Variables: HonoVariables }>()
+  .use("*", async (c, next) => {
+    requestTimes.set(c.req.raw, Date.now());
+    await next();
+    const duration = Date.now() - (requestTimes.get(c.req.raw) || Date.now());
+    logRequest(c.req.method, c.req.url, c.res.status, duration);
   })
   .use(
+    "*",
     cors({
       origin: "http://localhost:3000",
-      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
       credentials: true,
-      allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+      allowHeaders: ["Content-Type", "Authorization", "Cookie"],
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     }),
   )
-  .use(helmet())
-  .use(swagger())
-  .use(authRoutes)
-  .use(userRoutes)
-  .use(freeboxRoutes)
-  .use(indexerManagerRoutes)
-  .use(mediaRoutes)
-  .use(torrentRoutes)
-  .get("/", () => ({ status: "healthy", timestamp: new Date().toISOString() }));
+  .route("/auth", authRoutes)
+  .route("/users", userRoutes)
+  .route("/freebox", freeboxRoutes)
+  .route("/indexer-manager", indexerManagerRoutes)
+  .route("/media", mediaRoutes)
+  .route("/torrents", torrentRoutes)
+  .get("/", (c) => c.json({ status: "healthy", timestamp: new Date().toISOString() }));
 
-export type App = typeof app;
+export type AppType = typeof app;
 
 const start = async () => {
+  // Create downloads directory if it doesn't exist
+  const downloadsPath = process.env.DOWNLOADS_PATH || "./downloads";
+  await fs.mkdir(downloadsPath, { recursive: true });
+  console.log(`[STARTUP] Downloads directory: ${downloadsPath}`);
+
   if (!process.env.API_PORT) {
     console.log("API_PORT is not set, using default 3002");
   }
 
   const port = parseInt(process.env.API_PORT || "3002", 10);
   console.log(`[STARTUP] About to listen on port ${port}`);
-  await app.listen(port);
+
+  serve({
+    fetch: app.fetch,
+    port,
+  });
+
   console.log(`[STARTUP] Server is now listening`);
 
   console.log(
-    `\n  ${colors.bold}${colors.yellow}🦊 ELYSIA${colors.reset} ${
-      colors.yellow
-    }v${require("elysia/package.json").version}${colors.reset}  ready in ${
+    `\n  ${colors.bold}${colors.yellow}🔥 HONO${colors.reset} ${colors.yellow}v4.7.9${colors.reset}  ready in ${
       Date.now() - startTime
     } ms\n`,
   );
   console.log(
-    `  ${colors.bold}${colors.yellow}➜${colors.reset}  ${colors.bold}Local:${colors.reset}   ${colors.cyan}http://${app.server?.hostname}:${colors.bold}${app.server?.port}${colors.reset}${colors.cyan}/${colors.reset}\n`,
+    `  ${colors.bold}${colors.yellow}➜${colors.reset}  ${colors.bold}Local:${colors.reset}   ${colors.cyan}http://localhost:${colors.bold}${port}${colors.reset}${colors.cyan}/${colors.reset}\n`,
   );
 };
 

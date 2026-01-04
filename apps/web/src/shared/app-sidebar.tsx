@@ -6,6 +6,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import {
   ChevronDown,
   ClockPlus,
+  Download,
   Eye,
   Film,
   Heart,
@@ -22,6 +23,7 @@ import { Button } from "@/shared/ui/button";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -72,7 +74,7 @@ export function AppSidebar() {
   const { theme, toggleTheme } = useTheme();
   const { t } = useLingui();
   const [listsOpen, setListsOpen] = useState(true);
-  const { isAdmin } = useRole();
+  const { isAdmin, hasRole } = useRole();
 
   return (
     <Sidebar collapsible="icon">
@@ -115,6 +117,21 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
 
+              {hasRole("member") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === "/downloads"}
+                    className="text-base py-6"
+                  >
+                    <Link to="/downloads" search={{}}>
+                      <Download className="size-5" />
+                      <span>{t(msg`Downloads`)}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => setListsOpen(!listsOpen)}
@@ -146,38 +163,43 @@ export function AppSidebar() {
                   </SidebarMenuSub>
                 )}
               </SidebarMenuItem>
-
-              {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === "/users"}
-                    className="text-base py-6"
-                  >
-                    <Link to="/users" search={{}}>
-                      <Users className="size-5" />
-                      <span>{t(msg`Users`)}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === "/settings"}
-                  className="text-base py-6"
-                >
-                  <Link to="/settings" search={{}}>
-                    <Settings className="size-5" />
-                    <span>{t(msg`Settings`)}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === "/users"}
+                className="text-base py-6"
+              >
+                <Link to="/users" search={{}}>
+                  <Users className="size-5" />
+                  <span>{t(msg`Users`)}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === "/settings"}
+                className="text-base py-6"
+              >
+                <Link to="/settings" search={{}}>
+                  <Settings className="size-5" />
+                  <span>{t(msg`Settings`)}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

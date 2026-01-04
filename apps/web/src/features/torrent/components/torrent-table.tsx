@@ -1,12 +1,14 @@
+import type { Media } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
-import { ArrowDown, ArrowUp, Download, Plus } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ArrowDown, ArrowUp, Download } from "lucide-react";
 
 import { getFlagUrl } from "@/shared/helpers/lang.helper";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
-import type { Media } from "@/features/media/media";
+import { useStartDownload } from "@/features/torrent/hooks/use-torrent-download";
 import type { Torrent } from "@/features/torrent/torrent";
 
 interface TorrentTableProps {
@@ -15,6 +17,56 @@ interface TorrentTableProps {
 }
 
 export function TorrentTable({ torrents, media }: TorrentTableProps) {
+  const startDownload = useStartDownload();
+  const navigate = useNavigate();
+
+  /**
+   * Extract the best download URI from a torrent object
+   * Priority: guid (if magnet) > downloadUrl > magnetUrl > link
+   */
+  const getTorrentUri = (torrent: Torrent): string => {
+    // Priority 1: guid if it's a magnet URI (The Pirate Bay, etc.)
+    if (torrent.guid?.startsWith("magnet:")) {
+      return torrent.guid;
+    }
+
+    // Priority 2: downloadUrl (OxTorrent, etc.)
+    if (torrent.downloadUrl) {
+      return torrent.downloadUrl;
+    }
+
+    // Priority 3: magnetUrl (Prowlarr redirect)
+    if (torrent.magnetUrl) {
+      return torrent.magnetUrl;
+    }
+
+    // Fallback: link
+    return torrent.link;
+  };
+
+  const handleAddDownload = async (torrent: Torrent) => {
+    const magnetUri = getTorrentUri(torrent);
+
+    if (import.meta.env.DEV) {
+      console.log("[TORRENT] Starting download:", {
+        title: torrent.title,
+        uri: `${magnetUri.substring(0, 100)}...`,
+        indexer: torrent.indexer,
+      });
+    }
+
+    await startDownload.mutateAsync({
+      magnetUri,
+      name: torrent.title,
+      mediaId: media.id,
+      origin: torrent.tracker,
+      quality: torrent.quality,
+      language: torrent.language,
+    });
+
+    // Redirect to downloads page
+    navigate({ to: "/downloads" });
+  };
   return (
     <div className="w-full overflow-hidden">
       <Table>
@@ -74,13 +126,13 @@ export function TorrentTable({ torrents, media }: TorrentTableProps) {
                     </div>
                   </div>
                   <div className="absolute inset-y-0 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                    <Button variant="secondary" asChild>
-                      <a href={torrent.link}>
-                        <Plus /> <Trans>Download</Trans>
-                      </a>
-                    </Button>
-                    <Button onClick={(e) => e.stopPropagation()}>
-                      <Download /> <Trans>Add</Trans>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddDownload(torrent);
+                      }}
+                    >
+                      <Download /> <Trans>Download</Trans>
                     </Button>
                   </div>
                 </TableCell>

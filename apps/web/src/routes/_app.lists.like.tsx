@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import type { Media } from "@basement/api/types";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
@@ -9,7 +10,6 @@ import { Container } from "@/shared/ui/container";
 
 import { MediaGrid } from "@/features/media/components/media-grid";
 import { useLikeMedia } from "@/features/media/hooks/use-media";
-import type { Media } from "@/features/media/media";
 
 export const Route = createFileRoute("/_app/lists/like")({
   component: LikePage,

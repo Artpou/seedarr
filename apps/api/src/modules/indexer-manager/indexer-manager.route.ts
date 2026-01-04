@@ -1,24 +1,28 @@
-import { createIndexerManagerSchema } from "@basement/validators/indexerManager.validators";
-import { Elysia } from "elysia";
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { z } from "zod";
 
 import { authGuard } from "@/modules/auth/auth.guard";
 import { requireRole } from "@/modules/auth/role.guard";
+import type { HonoVariables } from "@/types/hono";
 import { IndexerManagerService } from "./indexer-manager.service";
 
-export const indexerManagerRoutes = new Elysia({ prefix: "/indexerManagers" })
-  .use(authGuard())
-  .use(requireRole("member"))
-  .get("/", async ({ user }) => {
-    const service = new IndexerManagerService(user);
-    return await service.list();
+const createIndexerManagerSchema = z.object({
+  name: z.enum(["prowlarr", "jackett"]),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().optional(),
+  selected: z.boolean().optional(),
+});
+
+export const indexerManagerRoutes = new Hono<{ Variables: HonoVariables }>()
+  .use("*", authGuard)
+  .use("*", requireRole("member"))
+  .get("/", async (c) => {
+    return c.json(await IndexerManagerService.fromContext(c).list());
   })
-  .post(
-    "/",
-    async ({ body, user }) => {
-      const service = new IndexerManagerService(user);
-      return await service.create(body);
-    },
-    {
-      body: createIndexerManagerSchema,
-    },
-  );
+  .post("/", zValidator("json", createIndexerManagerSchema), async (c) => {
+    const body = c.req.valid("json");
+    return c.json(await IndexerManagerService.fromContext(c).create(body));
+  });
+
+export type IndexerManagerRoutesType = typeof indexerManagerRoutes;

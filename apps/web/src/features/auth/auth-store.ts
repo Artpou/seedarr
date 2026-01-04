@@ -1,12 +1,6 @@
+import type { User } from "@basement/api/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-interface User {
-  id: string;
-  username: string;
-  role: "owner" | "admin" | "member" | "viewer";
-  createdAt: Date;
-}
 
 interface AuthStore {
   user: User | null;

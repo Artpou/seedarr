@@ -4,190 +4,28 @@ alwaysApply: true
 
 # Seedarr Project Rules
 
+> For specific patterns, see [API Rules](.cursor/rules/api/RULE.md) and [Web Rules](.cursor/rules/web/RULE.md)
+
 ## Tech Stack
 
-- **Runtime**: Bun (v1.3.1+)
-- **API**: Elysia (v1.4.19) with TypeScript
+- **Package Manager**: pnpm (v9.0.0+)
+- **Runtime**: Node.js v18+ (tsx for API)
+- **API**: Hono with TypeScript
 - **Web**: React 19 + TanStack Router + Vite
 - **Database**: SQLite with Drizzle ORM
-- **Validation**: TypeBox (@sinclair/typebox)
+- **Validation**: Zod (zValidator from @hono/zod-validator)
 - **Styling**: Tailwind CSS v4 + Radix UI
 - **i18n**: Lingui
 - **State**: Zustand with persist middleware
 - **Linting**: Biome (not ESLint/Prettier)
+- **Torrent**: WebTorrent for downloads and streaming
 
 ## Project Structure
 
-- **Monorepo**: Bun workspaces with 3 packages
-  - `apps/api` - Elysia backend
-  - `apps/web` - React frontend
-  - `packages/validators` - Shared TypeBox schemas
-- **Aliases**: Use `@/` for local imports, `@basement/` for workspace packages
-
-## API Patterns (Elysia)
-
-### Route Structure
-
-- Group routes by feature in `modules/[feature]/[feature].route.ts`
-- Use `.use(authGuard())` for protected routes
-- Export as `[feature]Routes` and register in `server.ts`
-
-### Service Pattern
-
-- Extend `AuthenticatedService` for user-scoped services
-- Services receive `user` in constructor: `new Service(user)`
-- Use Drizzle query builder, not raw SQL
-- Keep business logic in services, not routes
-
-### Authentication
-
-- Session-based with httpOnly cookies (`session` cookie name)
-- Password format: `salt:hash` (custom util, not bcrypt)
-- Auth guard returns `{ user }` in route context
-- Session validation via `validateSession(token)`
-
-### Validation
-
-- Define schemas in `packages/validators` using TypeBox
-- Import and use in route body/query validation
-- Share types between API and web via `Static<typeof schema>`
-
-### Response Format
-
-- Return data directly (no wrapper objects)
-- Let Elysia handle errors and status codes
-- Use `throw new Error()` for errors (caught by `.onError()`)
-
-## Web Patterns (React)
-
-### Project Structure (Feature-Based)
-
-```
-src/
-├── features/           # Feature modules (domain-driven)
-│   ├── auth/          # Authentication feature
-│   │   └── auth-store.ts
-│   ├── media/         # Media management
-│   │   ├── components/
-│   │   ├── helpers/
-│   │   ├── hooks/
-│   │   ├── parsers/
-│   │   └── media.d.ts
-│   ├── movies/        # Movie-specific UI
-│   │   ├── components/
-│   │   └── hooks/
-│   ├── person/        # Person/cast features
-│   └── torrent/       # Torrent search
-├── shared/            # Shared/reusable code
-│   ├── ui/           # Radix UI components
-│   ├── hooks/        # Global hooks (use-theme, use-mobile)
-│   ├── helpers/      # Utility functions
-│   ├── app-sidebar.tsx
-│   └── app-topbar.tsx
-├── lib/              # Core utilities
-│   ├── api.ts       # Eden Treaty client
-│   └── utils.ts     # cn() and helpers
-├── routes/           # TanStack Router routes
-│   ├── _app.*       # Authenticated routes
-│   └── _auth.*      # Public routes
-└── locales/          # i18n translations
-```
-
-### Feature Organization
-
-- **Features** (`features/[feature]/`):
-
-  - `components/` - Feature-specific UI components
-  - `hooks/` - Feature-specific React hooks
-  - `helpers/` - Feature-specific utilities
-  - `parsers/` - Data transformation logic
-  - `[feature].d.ts` - Feature type definitions
-  - `[feature]-store.ts` - Feature state (Zustand)
-
-- **Shared** (`shared/`):
-
-  - `ui/` - Reusable UI components (Radix primitives)
-  - `hooks/` - Global hooks (theme, mobile, locale)
-  - `helpers/` - Cross-feature utilities
-  - Layout components (sidebar, topbar)
-
-- **Lib** (`lib/`):
-  - Core utilities and API client
-  - No feature-specific code
-
-### Routing (TanStack Router)
-
-- File-based routes in `src/routes/`
-- Route groups: `_app.*` (authenticated), `_auth.*` (public)
-- Use `beforeLoad` for auth checks and redirects
-- Protected routes check auth via `api.auth.me.get()`
-- Wrap route content in `<Container>` component for consistent layout and spacing
-
-### API Client
-
-- Use Elysia Eden Treaty: `api.[module].[endpoint].[method]()`
-- Type-safe client from `App` type export
-- Always include `credentials: "include"` for cookies
-- Base URL from `VITE_API_URL` env var
-
-### Components
-
-- Radix UI primitives in `shared/ui/`
-- Feature components in `features/[feature]/components/`
-- Shared layout components in `shared/`
-- Use `<Container>` from `shared/ui/container` for route page layouts (handles max-width, padding, centering)
-- Use `cn()` utility for className merging
-- Variants via `class-variance-authority` (cva)
-
-### Hooks
-
-- Use `@uidotdev/usehooks` for common React patterns when available
-- Examples: `useIntersectionObserver`, `useDebounce`, `useLocalStorage`
-- Custom hooks in `shared/hooks/` for global behavior
-- Feature-specific hooks in `features/[feature]/hooks/`
-
-### State Management
-
-- Zustand stores in `features/[feature]/[feature]-store.ts`
-- Use `persist` middleware for localStorage
-- Auth state in `features/auth/auth-store.ts` (synced with API)
-
-### Styling
-
-- Tailwind v4 (no config file, use `@theme` in CSS)
-- Design tokens via CSS variables in `styles.css`
-- Dark mode support via `dark:` prefix
-- Use `cn()` from `lib/utils.ts` for conditional classes
-
-### i18n
-
-- Lingui for translations
-- Locale files in `src/locales/[lang]/messages.po`
-- Use `<Trans>` component or `t` macro
-- Compile messages before build: `bun lingui:compile`
-
-## Database (Drizzle)
-
-### Schema
-
-- Define in `apps/api/src/db/schema.ts`
-- Use SQLite-specific types: `text`, `integer`, `real`
-- UUIDs via `crypto.randomUUID()`
-- Timestamps as `integer` with `mode: "timestamp"`
-- Export inferred types: `type User = typeof user.$inferSelect`
-
-### Queries
-
-- Use query builder: `db.select().from(table).where(eq(...))`
-- Combine conditions with `and()`, `or()`
-- Always use `.limit(1)` for single results
-- Return `null` for not found (not undefined)
-
-### Migrations
-
-- Generate: `bun db:generate`
-- Push to DB: `bun db:push`
-- Migrations in `src/db/drizzle/`
+- **Monorepo**: pnpm workspaces with 2 apps
+  - `apps/api` - Hono backend (port 3002)
+  - `apps/web` - React frontend (port 3000)
+- **Aliases**: Use `@/` for local imports, `@basement/api` for API types
 
 ## Code Style (Biome)
 
@@ -217,36 +55,51 @@ src/
 
 ### Commands
 
-- `bun dev` - Start both API and web
-- `bun dev:api` - API only (port 3002)
-- `bun dev:web` - Web only (port 3000)
-- `bun lint` - Check all packages
-- `bun type-check` - TypeScript validation
+- `pnpm dev` - Start both API and web
+- `pnpm dev:api` - API only (port 3002)
+- `pnpm dev:web` - Web only (port 3000)
+- `pnpm lint` - Check all packages
+- `pnpm lint:fix` - Auto-fix linting issues
+- `pnpm format` - Format code with Biome
+- `pnpm type-check` - TypeScript validation
+- `pnpm check` - Run lint:fix + type-check + lint (comprehensive check)
+
+### Database Commands
+
+- `pnpm db:generate` - Generate migrations
+- `pnpm db:migrate` - Apply migrations
+- `pnpm db:push` - Push schema (dev only)
+- `pnpm db:studio` - Open Drizzle Studio
 
 ### Git Hooks (Husky + lint-staged)
 
 - Pre-commit: Biome check on staged files
 - Runs on `*.{ts,tsx,js,jsx}` and `*.{json,md}`
+- Auto-formats and fixes linting issues
 
 ### Type Safety
 
 - Strict TypeScript enabled
-- No `any` except in `.d.ts` files
-- Share types via workspace packages
+- **Never use `any`** - use `unknown` if type is truly unknown
+- Use `as const` for constant objects/arrays
+- Prefer type narrowing over type assertions
+- Share types via workspace packages (`@basement/api`)
 - API types exported for web consumption
+- Use Zod for runtime validation
 
 ## Common Patterns
 
 ### Error Handling
 
-- API: Throw errors, caught by Elysia `.onError()`
-- Web: Try-catch with redirect on auth failure
-- Use custom error classes (e.g., `UnauthorizedError`)
+- API: Throw errors, caught by Hono error handling middleware
+- Web: Use `unwrap()` helper, let React Query handle errors naturally
+- Avoid try-catch blocks unless specific fallback behavior is needed
+- Use custom error classes when appropriate (e.g., `UnauthorizedError`)
 
 ### Async/Await
 
 - Always use async/await (no `.then()`)
-- Handle errors with try-catch
+- Handle errors with try-catch when needed
 - Services return promises
 
 ### Import Organization (Biome)
@@ -262,19 +115,74 @@ src/
 
 ### Environment Variables
 
-- API: Use `process.env.API_PORT`
+- API: Use `process.env.*`
 - Web: Use `import.meta.env.VITE_*`
 - Load with `@dotenvx/dotenvx` in API
-
-## Testing
-
-- Vitest for unit tests (configured but minimal usage)
-- Run with `bun test` in web package
+- Never commit `.env` files
+- Use `.env.example` for documentation
+- Validate required env vars at startup
 
 ## Security
 
-- CORS configured for localhost:3000
-- Helmet middleware for security headers
-- httpOnly cookies for sessions
-- Password hashing with salt
-- User-scoped queries (always filter by userId)
+### Authentication & Authorization
+
+- Session-based auth with httpOnly cookies
+- Password hashing with salt (custom util)
+- Session validation via `validateSession(token)`
+- Never store passwords in plain text
+- Roles: `viewer`, `member`, `admin`, `owner`
+- Use `authGuard` middleware for protected routes
+- Use `requireRole()` middleware for role-specific routes
+
+### Input Validation
+
+- Validate ALL user inputs with Zod
+- Sanitize data before database queries
+- Don't trust client-side data
+- Return appropriate HTTP status codes
+- Don't expose internal errors to clients
+
+## Common Pitfalls to Avoid
+
+❌ **DON'T:**
+
+- Use `any` type (use `unknown` or proper types)
+- Mutate props directly
+- Create large monolithic components/functions
+- Forget to handle loading/error states
+- Hardcode strings (use i18n with Lingui)
+- Skip input validation
+- Trust client-side data
+- Expose internal errors to clients
+- Store derived state
+- Use `index` as key in lists
+
+✅ **DO:**
+
+- Use TypeScript properly with strict mode
+- Keep components and functions small and focused
+- Extract reusable logic into hooks/services
+- Use semantic HTML
+
+## Checklist Before Commit
+
+- [ ] No TypeScript errors
+- [ ] Linting passes: `pnpm check`
+- [ ] No console.log in production code
+- [ ] Properly typed (no `any`)
+- [ ] Error handling implemented
+- [ ] Validation schemas defined (Zod)
+- [ ] Sensitive data not exposed
+- [ ] Resources cleaned up properly
+
+## Additional Resources
+
+- See [`.cursor/rules/api/RULE.md`](.cursor/rules/api/RULE.md) for API-specific patterns
+- See [`.cursor/rules/web/RULE.md`](.cursor/rules/web/RULE.md) for web-specific patterns
+- See [`/rules/GENERAL.md`](../../rules/GENERAL.md) for comprehensive guidelines
+- [Hono Documentation](https://hono.dev/)
+- [React Docs](https://react.dev/)
+- [Drizzle ORM](https://orm.drizzle.team/)
+- [TanStack Query](https://tanstack.com/query/latest)
+- [TanStack Router](https://tanstack.com/router/latest)
+- [Biome](https://biomejs.dev/)

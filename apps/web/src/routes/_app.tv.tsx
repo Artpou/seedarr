@@ -109,7 +109,6 @@ function TVPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <MediaSortTabs
-            sortValue={search.sort_by}
             releaseValue={search.with_release_type}
             onSortChange={handleSortChange}
             onReleaseChange={handleReleaseTypeChange}

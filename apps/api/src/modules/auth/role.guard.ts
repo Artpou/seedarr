@@ -1,15 +1,7 @@
-import type { Elysia } from "elysia";
+import type { Context, MiddlewareHandler, Next } from "hono";
 
 import type { UserRole } from "@/db/schema";
-import { authGuard } from "@/modules/auth/auth.guard";
-import { UnauthorizedError } from "./error";
-
-export class ForbiddenError extends Error {
-  constructor(message = "Forbidden") {
-    super(message);
-    this.name = "ForbiddenError";
-  }
-}
+import { ForbiddenError, UnauthorizedError } from "./error";
 
 const roleHierarchy: Record<UserRole, number> = {
   owner: 4,
@@ -18,11 +10,18 @@ const roleHierarchy: Record<UserRole, number> = {
   viewer: 1,
 };
 
-export const requireRole = (minRole: UserRole) => (app: Elysia) =>
-  app.use(authGuard()).resolve(({ user }) => {
-    if (!user) throw new UnauthorizedError();
-    if (roleHierarchy[user.role] < roleHierarchy[minRole]) {
+export const requireRole = (minRole: UserRole): MiddlewareHandler => {
+  return async (c: Context, next: Next) => {
+    const user = c.get("user");
+
+    if (!user) {
+      throw new UnauthorizedError();
+    }
+
+    if (roleHierarchy[user.role as UserRole] < roleHierarchy[minRole]) {
       throw new ForbiddenError();
     }
-    return {};
-  });
+
+    await next();
+  };
+};

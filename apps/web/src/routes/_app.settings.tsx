@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 
-import { CreateIndexerManager } from "@basement/validators/indexerManager.validators";
 import { Trans } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -15,7 +14,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 import { useAuth } from "@/features/auth/auth-store";
 import { useRole } from "@/features/auth/hooks/use-role";
-import { IndexerType } from "../../../api/src/db/schema";
+
+type IndexerType = "prowlarr" | "jackett";
+type CreateIndexerManager = {
+  name: IndexerType;
+  apiKey?: string;
+  baseUrl?: string;
+  selected?: boolean;
+};
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -31,20 +37,23 @@ function SettingsPage() {
   const { data: indexerManagers = [] } = useQuery({
     queryKey: ["indexerManagers"],
     queryFn: async () => {
-      const response = await api.indexerManagers.get();
-      return response.data || [];
+      const response = await api["indexer-manager"].$get();
+      if (response.ok) {
+        return await response.json();
+      }
+      return [];
     },
     initialData: [],
   });
 
   const handleLogout = async () => {
-    await api.auth.logout.post();
+    await api.auth.logout.$post();
     logout();
     navigate({ to: "/login" });
   };
 
   const { mutate: upsertIndexerManager } = useMutation({
-    mutationFn: async (data: CreateIndexerManager) => api.indexerManagers.post(data),
+    mutationFn: async (data: CreateIndexerManager) => api["indexer-manager"].$post({ json: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["indexerManagers"] });
     },
