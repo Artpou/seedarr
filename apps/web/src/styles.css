@@ -6,18 +6,30 @@
 body {
   @apply m-0;
   font-family:
-    "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
-    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    "Montserrat",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 @theme inline {
-  --font-sans: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans:
+    "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -45,6 +57,9 @@ code {
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
   --color-muted: var(--muted);
+  --color-blue: var(--blue);
+  --color-purple: var(--purple);
+  --color-red: var(--red);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -86,10 +101,9 @@ code {
   --sidebar-border: oklch(0.86 0.018 135);
   --sidebar-ring: oklch(0.63 0.13 135);
 
-  --role-owner: oklch(0.62 0.18 25);
-  --role-admin: oklch(0.6 0.15 275);
-  --role-member: oklch(0.63 0.13 135);
-  --role-viewer: oklch(0.65 0.13 210);
+  --red: oklch(0.62 0.18 25);
+  --purple: oklch(0.6 0.15 275);
+  --blue: oklch(0.65 0.13 210);
 }
 
 .dark {

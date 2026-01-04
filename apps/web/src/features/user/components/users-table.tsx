@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { User } from "@basement/api/types";
+import type { UserSerialized } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import { useMutation } from "@tanstack/react-query";
 import { Crown, Glasses, Pencil, ShieldCheck, Trash2, UserCheck } from "lucide-react";
@@ -23,9 +23,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useRole } from "@/features/auth/hooks/use-role";
 
 interface UsersTableProps {
-  users: User[];
+  users: UserSerialized[];
   isLoading: boolean;
-  onEditUser: (user: User) => void;
+  onEditUser: (user: UserSerialized) => void;
   onRefetch: () => void;
 }
 
@@ -54,7 +54,7 @@ const roleConfig = {
 
 export function UsersTable({ users, isLoading, onEditUser, onRefetch }: UsersTableProps) {
   const { role } = useRole();
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserSerialized | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
@@ -66,7 +66,7 @@ export function UsersTable({ users, isLoading, onEditUser, onRefetch }: UsersTab
     },
   });
 
-  const handleDeleteClick = (user: User) => {
+  const handleDeleteClick = (user: UserSerialized) => {
     setUserToDelete(user);
   };
 
@@ -80,13 +80,13 @@ export function UsersTable({ users, isLoading, onEditUser, onRefetch }: UsersTab
     setUserToDelete(null);
   };
 
-  const canEditUser = (targetUser: User) => {
+  const canEditUser = (targetUser: UserSerialized) => {
     if (role === "owner") return targetUser.role !== "owner";
     if (role === "admin") return targetUser.role !== "owner" && targetUser.role !== "admin";
     return false;
   };
 
-  const canDeleteUser = (targetUser: User) => {
+  const canDeleteUser = (targetUser: UserSerialized) => {
     return canEditUser(targetUser);
   };
 

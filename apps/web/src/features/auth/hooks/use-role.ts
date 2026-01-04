@@ -1,6 +1,6 @@
-import { useAuth } from "../auth-store";
+import type { UserRole } from "@basement/api/types";
 
-type UserRole = "owner" | "admin" | "member" | "viewer";
+import { useAuth } from "../auth-store";
 
 const roleHierarchy: Record<UserRole, number> = {
   owner: 4,

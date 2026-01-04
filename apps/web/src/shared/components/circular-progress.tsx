@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { Pause } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 interface CircularProgressProps extends React.ComponentPropsWithoutRef<"div"> {
@@ -7,16 +9,31 @@ interface CircularProgressProps extends React.ComponentPropsWithoutRef<"div"> {
   size?: number;
   strokeWidth?: number;
   showValue?: boolean;
+  noColor?: boolean;
+  paused?: boolean;
 }
 
 const CircularProgress = React.forwardRef<HTMLDivElement, CircularProgressProps>(
-  ({ value, size = 40, strokeWidth = 4, showValue = true, className, ...props }, ref) => {
+  (
+    {
+      value,
+      size = 40,
+      strokeWidth = 4,
+      showValue = true,
+      noColor = false,
+      paused = false,
+      className,
+      ...props
+    },
+    ref,
+  ) => {
     const radius = (size - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
     const offset = circumference - (value / 100) * circumference;
 
     // Determine color based on value
     const getColor = (val: number) => {
+      if (noColor) return ""; // No color when noColor is true
       if (val >= 90) return "text-emerald-600"; // Excellent (90-100)
       if (val >= 75) return "text-emerald-500"; // Very Good (75-89)
       if (val >= 60) return "text-lime-500"; // Good (60-74)
@@ -26,7 +43,7 @@ const CircularProgress = React.forwardRef<HTMLDivElement, CircularProgressProps>
       return "text-red-500"; // Very Poor (0-24)
     };
 
-    if (!value) return null;
+    if (!value && !paused) return null;
 
     return (
       <div
@@ -63,7 +80,7 @@ const CircularProgress = React.forwardRef<HTMLDivElement, CircularProgressProps>
             className={cn("transition-all duration-500 ease-in-out", getColor(value))}
           />
         </svg>
-        {showValue && (
+        {showValue && !paused && (
           <div className="absolute text-white inset-0 flex items-center justify-center">
             <span
               className="font-bold tracking-tighter flex items-center"
@@ -74,6 +91,11 @@ const CircularProgress = React.forwardRef<HTMLDivElement, CircularProgressProps>
                 %
               </span>
             </span>
+          </div>
+        )}
+        {paused && (
+          <div className="absolute text-white inset-0 flex items-center justify-center">
+            <Pause className="size-4" />
           </div>
         )}
       </div>

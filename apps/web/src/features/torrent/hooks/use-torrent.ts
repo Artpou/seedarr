@@ -1,9 +1,7 @@
-import type { Media } from "@basement/api/types";
+import type { Media, Torrent, TorrentIndexer } from "@basement/api/types";
 import { useQueries } from "@tanstack/react-query";
 
 import { api, unwrap } from "@/lib/api";
-
-import type { Torrent, TorrentIndexer } from "@/features/torrent/torrent";
 
 export function useTorrents(media: Media | null | undefined, indexers: TorrentIndexer[]) {
   return useQueries({

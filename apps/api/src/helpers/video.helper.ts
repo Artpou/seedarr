@@ -1,4 +1,31 @@
-import { TorrentQuality } from "@/modules/torrent/adapters/base.adapter";
+import ffmpeg from "fluent-ffmpeg";
+
+import type { TorrentQuality } from "@/modules/torrent/torrent.dto";
+import { PassThrough, Readable } from "node:stream";
+
+/**
+ * Convert MKV stream to MP4 using ffmpeg with stream copy (remux without re-encoding)
+ * @param inputStream - The input video stream (MKV)
+ * @returns A readable stream of the converted MP4 video
+ */
+export function convertMkvToMp4Stream(inputStream: NodeJS.ReadableStream): NodeJS.ReadableStream {
+  const outputStream = new PassThrough();
+
+  const command = ffmpeg(inputStream as Readable)
+    .outputFormat("mp4")
+    .outputOptions([
+      "-c:v copy",
+      "-c:a copy",
+      "-movflags frag_keyframe+empty_moov+default_base_moof",
+      "-f mp4",
+    ])
+    .on("error", (err) => {
+      outputStream.destroy(err);
+    });
+
+  command.pipe(outputStream, { end: true });
+  return outputStream;
+}
 
 export function getTorrentQuality(title: string): TorrentQuality {
   const t = title.toLowerCase();

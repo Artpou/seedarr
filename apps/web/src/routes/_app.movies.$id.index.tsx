@@ -25,7 +25,7 @@ import { MovieInfo } from "@/features/movies/components/movie-info";
 import { MovieRelated } from "@/features/movies/components/movie-related";
 import { useMovieDetails } from "@/features/movies/hooks/use-movie";
 
-export const Route = createFileRoute("/_app/movies/$movieId/")({
+export const Route = createFileRoute("/_app/movies/$id/")({
   component: MoviePage,
 });
 
@@ -35,9 +35,9 @@ function MoviePage() {
 
   const toggleLike = useToggleLike();
   const toggleWatchList = useToggleWatchList();
-  const { data: mediaStatus } = useMediaStatus(Number(params.movieId));
+  const { data: mediaStatus } = useMediaStatus(Number(params.id));
 
-  const { data, isLoading } = useMovieDetails(params.movieId);
+  const { data, isLoading } = useMovieDetails(params.id);
 
   if (isLoading) {
     return (
@@ -128,7 +128,7 @@ function MoviePage() {
           </div>
 
           <div className="lg:w-1/4 max-w-[250px] justify-items-center">
-            <MediaPoster media={movie} movieId={movie.id} />
+            <MediaPoster media={movie} id={movie.id} />
           </div>
           <div className="lg:w-3/4">
             <MovieInfo movie={movie} />

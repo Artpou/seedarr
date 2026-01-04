@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 
 import { AuthenticatedService } from "@/classes/authenticated-service";
 import { db } from "@/db/db";
-import { type IndexerType, indexerManager, type NewIndexerManager } from "@/db/schema";
+import { type IndexerType, indexerManager } from "@/db/schema";
+import type { NewIndexerManager } from "./indexer-manager.dto";
 
 type CreateIndexerManager = NewIndexerManager;
 

@@ -1,10 +1,10 @@
-import type { User } from "@basement/api/types";
+import type { UserSerialized } from "@basement/api/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface AuthStore {
-  user: User | null;
-  setUser: (user: User | null) => void;
+  user: UserSerialized | null;
+  setUser: (user: UserSerialized | null) => void;
   logout: () => void;
 }
 

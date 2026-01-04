@@ -1,48 +1,103 @@
-/**
- * Data Transfer Objects for Torrent API
- *
- * These DTOs extract only serializable data from WebTorrent.Torrent objects
- * to avoid circular references and non-JSON-safe properties.
- */
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
 
-/**
- * Live data extracted from an active WebTorrent.Torrent instance
- * All properties are JSON-serializable
- */
+import { indexerTypeEnum, torrentDownload } from "@/db/schema";
+
+// ============================================================================
+// Database schemas (TorrentDownload)
+// ============================================================================
+
+export const torrentDownloadSelectSchema = createSelectSchema(torrentDownload);
+export const torrentDownloadInsertSchema = createInsertSchema(torrentDownload);
+
+export type TorrentDownload = typeof torrentDownloadSelectSchema._output;
+export type NewTorrentDownload = typeof torrentDownloadInsertSchema._input;
+
+// ============================================================================
+// Non-database types (Torrent search results from indexers)
+// ============================================================================
+
+export type TorrentQuality = "SD" | "HD" | "2K" | "4K" | undefined;
+
+// Torrent indexer schema
+export const torrentIndexerSchema = z.object({
+  id: z.string(),
+  name: z.enum(indexerTypeEnum),
+  privacy: z.enum(["private", "semi-private", "public"]),
+});
+
+export type TorrentIndexer = z.infer<typeof torrentIndexerSchema>;
+
+// Torrent search result schema
+export const torrentSchema = z.object({
+  title: z.string(),
+  tracker: z.string(),
+  size: z.number(),
+  publishDate: z.string(),
+  seeders: z.number(),
+  peers: z.number(),
+  link: z.string(),
+  guid: z.string(),
+  quality: z.union([
+    z.literal("SD"),
+    z.literal("HD"),
+    z.literal("2K"),
+    z.literal("4K"),
+    z.undefined(),
+  ]),
+  language: z.string().optional(),
+  detailsUrl: z.string().optional(),
+  indexerType: z.enum(indexerTypeEnum),
+  // Optional fields from different indexers
+  downloadUrl: z.string().optional(), // OxTorrent, etc.
+  magnetUrl: z.string().optional(), // Prowlarr redirect URL
+});
+
+export type Torrent = z.infer<typeof torrentSchema>;
+
+// ============================================================================
+// Request schemas
+// ============================================================================
+
+export const downloadTorrentSchema = z.object({
+  magnetUri: z.string(),
+  name: z.string(),
+  mediaId: z.number().optional(),
+  origin: z.string().optional(),
+  quality: z.string().optional(),
+  language: z.string().optional(),
+});
+
+export type DownloadTorrentInput = z.infer<typeof downloadTorrentSchema>;
+
+// ============================================================================
+// Live data interfaces (non-serializable WebTorrent data)
+// ============================================================================
+
 export interface TorrentLiveData {
-  // Progress information
-  progress: number; // 0-1
+  progress: number;
   done: boolean;
   paused: boolean;
 
-  // Transfer speeds (bytes/sec)
   downloadSpeed: number;
   uploadSpeed: number;
 
-  // Transfer amounts (bytes)
   downloaded: number;
   uploaded: number;
-  length: number; // Total size
-  ratio: number; // Upload/download ratio
+  length: number;
+  ratio: number;
 
-  // Network information
   numPeers: number;
 
-  // Time estimation
-  timeRemaining: number; // milliseconds
+  timeRemaining: number;
 
-  // Files in the torrent (without streams/buffers)
   files: TorrentFileInfo[];
 }
 
-/**
- * Information about a file in a torrent
- * Extracted from WebTorrent.TorrentFile without non-serializable properties
- */
 export interface TorrentFileInfo {
   name: string;
   path: string;
   length: number;
   downloaded: number;
-  progress: number; // 0-1
+  progress: number;
 }

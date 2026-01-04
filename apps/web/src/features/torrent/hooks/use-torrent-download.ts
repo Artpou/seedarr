@@ -1,41 +1,26 @@
-import type { TorrentDownloadSerialized, TorrentLiveData } from "@basement/api/types";
+import type {
+  DownloadTorrentInput,
+  TorrentDownloadSerialized,
+  TorrentLiveData,
+} from "@basement/api/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, getBaseUrl, unwrap } from "@/lib/api";
+import { api, unwrap } from "@/lib/api";
 
-/**
- * Torrent download with optional live data from WebTorrent
- * Uses serialized version (Date as string for JSON compatibility)
- */
 export type TorrentDownloadWithLive = TorrentDownloadSerialized & {
   live?: TorrentLiveData;
 };
 
-// Re-export for backward compatibility
 export type TorrentDownload = TorrentDownloadWithLive;
 
 export function useStartDownload() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      magnetUri,
-      name,
-      mediaId,
-      origin,
-      quality,
-      language,
-    }: {
-      magnetUri: string;
-      name: string;
-      mediaId?: number;
-      origin?: string;
-      quality?: string;
-      language?: string;
-    }) =>
+    mutationFn: (input: DownloadTorrentInput) =>
       unwrap(
         api.torrents.download.$post({
-          json: { magnetUri, name, mediaId, origin, quality, language },
+          json: input,
         }),
       ),
     onSuccess: () => {
@@ -48,11 +33,14 @@ export function useTorrentDownloads() {
   return useQuery({
     queryKey: ["torrent-downloads"],
     queryFn: () => unwrap<TorrentDownloadWithLive[]>(api.torrents.download.$get()),
-    refetchInterval: 2000, // Poll every 2 seconds for live updates
+    refetchInterval: 2000,
   });
 }
 
-export function useTorrentDownload(id: string) {
+export function useTorrentDownload(
+  id: string,
+  { refetchInterval = 0 }: { refetchInterval?: number } = {},
+) {
   return useQuery({
     queryKey: ["torrent-download", id],
     queryFn: () =>
@@ -61,7 +49,7 @@ export function useTorrentDownload(id: string) {
           param: { id },
         }),
       ),
-    refetchInterval: 1000, // Poll every second for detail view
+    refetchInterval,
   });
 }
 
@@ -81,38 +69,36 @@ export function useDeleteTorrent() {
   });
 }
 
-// TODO: Add pause/resume endpoints to API routes (torrent.route.ts)
 export function usePauseTorrent() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) =>
       unwrap(
-        fetch(`${getBaseUrl()}/torrents/download/${id}/pause`, {
-          method: "POST",
-          credentials: "include",
+        api.torrents.download[":id"].pause.$post({
+          param: { id },
         }),
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["torrent-downloads"] });
+      queryClient.invalidateQueries({ queryKey: ["torrent-download"] });
     },
   });
 }
 
-// TODO: Add pause/resume endpoints to API routes (torrent.route.ts)
 export function useResumeTorrent() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) =>
       unwrap(
-        fetch(`${getBaseUrl()}/torrents/download/${id}/resume`, {
-          method: "POST",
-          credentials: "include",
+        api.torrents.download[":id"].resume.$post({
+          param: { id },
         }),
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["torrent-downloads"] });
+      queryClient.invalidateQueries({ queryKey: ["torrent-download"] });
     },
   });
 }

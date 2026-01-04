@@ -2,7 +2,8 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { AuthenticatedService } from "@/classes/authenticated-service";
 import { db } from "@/db/db";
-import { Media, media, userWatchList } from "@/db/schema";
+import { media, userWatchList } from "@/db/schema";
+import type { Media } from "./media.dto";
 
 export class MediaWatchListService extends AuthenticatedService {
   async toggle(mediaData: Media) {

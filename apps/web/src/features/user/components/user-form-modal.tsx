@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import type { User } from "@basement/api/types";
+import type { UserSerialized } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import { useMutation } from "@tanstack/react-query";
 import { Crown, Glasses, ShieldCheck, UserCheck } from "lucide-react";
@@ -32,7 +32,7 @@ interface UserFormData {
 interface UserFormModalProps {
   open: boolean;
   onClose: () => void;
-  user?: User | null;
+  user?: UserSerialized | null;
 }
 
 const roleConfig = {

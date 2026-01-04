@@ -116,6 +116,99 @@ const { data, isLoading, error } = useQuery({
 });
 ```
 
+## Type Usage
+
+### Import from API
+
+- **Always** import types from `@basement/api/types`
+- **Never** recreate types that exist in the API
+- **Never** define inline types for API data structures
+- **Use** existing DTO types for mutations and queries
+
+### Examples
+
+✅ **Good: Using API types**
+
+```typescript
+import type { 
+  Torrent, 
+  Media, 
+  UserSerialized, 
+  DownloadTorrentInput,
+  UserRole 
+} from "@basement/api/types";
+
+// Use API types directly in hooks
+export function useStartDownload() {
+  return useMutation({
+    mutationFn: (input: DownloadTorrentInput) =>
+      unwrap(api.torrents.download.$post({ json: input })),
+  });
+}
+
+// Use derived types from API types
+type MediaType = Media["type"];
+
+// Use enum types from API
+const hasRole = (minRole: UserRole): boolean => {
+  // ...
+};
+```
+
+❌ **Bad: Recreating types**
+
+```typescript
+// DON'T recreate types that exist in the API
+type UserRole = "owner" | "admin" | "member" | "viewer";
+
+// DON'T define inline parameter types
+export function useStartDownload() {
+  return useMutation({
+    mutationFn: ({
+      magnetUri,
+      name,
+      mediaId,
+    }: {
+      magnetUri: string;
+      name: string;
+      mediaId?: number;
+    }) => {
+      // This is wrong! Use DownloadTorrentInput instead
+    }
+  });
+}
+
+// DON'T recreate API data structures
+interface LocalTorrent {
+  title: string;
+  tracker: string;
+  // ... duplicating API types
+}
+```
+
+### Serialized Types
+
+When working with API responses that contain dates, use serialized types:
+
+```typescript
+import type { UserSerialized, TorrentDownloadSerialized } from "@basement/api/types";
+
+// API returns dates as strings in JSON
+const user: UserSerialized = await api.auth.me.$get();
+// user.createdAt is string, not Date
+```
+
+### Type Inference
+
+Prefer inferring types from API responses when needed:
+
+```typescript
+import type { ApiData, api } from "@/lib/api";
+
+// Infer type from API endpoint
+type TorrentList = ApiData<ReturnType<typeof api.torrents.download.$get>>;
+```
+
 ## React Components
 
 ### Component Structure
@@ -369,6 +462,33 @@ const message = t(msg`User not found`);
 - Use **Lucide React** for icons
 - use Icon suffix for icons: `HomeIcon`, `SettingsIcon`, `UserIcon`
 - Import only needed icons (tree-shaking)
+
+## Common Pitfalls to Avoid
+
+❌ **DON'T:**
+
+- Use `any` type
+- Recreate types that exist in the API
+- Mutate props directly
+- Create large monolithic components
+- Forget to handle loading/error states
+- Hardcode strings (use i18n)
+- Use inline styles (use Tailwind)
+- Fetch data in components (use TanStack Query)
+- Store derived state
+- Use `index` as key in lists
+
+✅ **DO:**
+
+- Use TypeScript properly
+- Import types from `@basement/api/types`
+- Keep components small and focused
+- Extract reusable logic into hooks
+- Handle all data fetching states
+- Use proper ARIA labels
+- Follow React best practices
+- Implement proper error boundaries
+- Use semantic HTML
 
 ## Responsive Design
 

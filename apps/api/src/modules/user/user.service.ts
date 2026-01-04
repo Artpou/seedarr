@@ -1,7 +1,8 @@
 import { count, eq } from "drizzle-orm";
 
 import { db } from "@/db/db";
-import { type NewUser, user } from "@/db/schema";
+import { user } from "@/db/schema";
+import type { NewUser } from "./user.dto";
 
 export class UserService {
   private query = db

@@ -1,4 +1,4 @@
-import type { Media } from "@basement/api/types";
+import type { Media, Torrent } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Download } from "lucide-react";
@@ -9,7 +9,6 @@ import { Button } from "@/shared/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
 import { useStartDownload } from "@/features/torrent/hooks/use-torrent-download";
-import type { Torrent } from "@/features/torrent/torrent";
 
 interface TorrentTableProps {
   torrents: Torrent[];
@@ -51,7 +50,7 @@ export function TorrentTable({ torrents, media }: TorrentTableProps) {
       console.log("[TORRENT] Starting download:", {
         title: torrent.title,
         uri: `${magnetUri.substring(0, 100)}...`,
-        indexer: torrent.indexer,
+        indexer: torrent.tracker,
       });
     }
 

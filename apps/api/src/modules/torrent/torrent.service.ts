@@ -1,9 +1,11 @@
 import { IndexerManagerService } from "@/modules/indexer-manager/indexer-manager.service";
 import { AuthenticatedService } from "../../classes/authenticated-service";
-import { type IndexerType, type Media } from "../../db/schema";
-import type { IndexerAdapter, Torrent, TorrentIndexer } from "./adapters/base.adapter";
+import { type IndexerType } from "../../db/schema";
+import type { Media } from "../media/media.dto";
+import type { IndexerAdapter } from "./adapters/base.adapter";
 import { JackettAdapter } from "./adapters/jackett.adapter";
 import { ProwlarrAdapter } from "./adapters/prowlarr.adapter";
+import type { Torrent, TorrentIndexer } from "./torrent.dto";
 
 export class TorrentService extends AuthenticatedService {
   private readonly adapters: Record<IndexerType, IndexerAdapter> = {

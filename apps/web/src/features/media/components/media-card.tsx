@@ -50,8 +50,8 @@ export function MediaCard({
   return (
     <Card className={cn("overflow-hidden aspect-2/3 relative pt-0 pb-0", className)}>
       <Link
-        to={media.type === "movie" ? "/movies/$movieId" : "/"}
-        params={{ movieId: media.id.toString() }}
+        to={media.type === "movie" ? "/movies/$id" : "/"}
+        params={{ id: media.id.toString() }}
         className="group"
       >
         <img

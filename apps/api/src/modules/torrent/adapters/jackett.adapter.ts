@@ -1,6 +1,7 @@
 import { getLanguageFromTitle, getTorrentQuality } from "@/helpers/video.helper";
 import { IndexerType } from "../../../db/schema";
-import { IndexerAdapter, Torrent, TorrentIndexer } from "./base.adapter";
+import type { Torrent, TorrentIndexer } from "../torrent.dto";
+import type { IndexerAdapter } from "./base.adapter";
 
 interface JackettSearchItem {
   Title: string;

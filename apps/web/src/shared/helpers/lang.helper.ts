@@ -1,7 +1,6 @@
 const FLAGS_API_URL = "https://flagsapi.com";
 
 export function getFlagUrl(country?: string) {
-  console.log(country);
   if (!country) return "";
   switch (country.toUpperCase()) {
     case "EN":

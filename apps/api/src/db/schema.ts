@@ -157,21 +157,3 @@ export const torrentDownload = sqliteTable("torrentDownload", {
   // Error handling
   error: text("error"),
 });
-
-// Export types
-export type User = Omit<typeof user.$inferSelect, "password">;
-export type NewUser = typeof user.$inferInsert;
-export type IndexerManager = typeof indexerManager.$inferSelect;
-export type NewIndexerManager = typeof indexerManager.$inferInsert;
-export type Session = typeof session.$inferSelect;
-export type NewSession = typeof session.$inferInsert;
-export type Media = typeof media.$inferSelect;
-export type NewMedia = typeof media.$inferInsert;
-export type UserMedia = typeof userMedia.$inferSelect;
-export type NewUserMedia = typeof userMedia.$inferInsert;
-export type UserLikes = typeof userLikes.$inferSelect;
-export type NewUserLikes = typeof userLikes.$inferInsert;
-export type UserWatchList = typeof userWatchList.$inferSelect;
-export type NewUserWatchList = typeof userWatchList.$inferInsert;
-export type TorrentDownload = typeof torrentDownload.$inferSelect;
-export type NewTorrentDownload = typeof torrentDownload.$inferInsert;

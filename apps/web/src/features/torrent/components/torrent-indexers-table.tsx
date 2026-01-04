@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import type { Torrent, TorrentIndexer } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Eye, EyeOff } from "lucide-react";
@@ -8,8 +9,6 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
-
-import type { Torrent, TorrentIndexer } from "@/features/torrent/torrent";
 
 interface TorrentIndexersTableProps {
   indexers: TorrentIndexer[];

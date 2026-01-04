@@ -51,9 +51,9 @@ export function MovieList({ movies, onItemClick }: MovieListProps) {
         {movies.map((movie) => (
           <Link
             key={movie.id}
-            to="/movies/$movieId"
+            to="/movies/$id"
             params={{
-              movieId: movie.id.toString(),
+              id: movie.id.toString(),
             }}
             onClick={onItemClick}
             className="flex items-center gap-4 p-3 rounded-xl hover:bg-accent transition-all group"

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { User } from "@basement/api/types";
+import type { UserSerialized } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_app/users")({
 
 function UsersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserSerialized | null>(null);
   const { isAdmin } = useRole();
 
   const {
@@ -50,7 +50,7 @@ function UsersPage() {
     setIsModalOpen(true);
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: UserSerialized) => {
     setEditingUser(user);
     setIsModalOpen(true);
   };

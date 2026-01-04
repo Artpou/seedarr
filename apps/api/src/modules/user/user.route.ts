@@ -1,26 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { z } from "zod";
 
 import { hashPassword } from "@/auth/password.util";
-import { NewUser } from "@/db/schema";
 import { authGuard } from "@/modules/auth/auth.guard";
 import { ForbiddenError } from "@/modules/auth/error";
 import { requireRole } from "@/modules/auth/role.guard";
 import type { HonoVariables } from "@/types/hono";
+import { createUserSchema, type NewUser, updateUserSchema } from "./user.dto";
 import { UserService } from "./user.service";
-
-const createUserSchema = z.object({
-  username: z.string().min(3),
-  password: z.string().min(8),
-  role: z.enum(["owner", "admin", "member", "viewer"]),
-});
-
-const updateUserSchema = z.object({
-  username: z.string().min(3).optional(),
-  password: z.string().min(8).optional(),
-  role: z.enum(["owner", "admin", "member", "viewer"]).optional(),
-});
 
 export const userRoutes = new Hono<{ Variables: HonoVariables }>()
   .use("*", authGuard)

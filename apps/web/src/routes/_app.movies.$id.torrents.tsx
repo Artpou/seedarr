@@ -13,7 +13,7 @@ import { TorrentTable } from "@/features/torrent/components/torrent-table";
 import { useIndexers } from "@/features/torrent/hooks/use-indexers";
 import { useTorrents } from "@/features/torrent/hooks/use-torrent";
 
-export const Route = createFileRoute("/_app/movies/$movieId/torrents")({
+export const Route = createFileRoute("/_app/movies/$id/torrents")({
   component: MovieTorrentsPage,
   beforeLoad: () => {
     const user = useAuth.getState().user;
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_app/movies/$movieId/torrents")({
 
 function MovieTorrentsPage() {
   const params = Route.useParams();
-  const { data: media, isLoading: isMediaLoading } = useMedia(Number(params.movieId));
+  const { data: media, isLoading: isMediaLoading } = useMedia(Number(params.id));
   const { data: indexers, isLoading: isIndexersLoading } = useIndexers();
   const torrentQueries = useTorrents(media, indexers || []);
 
@@ -75,7 +75,7 @@ function MovieTorrentsPage() {
       <AppBreadcrumb
         items={[
           { name: "Movies", link: "/movies" },
-          { name: media.title, link: `/movies/${params.movieId}` },
+          { name: media.title, link: `/movies/${params.id}` },
           { name: "Torrents" },
         ]}
       />

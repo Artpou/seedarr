@@ -1,4 +1,4 @@
-import type { User } from "@/db/schema";
+import type { User } from "@/modules/user/user.dto";
 
 // Define Hono context variables
 export type HonoVariables = {

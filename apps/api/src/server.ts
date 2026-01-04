@@ -9,6 +9,7 @@ import { freeboxRoutes } from "./modules/freebox/freebox.route";
 import { indexerManagerRoutes } from "./modules/indexer-manager/indexer-manager.route";
 import { mediaRoutes } from "./modules/media/media.route";
 import { torrentRoutes } from "./modules/torrent/torrent.route";
+import { TorrentDownloadService } from "./modules/torrent/torrent-download.service";
 import { userRoutes } from "./modules/user/user.route";
 import type { HonoVariables } from "./types/hono";
 
@@ -48,6 +49,11 @@ const start = async () => {
   const downloadsPath = process.env.DOWNLOADS_PATH || "./downloads";
   await fs.mkdir(downloadsPath, { recursive: true });
   console.log(`[STARTUP] Downloads directory: ${downloadsPath}`);
+
+  // Initialize WebTorrent system in background (non-blocking)
+  TorrentDownloadService.initialize(downloadsPath).catch((error) => {
+    console.error("[STARTUP] ✗ Torrent system initialization failed:", error);
+  });
 
   if (!process.env.API_PORT) {
     console.log("API_PORT is not set, using default 3002");

@@ -1,6 +1,7 @@
 import { getLanguageFromTitle, getTorrentQuality } from "@/helpers/video.helper";
 import { IndexerType } from "../../../db/schema";
-import { IndexerAdapter, Torrent, TorrentIndexer, TorrentQuality } from "./base.adapter";
+import type { Torrent, TorrentIndexer, TorrentQuality } from "../torrent.dto";
+import type { IndexerAdapter } from "./base.adapter";
 
 interface ProwlarrSearchItem {
   quality: TorrentQuality;

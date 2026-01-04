@@ -2,7 +2,7 @@ import { Download, Upload, Users } from "lucide-react";
 
 import { Progress } from "@/shared/ui/progress";
 
-interface DownloadProgressBarProps {
+interface DownloadCardProgressProps {
   progress: number;
   downloadSpeed: number;
   uploadSpeed: number;
@@ -10,13 +10,13 @@ interface DownloadProgressBarProps {
   className?: string;
 }
 
-export function DownloadProgressBar({
+export function DownloadCardProgress({
   progress,
   downloadSpeed,
   uploadSpeed,
   numPeers,
   className = "",
-}: DownloadProgressBarProps) {
+}: DownloadCardProgressProps) {
   return (
     <div className={`w-full space-y-2 ${className}`}>
       <div className="flex items-center justify-between text-sm">

@@ -1,29 +1,19 @@
 import { zValidator } from "@hono/zod-validator";
-import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { media } from "@/db/schema";
+import { convertMkvToMp4Stream } from "@/helpers/video.helper";
 import { authGuard } from "@/modules/auth/auth.guard";
 import { requireRole } from "@/modules/auth/role.guard";
+import { mediaSelectSchema } from "@/modules/media/media.dto";
 import type { HonoVariables } from "@/types/hono";
+import { downloadTorrentSchema } from "./torrent.dto";
 import { TorrentService } from "./torrent.service";
 import { TorrentDownloadService } from "./torrent-download.service";
 
-const mediaSchema = createSelectSchema(media);
-
 const searchSchema = z.object({
-  media: mediaSchema,
+  media: mediaSelectSchema,
   indexerId: z.string(),
-});
-
-const downloadSchema = z.object({
-  magnetUri: z.string(), // Can be either a magnet URI or a .torrent URL
-  name: z.string(),
-  mediaId: z.number().optional(),
-  origin: z.string().optional(), // Tracker name
-  quality: z.string().optional(), // Quality tier (SD, HD, 2K, 4K)
-  language: z.string().optional(), // Content language
 });
 
 export const torrentRoutes = new Hono<{ Variables: HonoVariables }>()
@@ -34,21 +24,36 @@ export const torrentRoutes = new Hono<{ Variables: HonoVariables }>()
     const { media, indexerId } = c.req.valid("json");
     return c.json(await TorrentService.fromContext(c).searchTorrents(media, indexerId));
   })
-  .post("/download", zValidator("json", downloadSchema), async (c) => {
-    const { magnetUri, name, mediaId, origin, quality, language } = c.req.valid("json");
-    return c.json(
-      await TorrentDownloadService.fromContext(c).startDownload(
-        magnetUri,
-        name,
-        mediaId,
-        origin,
-        quality,
-        language,
-      ),
-    );
+  .post("/download", zValidator("json", downloadTorrentSchema), async (c) => {
+    return c.json(await TorrentDownloadService.fromContext(c).startDownload(c.req.valid("json")));
   })
   .get("/download", async (c) => {
     return c.json(await TorrentDownloadService.fromContext(c).listTorrents());
+  })
+  // Pause/resume routes MUST come before /download/:id to avoid route conflicts
+  .post("/download/:id/pause", async (c) => {
+    const torrent = await TorrentDownloadService.fromContext(c).getTorrentById(c.req.param("id"));
+    const user = c.get("user");
+
+    // Only owner/admin or the user who created can pause
+    if (torrent?.userId !== user.id && !["owner", "admin"].includes(user.role)) {
+      throw new Error("Unauthorized");
+    }
+
+    await TorrentDownloadService.fromContext(c).pauseTorrent(c.req.param("id"));
+    return c.json({ success: true });
+  })
+  .post("/download/:id/resume", async (c) => {
+    const torrent = await TorrentDownloadService.fromContext(c).getTorrentById(c.req.param("id"));
+    const user = c.get("user");
+
+    // Only owner/admin or the user who created can resume
+    if (torrent?.userId !== user.id && !["owner", "admin"].includes(user.role)) {
+      throw new Error("Unauthorized");
+    }
+
+    await TorrentDownloadService.fromContext(c).resumeTorrent(c.req.param("id"));
+    return c.json({ success: true });
   })
   .get("/download/:id", async (c) => {
     const torrent = await TorrentDownloadService.fromContext(c).getTorrentById(c.req.param("id"));
@@ -67,9 +72,11 @@ export const torrentRoutes = new Hono<{ Variables: HonoVariables }>()
     await TorrentDownloadService.fromContext(c).deleteTorrent(c.req.param("id"));
     return c.json({ success: true });
   })
-  // OPTIONAL: Streaming route
+  // OPTIONAL: Streaming route (legacy - direct stream without conversion)
   .get("/download/:id/stream", async (c) => {
-    const result = TorrentDownloadService.fromContext(c).getStreamForTorrent(c.req.param("id"));
+    const result = await TorrentDownloadService.fromContext(c).getStreamForTorrent(
+      c.req.param("id"),
+    );
 
     if (!result) {
       return c.json({ error: "No video file available" }, 404);
@@ -90,6 +97,40 @@ export const torrentRoutes = new Hono<{ Variables: HonoVariables }>()
     c.header("Accept-Ranges", "bytes");
 
     // Convert Node.js stream to Web ReadableStream
+    return c.body(nodeStream as unknown as ReadableStream);
+  })
+  // Convert route: Automatically detects MKV and converts to MP4
+  .get("/download/:id/convert", async (c) => {
+    const result = await TorrentDownloadService.fromContext(c).getStreamForTorrent(
+      c.req.param("id"),
+    );
+
+    if (!result) {
+      return c.json({ error: "No video file available" }, 404);
+    }
+
+    const { stream: nodeStream, fileName } = result;
+    const isMkv = fileName.toLowerCase().endsWith(".mkv");
+
+    if (isMkv) {
+      const convertedStream = convertMkvToMp4Stream(nodeStream);
+      c.header("Content-Type", "video/mp4");
+      c.header("Transfer-Encoding", "chunked");
+      return c.body(convertedStream as unknown as ReadableStream);
+    }
+
+    // Determine content type based on file extension
+    let contentType = "video/mp4";
+    if (fileName.toLowerCase().endsWith(".webm")) {
+      contentType = "video/webm";
+    } else if (fileName.toLowerCase().endsWith(".avi")) {
+      contentType = "video/x-msvideo";
+    } else if (fileName.toLowerCase().endsWith(".mov")) {
+      contentType = "video/quicktime";
+    }
+
+    c.header("Content-Type", contentType);
+    c.header("Accept-Ranges", "bytes");
     return c.body(nodeStream as unknown as ReadableStream);
   });
 

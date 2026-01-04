@@ -2,11 +2,11 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import ms from "ms";
-import { z } from "zod";
 
 import { hashPassword, verifyPassword } from "@/auth/password.util";
 import { createSession, deleteSession, validateSession } from "@/auth/session.util";
 import { UserService } from "../user/user.service";
+import { loginSchema, registerSchema } from "./auth.dto";
 
 const SESSION_COOKIE_NAME = "session";
 
@@ -19,16 +19,6 @@ const cookieOptions = {
   path: "/",
   sameSite: "lax" as const,
 };
-
-const registerSchema = z.object({
-  username: z.string().min(3),
-  password: z.string().min(8),
-});
-
-const loginSchema = z.object({
-  username: z.string(),
-  password: z.string(),
-});
 
 export const authRoutes = new Hono()
   .get("/has-owner", async (c) => {

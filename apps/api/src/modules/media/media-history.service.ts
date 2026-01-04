@@ -2,7 +2,8 @@ import { desc, eq } from "drizzle-orm";
 
 import { AuthenticatedService } from "@/classes/authenticated-service";
 import { db } from "@/db/db";
-import { Media, media, userMedia } from "@/db/schema";
+import { media, userMedia } from "@/db/schema";
+import type { Media } from "./media.dto";
 
 export class MediaHistoryService extends AuthenticatedService {
   async track(mediaData: Media) {

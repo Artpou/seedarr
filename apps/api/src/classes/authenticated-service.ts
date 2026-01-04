@@ -1,7 +1,7 @@
 import { Context } from "hono";
 
 import { HonoVariables } from "@/types/hono";
-import { User } from "../db/schema";
+import type { User } from "../modules/user/user.dto";
 
 export abstract class AuthenticatedService {
   protected readonly user: User;

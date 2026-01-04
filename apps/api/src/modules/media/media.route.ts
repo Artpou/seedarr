@@ -1,21 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
-import { createSelectSchema } from "drizzle-zod";
 import { Hono } from "hono";
-import { z } from "zod";
 
-import { media } from "@/db/schema";
 import { authGuard } from "@/modules/auth/auth.guard";
 import type { HonoVariables } from "@/types/hono";
+import { mediaSelectSchema, mediaStatusBatchSchema } from "./media.dto";
 import { MediaService } from "./media.service";
 import { MediaHistoryService } from "./media-history.service";
 import { MediaLikeService } from "./media-like.service";
 import { MediaWatchListService } from "./media-watch-list.service";
-
-const selectSchema = createSelectSchema(media);
-
-const mediaStatusBatchSchema = z.object({
-  mediaIds: z.array(z.number()),
-});
 
 export const mediaRoutes = new Hono<{ Variables: HonoVariables }>()
   .use("*", authGuard)
@@ -42,15 +34,15 @@ export const mediaRoutes = new Hono<{ Variables: HonoVariables }>()
     const { mediaIds } = c.req.valid("json");
     return c.json(await MediaService.fromContext(c).getMediaStatusBatch(mediaIds));
   })
-  .post("/track", zValidator("json", selectSchema), async (c) => {
+  .post("/track", zValidator("json", mediaSelectSchema), async (c) => {
     const body = c.req.valid("json");
     return c.json(await MediaHistoryService.fromContext(c).track(body));
   })
-  .post("/like", zValidator("json", selectSchema), async (c) => {
+  .post("/like", zValidator("json", mediaSelectSchema), async (c) => {
     const body = c.req.valid("json");
     return c.json(await MediaLikeService.fromContext(c).toggle(body));
   })
-  .post("/watch-list", zValidator("json", selectSchema), async (c) => {
+  .post("/watch-list", zValidator("json", mediaSelectSchema), async (c) => {
     const body = c.req.valid("json");
     return c.json(await MediaWatchListService.fromContext(c).toggle(body));
   })

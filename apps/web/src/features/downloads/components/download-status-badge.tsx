@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react";
+import { Check, Pause, X } from "lucide-react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Spinner } from "@/shared/ui/spinner";
@@ -10,6 +10,8 @@ export function DownloadStatusBadge({ status }: { status: string }) {
         return "default";
       case "downloading":
         return "secondary";
+      case "paused":
+        return "outline";
       case "failed":
         return "destructive";
       default:
@@ -23,6 +25,8 @@ export function DownloadStatusBadge({ status }: { status: string }) {
         return <Check className="size-4" />;
       case "downloading":
         return <Spinner className="size-4" />;
+      case "paused":
+        return <Pause className="size-4" />;
       case "failed":
         return <X className="size-4" />;
       default:

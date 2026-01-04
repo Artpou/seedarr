@@ -25,10 +25,10 @@ import { Route as AppDownloadsIndexRouteImport } from './routes/_app.downloads.i
 import { Route as AppListsWatchListRouteImport } from './routes/_app.lists.watch-list'
 import { Route as AppListsLikeRouteImport } from './routes/_app.lists.like'
 import { Route as AppListsHistoryRouteImport } from './routes/_app.lists.history'
-import { Route as AppMoviesMovieIdIndexRouteImport } from './routes/_app.movies.$movieId.index'
-import { Route as AppDownloadsDownloadIdIndexRouteImport } from './routes/_app.downloads.$downloadId.index'
-import { Route as AppMoviesMovieIdTorrentsRouteImport } from './routes/_app.movies.$movieId.torrents'
-import { Route as AppDownloadsDownloadIdPlayRouteImport } from './routes/_app.downloads.$downloadId.play'
+import { Route as AppMoviesIdIndexRouteImport } from './routes/_app.movies.$id.index'
+import { Route as AppDownloadsIdIndexRouteImport } from './routes/_app.downloads.$id.index'
+import { Route as AppMoviesIdTorrentsRouteImport } from './routes/_app.movies.$id.torrents'
+import { Route as AppDownloadsIdPlayRouteImport } from './routes/_app.downloads.$id.play'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -108,29 +108,26 @@ const AppListsHistoryRoute = AppListsHistoryRouteImport.update({
   path: '/lists/history',
   getParentRoute: () => AppRoute,
 } as any)
-const AppMoviesMovieIdIndexRoute = AppMoviesMovieIdIndexRouteImport.update({
-  id: '/movies/$movieId/',
-  path: '/movies/$movieId/',
+const AppMoviesIdIndexRoute = AppMoviesIdIndexRouteImport.update({
+  id: '/movies/$id/',
+  path: '/movies/$id/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppDownloadsDownloadIdIndexRoute =
-  AppDownloadsDownloadIdIndexRouteImport.update({
-    id: '/downloads/$downloadId/',
-    path: '/downloads/$downloadId/',
-    getParentRoute: () => AppRoute,
-  } as any)
-const AppMoviesMovieIdTorrentsRoute =
-  AppMoviesMovieIdTorrentsRouteImport.update({
-    id: '/movies/$movieId/torrents',
-    path: '/movies/$movieId/torrents',
-    getParentRoute: () => AppRoute,
-  } as any)
-const AppDownloadsDownloadIdPlayRoute =
-  AppDownloadsDownloadIdPlayRouteImport.update({
-    id: '/downloads/$downloadId/play',
-    path: '/downloads/$downloadId/play',
-    getParentRoute: () => AppRoute,
-  } as any)
+const AppDownloadsIdIndexRoute = AppDownloadsIdIndexRouteImport.update({
+  id: '/downloads/$id/',
+  path: '/downloads/$id/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoviesIdTorrentsRoute = AppMoviesIdTorrentsRouteImport.update({
+  id: '/movies/$id/torrents',
+  path: '/movies/$id/torrents',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDownloadsIdPlayRoute = AppDownloadsIdPlayRouteImport.update({
+  id: '/downloads/$id/play',
+  path: '/downloads/$id/play',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/404': typeof R404Route
@@ -147,10 +144,10 @@ export interface FileRoutesByFullPath {
   '/lists/watch-list': typeof AppListsWatchListRoute
   '/downloads': typeof AppDownloadsIndexRoute
   '/movies': typeof AppMoviesIndexRoute
-  '/downloads/$downloadId/play': typeof AppDownloadsDownloadIdPlayRoute
-  '/movies/$movieId/torrents': typeof AppMoviesMovieIdTorrentsRoute
-  '/downloads/$downloadId': typeof AppDownloadsDownloadIdIndexRoute
-  '/movies/$movieId': typeof AppMoviesMovieIdIndexRoute
+  '/downloads/$id/play': typeof AppDownloadsIdPlayRoute
+  '/movies/$id/torrents': typeof AppMoviesIdTorrentsRoute
+  '/downloads/$id': typeof AppDownloadsIdIndexRoute
+  '/movies/$id': typeof AppMoviesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/404': typeof R404Route
@@ -167,10 +164,10 @@ export interface FileRoutesByTo {
   '/lists/watch-list': typeof AppListsWatchListRoute
   '/downloads': typeof AppDownloadsIndexRoute
   '/movies': typeof AppMoviesIndexRoute
-  '/downloads/$downloadId/play': typeof AppDownloadsDownloadIdPlayRoute
-  '/movies/$movieId/torrents': typeof AppMoviesMovieIdTorrentsRoute
-  '/downloads/$downloadId': typeof AppDownloadsDownloadIdIndexRoute
-  '/movies/$movieId': typeof AppMoviesMovieIdIndexRoute
+  '/downloads/$id/play': typeof AppDownloadsIdPlayRoute
+  '/movies/$id/torrents': typeof AppMoviesIdTorrentsRoute
+  '/downloads/$id': typeof AppDownloadsIdIndexRoute
+  '/movies/$id': typeof AppMoviesIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -190,10 +187,10 @@ export interface FileRoutesById {
   '/_app/lists/watch-list': typeof AppListsWatchListRoute
   '/_app/downloads/': typeof AppDownloadsIndexRoute
   '/_app/movies/': typeof AppMoviesIndexRoute
-  '/_app/downloads/$downloadId/play': typeof AppDownloadsDownloadIdPlayRoute
-  '/_app/movies/$movieId/torrents': typeof AppMoviesMovieIdTorrentsRoute
-  '/_app/downloads/$downloadId/': typeof AppDownloadsDownloadIdIndexRoute
-  '/_app/movies/$movieId/': typeof AppMoviesMovieIdIndexRoute
+  '/_app/downloads/$id/play': typeof AppDownloadsIdPlayRoute
+  '/_app/movies/$id/torrents': typeof AppMoviesIdTorrentsRoute
+  '/_app/downloads/$id/': typeof AppDownloadsIdIndexRoute
+  '/_app/movies/$id/': typeof AppMoviesIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -212,10 +209,10 @@ export interface FileRouteTypes {
     | '/lists/watch-list'
     | '/downloads'
     | '/movies'
-    | '/downloads/$downloadId/play'
-    | '/movies/$movieId/torrents'
-    | '/downloads/$downloadId'
-    | '/movies/$movieId'
+    | '/downloads/$id/play'
+    | '/movies/$id/torrents'
+    | '/downloads/$id'
+    | '/movies/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/404'
@@ -232,10 +229,10 @@ export interface FileRouteTypes {
     | '/lists/watch-list'
     | '/downloads'
     | '/movies'
-    | '/downloads/$downloadId/play'
-    | '/movies/$movieId/torrents'
-    | '/downloads/$downloadId'
-    | '/movies/$movieId'
+    | '/downloads/$id/play'
+    | '/movies/$id/torrents'
+    | '/downloads/$id'
+    | '/movies/$id'
   id:
     | '__root__'
     | '/404'
@@ -254,10 +251,10 @@ export interface FileRouteTypes {
     | '/_app/lists/watch-list'
     | '/_app/downloads/'
     | '/_app/movies/'
-    | '/_app/downloads/$downloadId/play'
-    | '/_app/movies/$movieId/torrents'
-    | '/_app/downloads/$downloadId/'
-    | '/_app/movies/$movieId/'
+    | '/_app/downloads/$id/play'
+    | '/_app/movies/$id/torrents'
+    | '/_app/downloads/$id/'
+    | '/_app/movies/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -380,32 +377,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppListsHistoryRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/movies/$movieId/': {
-      id: '/_app/movies/$movieId/'
-      path: '/movies/$movieId'
-      fullPath: '/movies/$movieId'
-      preLoaderRoute: typeof AppMoviesMovieIdIndexRouteImport
+    '/_app/movies/$id/': {
+      id: '/_app/movies/$id/'
+      path: '/movies/$id'
+      fullPath: '/movies/$id'
+      preLoaderRoute: typeof AppMoviesIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/downloads/$downloadId/': {
-      id: '/_app/downloads/$downloadId/'
-      path: '/downloads/$downloadId'
-      fullPath: '/downloads/$downloadId'
-      preLoaderRoute: typeof AppDownloadsDownloadIdIndexRouteImport
+    '/_app/downloads/$id/': {
+      id: '/_app/downloads/$id/'
+      path: '/downloads/$id'
+      fullPath: '/downloads/$id'
+      preLoaderRoute: typeof AppDownloadsIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/movies/$movieId/torrents': {
-      id: '/_app/movies/$movieId/torrents'
-      path: '/movies/$movieId/torrents'
-      fullPath: '/movies/$movieId/torrents'
-      preLoaderRoute: typeof AppMoviesMovieIdTorrentsRouteImport
+    '/_app/movies/$id/torrents': {
+      id: '/_app/movies/$id/torrents'
+      path: '/movies/$id/torrents'
+      fullPath: '/movies/$id/torrents'
+      preLoaderRoute: typeof AppMoviesIdTorrentsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/downloads/$downloadId/play': {
-      id: '/_app/downloads/$downloadId/play'
-      path: '/downloads/$downloadId/play'
-      fullPath: '/downloads/$downloadId/play'
-      preLoaderRoute: typeof AppDownloadsDownloadIdPlayRouteImport
+    '/_app/downloads/$id/play': {
+      id: '/_app/downloads/$id/play'
+      path: '/downloads/$id/play'
+      fullPath: '/downloads/$id/play'
+      preLoaderRoute: typeof AppDownloadsIdPlayRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -423,10 +420,10 @@ interface AppRouteChildren {
   AppListsWatchListRoute: typeof AppListsWatchListRoute
   AppDownloadsIndexRoute: typeof AppDownloadsIndexRoute
   AppMoviesIndexRoute: typeof AppMoviesIndexRoute
-  AppDownloadsDownloadIdPlayRoute: typeof AppDownloadsDownloadIdPlayRoute
-  AppMoviesMovieIdTorrentsRoute: typeof AppMoviesMovieIdTorrentsRoute
-  AppDownloadsDownloadIdIndexRoute: typeof AppDownloadsDownloadIdIndexRoute
-  AppMoviesMovieIdIndexRoute: typeof AppMoviesMovieIdIndexRoute
+  AppDownloadsIdPlayRoute: typeof AppDownloadsIdPlayRoute
+  AppMoviesIdTorrentsRoute: typeof AppMoviesIdTorrentsRoute
+  AppDownloadsIdIndexRoute: typeof AppDownloadsIdIndexRoute
+  AppMoviesIdIndexRoute: typeof AppMoviesIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -441,10 +438,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppListsWatchListRoute: AppListsWatchListRoute,
   AppDownloadsIndexRoute: AppDownloadsIndexRoute,
   AppMoviesIndexRoute: AppMoviesIndexRoute,
-  AppDownloadsDownloadIdPlayRoute: AppDownloadsDownloadIdPlayRoute,
-  AppMoviesMovieIdTorrentsRoute: AppMoviesMovieIdTorrentsRoute,
-  AppDownloadsDownloadIdIndexRoute: AppDownloadsDownloadIdIndexRoute,
-  AppMoviesMovieIdIndexRoute: AppMoviesMovieIdIndexRoute,
+  AppDownloadsIdPlayRoute: AppDownloadsIdPlayRoute,
+  AppMoviesIdTorrentsRoute: AppMoviesIdTorrentsRoute,
+  AppDownloadsIdIndexRoute: AppDownloadsIdIndexRoute,
+  AppMoviesIdIndexRoute: AppMoviesIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

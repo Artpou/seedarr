@@ -13,10 +13,10 @@ import { getPosterUrl } from "@/features/media/helpers/media.helper";
 
 interface MediaPosterProps {
   media: AppendToResponse<MovieDetails, "videos"[], "movie">;
-  movieId?: number;
+  id?: number;
 }
 
-export function MediaPoster({ media, movieId }: MediaPosterProps) {
+export function MediaPoster({ media, id }: MediaPosterProps) {
   const { role } = useRole();
   const youtubeTrailer = useMemo(() => {
     if (!media?.videos?.results) return null;
@@ -57,9 +57,9 @@ export function MediaPoster({ media, movieId }: MediaPosterProps) {
         </Dialog>
       )}
 
-      {media && role !== "viewer" && movieId && (
+      {media && role !== "viewer" && id && (
         <Button className="w-full" asChild>
-          <Link to="/movies/$movieId/torrents" params={{ movieId: movieId.toString() }}>
+          <Link to="/movies/$id/torrents" params={{ id: id.toString() }}>
             <Search className="size-3 mr-2" />
             <Trans>Search Torrent</Trans>
           </Link>

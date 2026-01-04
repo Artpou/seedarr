@@ -1,18 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { z } from "zod";
 
 import { authGuard } from "@/modules/auth/auth.guard";
 import { requireRole } from "@/modules/auth/role.guard";
 import type { HonoVariables } from "@/types/hono";
+import { createIndexerManagerSchema } from "./indexer-manager.dto";
 import { IndexerManagerService } from "./indexer-manager.service";
-
-const createIndexerManagerSchema = z.object({
-  name: z.enum(["prowlarr", "jackett"]),
-  apiKey: z.string().optional(),
-  baseUrl: z.string().optional(),
-  selected: z.boolean().optional(),
-});
 
 export const indexerManagerRoutes = new Hono<{ Variables: HonoVariables }>()
   .use("*", authGuard)

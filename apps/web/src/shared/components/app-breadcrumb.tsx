@@ -8,7 +8,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/shared/ui/breacrumb";
+} from "@/shared/ui/breadcrumb";
 
 export interface AppBreadcrumbItem {
   name: string;

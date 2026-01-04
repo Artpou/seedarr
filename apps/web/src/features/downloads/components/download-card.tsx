@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Info, Loader2, Pause, Play } from "lucide-react";
+import { Info, Pause, Play } from "lucide-react";
 
+import { CircularProgress } from "@/shared/components/circular-progress";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
@@ -12,8 +13,8 @@ import {
   usePauseTorrent,
   useResumeTorrent,
 } from "@/features/torrent/hooks/use-torrent-download";
+import { DownloadCardProgress } from "./download-card-progress";
 import { DownloadMetadata } from "./download-metadata";
-import { DownloadProgressBar } from "./download-progress-bar";
 import { DownloadStatusBadge } from "./download-status-badge";
 
 interface DownloadCardProps {
@@ -47,7 +48,7 @@ export function DownloadCard({ torrent, inGrid = false }: DownloadCardProps) {
   const handlePlay = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate({ to: "/downloads/$downloadId/play", params: { downloadId: torrent.id } });
+    navigate({ to: "/downloads/$id/play", params: { id: torrent.id } });
   };
 
   const handleInfo = (e: React.MouseEvent) => {
@@ -60,24 +61,31 @@ export function DownloadCard({ torrent, inGrid = false }: DownloadCardProps) {
   // Grid layout variant
   if (inGrid) {
     const isDownloading = torrent.status === "downloading" || torrent.status === "queued";
+    const isPaused = torrent.status === "paused";
+    const showProgress = isDownloading || isPaused;
 
     return (
-      <Link to="/downloads/$downloadId" params={{ downloadId: torrent.id }}>
+      <Link to="/downloads/$id" params={{ id: torrent.id }}>
         <div className="relative group">
           <MediaCard media={media} hideInfo className="pointer-events-none" />
 
-          {/* Loading indicator - top */}
-          {isDownloading && (
-            <div className="absolute top-0 left-0 right-0 h-3 bg-muted overflow-hidden rounded-t-xl">
-              <div
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${progress * 100}%` }}
+          {/* Circular progress indicator - top left */}
+          {showProgress && (
+            <div className="absolute top-2 left-2">
+              <CircularProgress
+                value={progress * 100}
+                size={50}
+                strokeWidth={4}
+                showValue={true}
+                noColor={true}
+                paused={isPaused}
+                className={isPaused ? "text-orange-500" : "text-primary"}
               />
             </div>
           )}
 
           {/* Quality and Language badges - top left (only for completed) */}
-          {!isDownloading && (torrent.quality || torrent.language) && (
+          {!showProgress && (torrent.quality || torrent.language) && (
             <div className="absolute top-2 left-2 flex gap-1">
               {torrent.quality && (
                 <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
@@ -102,20 +110,11 @@ export function DownloadCard({ torrent, inGrid = false }: DownloadCardProps) {
             <Info className="size-4" />
           </Button>
 
-          {/* Play button - bottom */}
+          {/* Play/Stream button - bottom */}
           <div className="absolute bottom-2 left-2 right-2">
-            <Button onClick={handlePlay} className="w-full" disabled={isDownloading}>
-              {isDownloading ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Downloading
-                </>
-              ) : (
-                <>
-                  <Play className="size-4" />
-                  Play
-                </>
-              )}
+            <Button onClick={handlePlay} className="w-full">
+              <Play className="size-4" />
+              {isDownloading ? "Stream" : "Play"}
             </Button>
           </div>
         </div>
@@ -125,7 +124,7 @@ export function DownloadCard({ torrent, inGrid = false }: DownloadCardProps) {
 
   // Original list layout
   return (
-    <Link to="/downloads/$downloadId" params={{ downloadId: torrent.id }}>
+    <Link to="/downloads/$id" params={{ id: torrent.id }}>
       <Card className="flex-row hover:bg-accent/50 cursor-pointer gap-3 mt-3">
         {/* Poster Image */}
         <div className="w-[100px] shrink-0 relative ml-3">
@@ -139,7 +138,7 @@ export function DownloadCard({ torrent, inGrid = false }: DownloadCardProps) {
           <div className="space-y-2">
             <div className="flex items-start gap-4">
               <div className="flex flex-col">
-                <Link to="/movies/$movieId" params={{ movieId: media.id.toString() }}>
+                <Link to="/movies/$id" params={{ id: media.id.toString() }}>
                   <h3 className="text-lg font-semibold line-clamp-2 flex-1">{media.title}</h3>
                 </Link>
                 <p className="text-sm text-muted-foreground line-clamp-3">{media.overview}</p>
@@ -158,13 +157,18 @@ export function DownloadCard({ torrent, inGrid = false }: DownloadCardProps) {
 
           {/* Progress Bar */}
           <div className="flex w-full gap-3 items-end">
-            <DownloadProgressBar
+            <DownloadCardProgress
               progress={progress}
               downloadSpeed={downloadSpeed}
               uploadSpeed={uploadSpeed}
               numPeers={numPeers}
               className="my-3"
             />
+
+            {/* Play/Stream button */}
+            <Button variant="outline" size="icon" onClick={handlePlay}>
+              <Play className="size-4" />
+            </Button>
 
             {(torrent.status === "downloading" ||
               torrent.status === "queued" ||
