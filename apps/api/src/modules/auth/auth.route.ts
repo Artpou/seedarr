@@ -93,7 +93,10 @@ export const authRoutes = new Hono()
     const currentUser = await new UserService().getById(userId);
     if (!currentUser) throw new Error("User not found");
 
-    return c.json(currentUser);
+    return c.json({
+      ...currentUser,
+      sessionToken,
+    });
   });
 
 export type AuthRoutesType = typeof authRoutes;

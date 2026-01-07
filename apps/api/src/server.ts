@@ -5,11 +5,12 @@ import { cors } from "hono/cors";
 import * as fs from "node:fs/promises";
 import { colors, logRequest } from "./helpers/logger.helper";
 import { authRoutes } from "./modules/auth/auth.route";
+import { downloadRoutes } from "./modules/download/download.route";
+import { WebTorrentClient } from "./modules/download/webtorrent.client";
 import { freeboxRoutes } from "./modules/freebox/freebox.route";
 import { indexerManagerRoutes } from "./modules/indexer-manager/indexer-manager.route";
 import { mediaRoutes } from "./modules/media/media.route";
 import { torrentRoutes } from "./modules/torrent/torrent.route";
-import { TorrentDownloadService } from "./modules/torrent/torrent-download.service";
 import { userRoutes } from "./modules/user/user.route";
 import type { HonoVariables } from "./types/hono";
 
@@ -32,6 +33,8 @@ export const app = new Hono<{ Variables: HonoVariables }>()
       credentials: true,
       allowHeaders: ["Content-Type", "Authorization", "Cookie"],
       allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      exposeHeaders: ["Content-Length"],
+      maxAge: 600,
     }),
   )
   .route("/auth", authRoutes)
@@ -40,6 +43,7 @@ export const app = new Hono<{ Variables: HonoVariables }>()
   .route("/indexer-manager", indexerManagerRoutes)
   .route("/media", mediaRoutes)
   .route("/torrents", torrentRoutes)
+  .route("/downloads", downloadRoutes)
   .get("/", (c) => c.json({ status: "healthy", timestamp: new Date().toISOString() }));
 
 export type AppType = typeof app;
@@ -50,9 +54,8 @@ const start = async () => {
   await fs.mkdir(downloadsPath, { recursive: true });
   console.log(`[STARTUP] Downloads directory: ${downloadsPath}`);
 
-  // Initialize WebTorrent system in background (non-blocking)
-  TorrentDownloadService.initialize(downloadsPath).catch((error) => {
-    console.error("[STARTUP] ✗ Torrent system initialization failed:", error);
+  WebTorrentClient.initialize(downloadsPath).catch((error) => {
+    console.error("[STARTUP] ✗ WebTorrent initialization failed:", error);
   });
 
   if (!process.env.API_PORT) {

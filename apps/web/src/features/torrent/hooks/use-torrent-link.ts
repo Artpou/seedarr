@@ -1,5 +1,8 @@
 import { getBaseUrl } from "@/lib/api";
 
+import { useAuth } from "@/features/auth/auth-store";
+
 export function useTorrentLink(id: string): string {
-  return `${getBaseUrl()}/torrents/download/${id}/convert`;
+  const { user } = useAuth();
+  return `${getBaseUrl()}/downloads/${id}/stream?session=${user?.sessionToken}`;
 }

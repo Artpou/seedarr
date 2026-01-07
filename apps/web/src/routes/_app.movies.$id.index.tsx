@@ -38,6 +38,7 @@ function MoviePage() {
   const { data: mediaStatus } = useMediaStatus(Number(params.id));
 
   const { data, isLoading } = useMovieDetails(params.id);
+  console.log("data", data);
 
   if (isLoading) {
     return (

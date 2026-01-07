@@ -103,7 +103,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
-                <SidebarMenuItem key={item.title.toString()}>
+                <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
                     isActive={location.pathname === item.url}
@@ -147,7 +147,7 @@ export function AppSidebar() {
                 {listsOpen && (
                   <SidebarMenuSub>
                     {listItems.map((item) => (
-                      <SidebarMenuSubItem key={item.title.toString()}>
+                      <SidebarMenuSubItem key={item.url}>
                         <SidebarMenuSubButton
                           asChild
                           isActive={location.pathname === item.url}

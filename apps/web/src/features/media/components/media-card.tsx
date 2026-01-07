@@ -47,13 +47,21 @@ export function MediaCard({
     toggleWatchList.mutate(media);
   };
 
+  if (hideInfo) {
+    return (
+      <Card className={cn("overflow-hidden aspect-2/3 relative pt-0 pb-0", className)}>
+        <img
+          src={getPosterUrl(media.poster_path, "w342")}
+          alt={media.title}
+          className="size-full object-cover"
+        />
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn("overflow-hidden aspect-2/3 relative pt-0 pb-0", className)}>
-      <Link
-        to={media.type === "movie" ? "/movies/$id" : "/"}
-        params={{ id: media.id.toString() }}
-        className="group"
-      >
+      <Link to="/movies/$id" params={{ id: media.id.toString() }} className="group">
         <img
           src={getPosterUrl(media.poster_path, "w342")}
           alt={media.title}

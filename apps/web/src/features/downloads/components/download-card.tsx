@@ -55,7 +55,7 @@ export function DownloadCard({ torrent, inGrid = false }: DownloadCardProps) {
     e.preventDefault();
     e.stopPropagation();
     const mediaPath = media.type === "movie" ? `/movies/${media.id}` : `/tv/${media.id}`;
-    window.location.href = mediaPath;
+    navigate({ to: mediaPath, params: { id: media.id.toString() } });
   };
 
   // Grid layout variant
@@ -65,60 +65,60 @@ export function DownloadCard({ torrent, inGrid = false }: DownloadCardProps) {
     const showProgress = isDownloading || isPaused;
 
     return (
-      <Link to="/downloads/$id" params={{ id: torrent.id }}>
-        <div className="relative group">
+      <div className="relative group">
+        <Link to="/downloads/$id" params={{ id: torrent.id }}>
           <MediaCard media={media} hideInfo className="pointer-events-none" />
+        </Link>
 
-          {/* Circular progress indicator - top left */}
-          {showProgress && (
-            <div className="absolute top-2 left-2">
-              <CircularProgress
-                value={progress * 100}
-                size={50}
-                strokeWidth={4}
-                showValue={true}
-                noColor={true}
-                paused={isPaused}
-                className={isPaused ? "text-orange-500" : "text-primary"}
-              />
-            </div>
-          )}
-
-          {/* Quality and Language badges - top left (only for completed) */}
-          {!showProgress && (torrent.quality || torrent.language) && (
-            <div className="absolute top-2 left-2 flex gap-1">
-              {torrent.quality && (
-                <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
-                  {torrent.quality}
-                </Badge>
-              )}
-              {torrent.language && (
-                <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
-                  {torrent.language}
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {/* Info button - top right */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={handleInfo}
-          >
-            <Info className="size-4" />
-          </Button>
-
-          {/* Play/Stream button - bottom */}
-          <div className="absolute bottom-2 left-2 right-2">
-            <Button onClick={handlePlay} className="w-full">
-              <Play className="size-4" />
-              {isDownloading ? "Stream" : "Play"}
-            </Button>
+        {/* Circular progress indicator - top left */}
+        {showProgress && (
+          <div className="absolute top-2 left-2">
+            <CircularProgress
+              value={progress * 100}
+              size={50}
+              strokeWidth={4}
+              showValue={true}
+              noColor={true}
+              paused={isPaused}
+              className={isPaused ? "text-orange-500" : "text-primary"}
+            />
           </div>
+        )}
+
+        {/* Quality and Language badges - top left (only for completed) */}
+        {!showProgress && (torrent.quality || torrent.language) && (
+          <div className="absolute top-2 left-2 flex gap-1">
+            {torrent.quality && (
+              <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
+                {torrent.quality}
+              </Badge>
+            )}
+            {torrent.language && (
+              <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
+                {torrent.language}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Info button - top right */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={handleInfo}
+        >
+          <Info className="size-4" />
+        </Button>
+
+        {/* Play/Stream button - bottom */}
+        <div className="absolute bottom-2 left-2 right-2">
+          <Button onClick={handlePlay} className="w-full">
+            <Play className="size-4" />
+            {isDownloading ? "Stream" : "Play"}
+          </Button>
         </div>
-      </Link>
+      </div>
     );
   }
 

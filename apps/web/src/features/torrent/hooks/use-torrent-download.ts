@@ -19,7 +19,7 @@ export function useStartDownload() {
   return useMutation({
     mutationFn: (input: DownloadTorrentInput) =>
       unwrap(
-        api.torrents.download.$post({
+        api.downloads.$post({
           json: input,
         }),
       ),
@@ -32,7 +32,7 @@ export function useStartDownload() {
 export function useTorrentDownloads() {
   return useQuery({
     queryKey: ["torrent-downloads"],
-    queryFn: () => unwrap<TorrentDownloadWithLive[]>(api.torrents.download.$get()),
+    queryFn: () => unwrap<TorrentDownloadWithLive[]>(api.downloads.$get()),
     refetchInterval: 2000,
   });
 }
@@ -45,7 +45,7 @@ export function useTorrentDownload(
     queryKey: ["torrent-download", id],
     queryFn: () =>
       unwrap<TorrentDownloadWithLive>(
-        api.torrents.download[":id"].$get({
+        api.downloads[":id"].$get({
           param: { id },
         }),
       ),
@@ -59,7 +59,7 @@ export function useDeleteTorrent() {
   return useMutation({
     mutationFn: (id: string) =>
       unwrap(
-        api.torrents.download[":id"].$delete({
+        api.downloads[":id"].$delete({
           param: { id },
         }),
       ),
@@ -75,7 +75,7 @@ export function usePauseTorrent() {
   return useMutation({
     mutationFn: (id: string) =>
       unwrap(
-        api.torrents.download[":id"].pause.$post({
+        api.downloads[":id"].pause.$post({
           param: { id },
         }),
       ),
@@ -92,7 +92,7 @@ export function useResumeTorrent() {
   return useMutation({
     mutationFn: (id: string) =>
       unwrap(
-        api.torrents.download[":id"].resume.$post({
+        api.downloads[":id"].resume.$post({
           param: { id },
         }),
       ),

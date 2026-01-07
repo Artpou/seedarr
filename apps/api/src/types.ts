@@ -6,6 +6,15 @@ export type { IndexerType, MediaType, TorrentStatus, UserRole } from "./db/schem
 export type { LoginInput, RegisterInput } from "./modules/auth/auth.dto";
 // Export route types
 export type { AuthRoutesType } from "./modules/auth/auth.route";
+// Download types
+export type {
+  DownloadTorrentInput,
+  NewTorrentDownload,
+  TorrentDownload,
+  TorrentFileInfo,
+  TorrentLiveData,
+} from "./modules/download/download.dto";
+export type { DownloadRoutesType } from "./modules/download/download.route";
 export type { FreeboxFile, FreeboxFilesResponse } from "./modules/freebox/freebox.dto";
 export type { FreeboxRoutesType } from "./modules/freebox/freebox.route";
 export type {
@@ -16,14 +25,11 @@ export type {
 export type { IndexerManagerRoutesType } from "./modules/indexer-manager/indexer-manager.route";
 export type { Media, MediaStatusBatchInput, NewMedia } from "./modules/media/media.dto";
 export type { MediaRoutesType } from "./modules/media/media.route";
+// Torrent search types
 export type {
-  DownloadTorrentInput,
-  NewTorrentDownload,
   Torrent,
-  TorrentDownload,
-  TorrentFileInfo,
   TorrentIndexer,
-  TorrentLiveData,
+  TorrentLanguage,
   TorrentQuality,
 } from "./modules/torrent/torrent.dto";
 export type { TorrentRoutesType } from "./modules/torrent/torrent.route";
@@ -32,12 +38,13 @@ export type { UserRoutesType } from "./modules/user/user.route";
 // Export main app type
 export type { AppType } from "./server";
 
-import type { TorrentDownload as TorrentDownloadDTO } from "./modules/torrent/torrent.dto";
 // API-serialized types (Date -> string for JSON)
+import type { TorrentDownload as TorrentDownloadDTO } from "./modules/download/download.dto";
 import type { User as UserDTO } from "./modules/user/user.dto";
 
 export type UserSerialized = Omit<UserDTO, "createdAt"> & {
   createdAt: string;
+  sessionToken?: string;
 };
 
 export type TorrentDownloadSerialized = Omit<

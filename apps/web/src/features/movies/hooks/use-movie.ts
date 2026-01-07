@@ -29,6 +29,8 @@ export function useMovieDetails(id: string) {
         (title) => title.iso_3166_1 === "US" && title.type === "",
       )?.title;
 
+      // TODO: if no fr video, try with en
+
       // Track the movie view
       await api.media.track.$post({
         json: {

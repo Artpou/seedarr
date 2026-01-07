@@ -1,6 +1,6 @@
 import type WebTorrent from "webtorrent";
 
-import type { TorrentFileInfo, TorrentLiveData } from "./torrent.dto";
+import type { TorrentFileInfo, TorrentLiveData } from "./download.dto";
 
 export function extractTorrentLiveData(torrent: WebTorrent.Torrent): TorrentLiveData {
   return {

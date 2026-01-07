@@ -1,11 +1,16 @@
-import type { Media, Torrent } from "@basement/api/types";
+import { useMemo, useState } from "react";
+
+import type { Media, Torrent, TorrentQuality } from "@basement/api/types";
 import { Trans } from "@lingui/react/macro";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, EarthIcon } from "lucide-react";
 
 import { getFlagUrl } from "@/shared/helpers/lang.helper";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
+import { Label } from "@/shared/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { Slider } from "@/shared/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
 import { useStartDownload } from "@/features/torrent/hooks/use-torrent-download";
@@ -18,6 +23,62 @@ interface TorrentTableProps {
 export function TorrentTable({ torrents, media }: TorrentTableProps) {
   const startDownload = useStartDownload();
   const navigate = useNavigate();
+
+  // Filter states
+  const [selectedLanguage, setSelectedLanguage] = useState("all");
+  const [selectedQualityIndex, setSelectedQualityIndex] = useState<number>(0);
+
+  // Quality hierarchy (index-based for slider)
+  const qualityLevels: (TorrentQuality | "all")[] = [
+    "all",
+    "480p",
+    "720p",
+    "1080p",
+    "1440p",
+    "2160p",
+    "4K",
+  ];
+
+  // Get unique languages from torrents
+  const availableLanguages = useMemo(() => {
+    const langs: string[] = [];
+    torrents.forEach((t) => {
+      if (t.language && t.language !== "multi" && !langs.includes(t.language)) {
+        langs.push(t.language);
+      }
+    });
+
+    return [...langs, "original"];
+  }, [torrents]);
+
+  console.log(torrents);
+
+  // Filter torrents based on selections
+  const filteredTorrents = useMemo(() => {
+    return torrents.filter((torrent) => {
+      // Language filter
+      if (
+        selectedLanguage !== "all" &&
+        (selectedLanguage === "original"
+          ? torrent.language !== ""
+          : torrent.language !== selectedLanguage)
+      ) {
+        return false;
+      }
+
+      // Quality filter
+      if (selectedQualityIndex > 0) {
+        // If torrent quality is empty or doesn't meet minimum, filter out
+        if (!torrent.quality) return false;
+        const torrentQualityIndex = qualityLevels.indexOf(torrent.quality);
+        if (torrentQualityIndex === -1 || torrentQualityIndex < selectedQualityIndex) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [torrents, selectedLanguage, selectedQualityIndex]);
 
   /**
    * Extract the best download URI from a torrent object
@@ -67,7 +128,57 @@ export function TorrentTable({ torrents, media }: TorrentTableProps) {
     navigate({ to: "/downloads" });
   };
   return (
-    <div className="w-full overflow-hidden">
+    <div className="w-full overflow-hidden space-y-2">
+      {/* Filters */}
+      <div className="flex flex-row gap-4 items-center">
+        {/* Language Filter */}
+        <Select value={selectedLanguage} onValueChange={(value) => setSelectedLanguage(value)}>
+          <SelectTrigger className="min-w-28" id="language-filter">
+            <SelectValue placeholder="All languages" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              <Trans>All</Trans>
+            </SelectItem>
+            <SelectItem value="multi">
+              <EarthIcon /> <Trans>Multi</Trans>
+            </SelectItem>
+            {availableLanguages.map((lang) => (
+              <SelectItem key={lang} value={lang}>
+                <img
+                  src={getFlagUrl(lang === "original" ? media.original_language || "" : lang)}
+                  alt={lang}
+                  className="size-4"
+                />
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Quality Filter */}
+        <div className="w-full max-w-md mb-1">
+          <Label htmlFor="quality-filter">
+            <Trans>Minimum Quality</Trans>:{" "}
+            <Badge variant="secondary">
+              {qualityLevels[selectedQualityIndex] === "all" ? (
+                <Trans>All</Trans>
+              ) : (
+                qualityLevels[selectedQualityIndex]
+              )}
+            </Badge>
+          </Label>
+          <Slider
+            id="quality-filter"
+            min={0}
+            max={qualityLevels.length - 1}
+            step={1}
+            value={[selectedQualityIndex]}
+            onValueChange={(value) => setSelectedQualityIndex(value[0])}
+            className="mt-2"
+          />
+        </div>
+      </div>
+
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow className="hover:bg-transparent">
@@ -83,8 +194,8 @@ export function TorrentTable({ torrents, media }: TorrentTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {torrents.length > 0 ? (
-            torrents.map((torrent) => (
+          {filteredTorrents.length > 0 ? (
+            filteredTorrents.map((torrent) => (
               <TableRow key={torrent.guid || torrent.link} className="relative group">
                 <TableCell className="w-full max-w-0">
                   <div className="flex flex-col gap-2">
@@ -100,11 +211,18 @@ export function TorrentTable({ torrents, media }: TorrentTableProps) {
                     <div className="flex items-center gap-2">
                       <Badge variant="default">{torrent.tracker}</Badge>
                       {torrent.quality && <Badge variant="secondary">{torrent.quality}</Badge>}
-                      <img
-                        src={getFlagUrl(torrent.language || media.original_language || "")}
-                        alt={torrent.language}
-                        className="size-4"
-                      />
+                      {torrent.language === "multi" ? (
+                        <Badge className="flex items-center gap-2" variant="secondary">
+                          <EarthIcon />
+                          MULTI
+                        </Badge>
+                      ) : (
+                        <img
+                          src={getFlagUrl(torrent.language || media.original_language || "")}
+                          alt={torrent.language}
+                          className="size-4"
+                        />
+                      )}
                     </div>
                   </div>
                 </TableCell>

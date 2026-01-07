@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, Navigate, Outlet } from "@tanstack/react-router";
@@ -40,21 +38,18 @@ export const Route = createRootRoute({
   component: RootComponent,
 });
 
-function RootComponent() {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: ms("5m"),
-            gcTime: ms("30m"),
-            retry: 1,
-            refetchOnWindowFocus: false,
-          },
-        },
-      }),
-  );
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: ms("5m"),
+      gcTime: ms("30m"),
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
+function RootComponent() {
   // Get initial country code from browser locale (e.g., "en-US" -> "US")
   const getInitialCountry = () => {
     if (typeof window === "undefined") return "US";

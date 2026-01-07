@@ -8,7 +8,7 @@ import { UnauthorizedError } from "./error";
 const SESSION_COOKIE_NAME = "session";
 
 export const authGuard = async (c: Context, next: Next) => {
-  const sessionToken = getCookie(c, SESSION_COOKIE_NAME);
+  const sessionToken = getCookie(c, SESSION_COOKIE_NAME) || c.req.query("session");
 
   if (typeof sessionToken !== "string") {
     throw new UnauthorizedError();

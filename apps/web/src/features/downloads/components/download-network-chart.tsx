@@ -1,4 +1,4 @@
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, YAxis } from "recharts";
 
 import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 import { Card } from "@/shared/ui/card";
