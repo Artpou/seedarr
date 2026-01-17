@@ -10,6 +10,7 @@ import { CircularProgress } from "@/shared/components/circular-progress";
 import { formatRuntime } from "@/shared/helpers/date";
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
 import { getFlagUrl } from "@/shared/helpers/lang.helper";
+import { Badge } from "@/shared/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -127,6 +128,15 @@ export function MovieInfo({ movie }: MovieInfoProps) {
             </span>
           )}
         </div>
+        {movie.runtime > 0 && (
+          <Badge variant="secondary" className="mt-2">
+            <Trans>Ends estimated at</Trans>{" "}
+            {new Date(Date.now() + movie.runtime * 60000).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Badge>
+        )}
       </div>
 
       {(movie.tagline || movie.overview) && (

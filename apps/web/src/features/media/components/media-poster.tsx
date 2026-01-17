@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
-import { MagnetIcon, Play } from "lucide-react";
+import { ClapperboardIcon, MagnetIcon, Play } from "lucide-react";
 import { AppendToResponse, MovieDetails } from "tmdb-ts";
 
 import { Button } from "@/shared/ui/button";
@@ -18,6 +18,9 @@ interface MediaPosterProps {
 
 export function MediaPoster({ media, id }: MediaPosterProps) {
   const { role } = useRole();
+
+  const [imgError, setImgError] = useState(false);
+
   const youtubeTrailer = useMemo(() => {
     if (!media?.videos?.results) return null;
     const trailer = media.videos.results.find(
@@ -28,11 +31,18 @@ export function MediaPoster({ media, id }: MediaPosterProps) {
 
   return (
     <div className="flex flex-col shrink-0 space-y-2 items-center max-w-[230px]">
-      <img
-        src={getPosterUrl(media.poster_path, "w500")}
-        alt={media.title}
-        className="w-[200px] sm:w-full aspect-2/3 rounded-md object-cover border border-secondary shadow-2xl"
-      />
+      {!imgError && !!media.poster_path ? (
+        <img
+          src={getPosterUrl(media.poster_path, "w500")}
+          alt={media.title}
+          className="w-[200px] sm:w-full aspect-2/3 rounded-md object-cover border border-secondary shadow-2xl"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-[200px] size-full aspect-2/3 rounded-md flex items-center justify-center border border-border">
+          <ClapperboardIcon className="size-10 text-muted-foreground" />
+        </div>
+      )}
 
       {youtubeTrailer && (
         <Dialog>

@@ -28,7 +28,7 @@ export function DownloadNetworkChart({ data, status }: DownloadNetworkChartProps
   return (
     <Card className="p-3">
       <div className="h-32">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer>
           <AreaChart data={data}>
             <defs>
               {isDownloading ? (

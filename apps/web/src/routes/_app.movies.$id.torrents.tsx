@@ -8,6 +8,7 @@ import { Container } from "@/shared/ui/container";
 
 import { useAuth } from "@/features/auth/auth-store";
 import { useMedia } from "@/features/media/hooks/use-media";
+import { useMovieDetails } from "@/features/movies/hooks/use-movie";
 import { TorrentIndexersTable } from "@/features/torrent/components/torrent-indexers-table";
 import { TorrentTable } from "@/features/torrent/components/torrent-table";
 import { useIndexers } from "@/features/torrent/hooks/use-indexers";
@@ -25,7 +26,10 @@ export const Route = createFileRoute("/_app/movies/$id/torrents")({
 
 function MovieTorrentsPage() {
   const params = Route.useParams();
-  const { data: media, isLoading: isMediaLoading } = useMedia(Number(params.id));
+  const { data: movie } = useMovieDetails(params.id);
+  const { data: media, isLoading: isMediaLoading } = useMedia(Number(params.id), {
+    enabled: !!movie,
+  });
   const { data: indexers, isLoading: isIndexersLoading } = useIndexers();
   const torrentQueries = useTorrents(media, indexers || []);
 

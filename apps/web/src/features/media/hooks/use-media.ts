@@ -14,10 +14,11 @@ import {
   tmdbTVToMedia,
 } from "@/features/media/helpers/media.helper";
 
-export function useMedia(id: number) {
+export function useMedia(id: number, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ["media", id],
     queryFn: () => unwrap(api.media[":id"].$get({ param: { id: id.toString() } })),
+    enabled,
   });
 }
 

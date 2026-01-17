@@ -9,11 +9,12 @@ import { useTMDB } from "@/shared/hooks/use-tmdb";
 import { tmdbMovieToMedia } from "@/features/media/helpers/media.helper";
 import { useMovieStore } from "@/features/movies/store/movie-store";
 
-export function useMovieDetails(id: string) {
+export function useMovieDetails(id: string, { enabled = true }: { enabled?: boolean } = {}) {
   const { tmdb, tmdbLocale } = useTMDB();
   const queryClient = useQueryClient();
 
   return useQuery({
+    enabled: enabled,
     queryKey: ["movie-full", id, tmdbLocale],
     queryFn: async () => {
       const movieData = await tmdb.movies.details(Number(id), [
@@ -30,6 +31,7 @@ export function useMovieDetails(id: string) {
         movieData.alternative_titles?.titles?.find(
           (title) => title.iso_3166_1 === "US" && title.type === "",
         )?.title ||
+        movieData.alternative_titles?.titles?.find((title) => title.iso_3166_1 === "US")?.title ||
         movieData.alternative_titles?.titles?.find((title) => title.type === "(English)")?.title;
 
       await unwrap(

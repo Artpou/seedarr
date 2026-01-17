@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Trans } from "@lingui/react/macro";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import ms from "ms";
 
 import { AppBreadcrumb } from "@/shared/components/app-breadcrumb";
 import { SeedarrLoader } from "@/shared/components/seedarr-loader";
@@ -37,7 +38,7 @@ interface NetworkDataPoint {
 function DownloadDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { data: torrent, isLoading } = useTorrentDownload(id, { refetchInterval: 1000 });
+  const { data: torrent, isLoading } = useTorrentDownload(id, { refetchInterval: ms("1s") });
   const { data: media } = useMedia(torrent?.mediaId ?? 0);
   const deleteTorrent = useDeleteTorrent();
   const pauseTorrent = usePauseTorrent();
@@ -171,8 +172,10 @@ function DownloadDetailPage() {
         </div>
 
         {/* Right Column - Network Stats (33%) - Desktop Only */}
-        <div className="hidden lg:block space-y-4 overflow-y-auto">
-          <DownloadActionButtons id={id} onDelete={handleDelete} />
+        <div className="block space-y-4 overflow-y-auto">
+          <div className="hidden lg:block">
+            <DownloadActionButtons id={id} onDelete={handleDelete} />
+          </div>
 
           {torrent.status !== "paused" && (
             <DownloadNetworkChart data={networkHistory} status={torrent.status} />

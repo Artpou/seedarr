@@ -20,6 +20,17 @@ export class TorrentService extends AuthenticatedService {
     return this.adapters[indexer];
   }
 
+  private sanitizeQuery(query: string): string {
+    return query
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[._\-:]/g, "+")
+      .replace(/[^a-z0-9\s]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   async getIndexers(): Promise<TorrentIndexer[]> {
     const indexerConfig = await new IndexerManagerService(this.user).getSelected();
 
@@ -36,7 +47,6 @@ export class TorrentService extends AuthenticatedService {
     if (indexerConfig.apiKey === null) throw new Error(`No API key is configured for this indexer`);
 
     const apiKey = indexerConfig.apiKey;
-    const year = media.release_date ? media.release_date.split("-")[0] : undefined;
     const categories = media.type === "movie" ? ["2000"] : ["5000"];
 
     const search = async (query: string) => {
@@ -51,17 +61,19 @@ export class TorrentService extends AuthenticatedService {
       );
     };
 
-    let torrents = await search(`${media.sanitize_title}+${year || ""}`);
+    const sanitizedTitle = this.sanitizeQuery(media.sanitize_title ?? "");
+    console.log(sanitizedTitle, media.sanitize_title);
+    const title = this.sanitizeQuery(media.title ?? "");
 
-    if (torrents.length === 0 && media.title && media.title !== media.sanitize_title) {
-      torrents = await search(`${media.title}+${year || ""}`);
+    const torrents = await search(this.sanitizeQuery(media.sanitize_title ?? ""));
+    if (title !== sanitizedTitle) {
+      torrents.push(...(await search(this.sanitizeQuery(media.title))));
     }
 
-    if (torrents.length === 0) {
-      torrents = await search(`${media.title}`);
-    }
-
-    return torrents;
+    // dedup
+    return torrents.filter(
+      (torrent, index, self) => index === self.findIndex((t) => t.guid === torrent.guid),
+    );
   }
 
   async inspectTorrent(torrentUri: string): Promise<TorrentInspectResult> {

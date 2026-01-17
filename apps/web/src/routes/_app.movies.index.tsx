@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_app/movies/")({
       with_genres: typeof with_genres === "string" ? with_genres : undefined,
       with_watch_providers:
         typeof with_watch_providers === "string" ? with_watch_providers : undefined,
-      selected: typeof selected === "string" ? (selected as MediaSelected) : undefined,
+      selected: typeof selected === "string" ? (selected as MediaSelected) : "home",
     };
   },
 });
@@ -47,6 +47,8 @@ function MoviesPage() {
         : search.selected === "upcoming"
           ? "popularity.desc"
           : undefined) satisfies SortOption | undefined,
+      before_date:
+        search.selected === "cinema" ? new Date().toISOString().split("T")[0] : undefined,
       after_date:
         search.selected === "upcoming" ? new Date().toISOString().split("T")[0] : undefined,
     };

@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 import { Trans } from "@lingui/react/macro";
+import { UserIcon } from "lucide-react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent } from "@/shared/ui/card";
@@ -14,13 +17,22 @@ interface PersonCardProps {
 }
 
 export function PersonCard({ name, profile_path, role, type }: PersonCardProps) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <Card className="group overflow-hidden border-0 py-0 pb-4 gap-4 flex-1">
-      <img
-        src={getPosterUrl(profile_path, "w185")}
-        alt={name}
-        className="aspect-square object-cover"
-      />
+      {!imgError && !!profile_path ? (
+        <img
+          src={getPosterUrl(profile_path, "w185")}
+          alt={name}
+          className="aspect-square object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="size-full aspect-square flex items-center justify-center">
+          <UserIcon className="size-10 text-muted-foreground" />
+        </div>
+      )}
       <CardContent className="px-2 pb-2 space-y-1">
         <p className="text-xs font-bold line-clamp-2" title={name}>
           {name}

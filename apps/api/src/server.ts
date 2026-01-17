@@ -52,7 +52,7 @@ export const app = new Hono<{ Variables: HonoVariables }>()
       credentials: true,
       allowHeaders: ["Content-Type", "Authorization", "Cookie"],
       allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      exposeHeaders: ["Content-Length"],
+      exposeHeaders: ["Content-Length", "Content-Range", "Accept-Ranges"],
       maxAge: 600,
     }),
   )

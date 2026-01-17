@@ -26,11 +26,11 @@ function getContentType(fileName: string): string {
 export const downloadRoutes = new Hono<{ Variables: HonoVariables }>()
   .use("*", authGuard)
   .use("*", requireRole("member"))
-  .post("/", zValidator("json", downloadTorrentSchema), async (c) => {
-    return c.json(await DownloadService.fromContext(c).start(c.req.valid("json")));
-  })
   .get("/", async (c) => {
     return c.json(await DownloadService.fromContext(c).list());
+  })
+  .post("/", zValidator("json", downloadTorrentSchema), async (c) => {
+    return c.json(await DownloadService.fromContext(c).start(c.req.valid("json")));
   })
   .get("/:id", async (c) => {
     const download = await DownloadService.fromContext(c).getById(c.req.param("id"));

@@ -1,55 +1,53 @@
+import { useState } from "react";
+
 import { Trans } from "@lingui/react/macro";
-import { CaptionsIcon, File, Video } from "lucide-react";
+import { ChevronDown, ChevronUp, File, Video } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+import { Flag } from "@/shared/components/flag";
 import { formatBytes } from "@/shared/helpers/format.helper";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 
-interface FileItem {
+export interface FileItem {
   path: string;
   name: string;
   length: number;
 }
 
 interface DownloadFilesListProps {
+  className?: string;
   files: FileItem[];
+  title?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
 }
 
 type FileType = "video" | "subtitle" | "other";
 
-function getFileType(fileName: string): FileType {
+const VIDEO_EXTENSIONS = ["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "mpg", "mpeg"];
+const SUBTITLE_EXTENSIONS = ["srt", "vtt", "ass", "ssa", "sub", "idx"];
+
+export function getFileType(fileName: string): FileType {
   const ext = fileName.toLowerCase().split(".").pop() || "";
 
-  // Video extensions
-  const videoExts = ["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "mpg", "mpeg"];
-  if (videoExts.includes(ext)) {
-    return "video";
-  }
-
-  // Subtitle extensions
-  const subtitleExts = ["srt", "vtt", "ass", "ssa", "sub", "idx"];
-  if (subtitleExts.includes(ext)) {
-    return "subtitle";
-  }
-
+  if (VIDEO_EXTENSIONS.includes(ext)) return "video";
+  if (SUBTITLE_EXTENSIONS.includes(ext)) return "subtitle";
   return "other";
 }
 
-function getFileIcon(type: FileType) {
-  switch (type) {
-    case "video":
-      return <Video className="size-4" />;
-    case "subtitle":
-      return <CaptionsIcon className="size-4" />;
-    default:
-      return <File className="size-4" />;
+export function getVideoType(files: FileItem[]): string {
+  for (const file of files) {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext && VIDEO_EXTENSIONS.includes(ext)) {
+      return ext.toUpperCase();
+    }
   }
+  return "";
 }
 
 function sortFiles(files: FileItem[]): FileItem[] {
-  const typeOrder: Record<FileType, number> = {
-    video: 1,
-    subtitle: 2,
-    other: 3,
-  };
+  const typeOrder: Record<FileType, number> = { video: 1, subtitle: 2, other: 3 };
 
   return [...files].sort((a, b) => {
     const typeA = getFileType(a.name);
@@ -58,19 +56,60 @@ function sortFiles(files: FileItem[]): FileItem[] {
   });
 }
 
-export function DownloadFilesList({ files }: DownloadFilesListProps) {
-  if (!files || files.length === 0) {
-    return null;
-  }
+export function DownloadFilesList({
+  className,
+  files,
+  title,
+  defaultExpanded = true,
+}: DownloadFilesListProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  if (!files || files.length === 0) return null;
 
   const sortedFiles = sortFiles(files);
+  const totalSize = files.reduce((acc, file) => acc + file.length, 0);
+  const subtitleCount = files.filter((file) => getFileType(file.name) === "subtitle").length;
+  const videoType = getVideoType(files);
+
+  function getFileIcon(type: FileType, fileName: string) {
+    switch (type) {
+      case "video":
+        return <Video className="size-4" />;
+      case "subtitle":
+        return <Flag lang={fileName.split(".")?.[0]?.toLowerCase()} />;
+      default:
+        return <File className="size-4" />;
+    }
+  }
 
   return (
-    <div>
-      <h3 className="text-base font-semibold mb-3">
-        <Trans>Files</Trans> ({files.length})
-      </h3>
-      <div className="max-h-48 overflow-y-auto space-y-1 pr-2">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-semibold">
+            {title || <Trans>Files</Trans>} ({files.length})
+          </h3>
+          {videoType.length > 0 && (
+            <div className="flex items-center gap-1">
+              <Badge variant="secondary" className="text-xs">
+                {videoType}
+              </Badge>
+              {subtitleCount > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {subtitleCount} subtitles
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">{formatBytes(totalSize)}</span>
+          <Button variant="ghost" size="icon-sm" onClick={() => setExpanded(!expanded)}>
+            {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          </Button>
+        </div>
+      </div>
+      <div className={cn("overflow-y-auto space-y-1 pr-2 max-h-80", className)}>
         {sortedFiles.map((file) => {
           const fileType = getFileType(file.name);
           return (
@@ -78,7 +117,7 @@ export function DownloadFilesList({ files }: DownloadFilesListProps) {
               key={file.path}
               className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
             >
-              {getFileIcon(fileType)}
+              {getFileIcon(fileType, file.name)}
               <span className="truncate flex-1 text-sm">{file.name}</span>
               <span className="text-muted-foreground text-xs ml-4 shrink-0">
                 {formatBytes(file.length)}

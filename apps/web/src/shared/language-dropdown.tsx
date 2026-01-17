@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import { useLingui } from "@lingui/react";
 
-import { getFlagUrl } from "@/shared/helpers/lang.helper";
+import { Flag } from "@/shared/components/flag";
 import { Badge } from "@/shared/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
@@ -110,11 +110,7 @@ export function LanguageDropdown() {
     <Select value={currentCountry} onValueChange={handleChange}>
       <SelectTrigger className="h-9 w-fit gap-2 py-5 px-2">
         <SelectValue>
-          <img
-            src={getFlagUrl(currentCountry)}
-            alt={currentCountry}
-            className="size-5 rounded-sm object-cover"
-          />
+          <Flag lang={currentCountry} />
         </SelectValue>
       </SelectTrigger>
       <SelectContent align="end">

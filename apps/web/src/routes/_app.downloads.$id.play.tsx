@@ -90,11 +90,15 @@ function VideoPlayerPage() {
       // Use detected language name as label, fallback to filename
       const label = detected?.name || nameWithoutExt;
       // Make srclang unique by appending index if needed
-      const srclang = detected?.code ? `${detected.code}-${index}` : `en-${index}`;
+      const srclang = detected?.[1] ? `${detected[1]}-${index}` : `en-${index}`;
+
+      console.log(
+        `${getBaseUrl()}/downloads/${id}/subtitles/${encodeURIComponent(file.path)}?session=${user?.sessionToken}`,
+      );
 
       return {
         kind: "captions" as const,
-        label: label,
+        label: label.slice(0, 20),
         srclang: srclang,
         // Use /subtitles/ endpoint for automatic SRT to VTT conversion
         src: `${getBaseUrl()}/downloads/${id}/subtitles/${encodeURIComponent(file.path)}?session=${user?.sessionToken}`,
@@ -146,6 +150,7 @@ function VideoPlayerPage() {
         >
           <Plyr
             ref={playerRef}
+            crossOrigin="anonymous"
             source={{
               type: "video",
               sources: [
@@ -182,12 +187,12 @@ function VideoPlayerPage() {
         {/* Custom CSS to make Plyr subtitle menu scrollable */}
         <style>{`
           .plyr__menu__container {
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
           }
 
           .plyr__menu__container [role="menu"] {
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
           }
 

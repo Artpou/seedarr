@@ -1,6 +1,6 @@
 import type { Media } from "@basement/api/types";
 
-import { sanitizeToLatinWithApostrophe } from "@/shared/helpers/string.helper";
+import { toLatin } from "@/shared/helpers/string.helper";
 
 export type PosterFormat = "w92" | "w154" | "w185" | "w342" | "w500" | "w780" | "original";
 
@@ -50,11 +50,7 @@ export function tmdbMovieToMedia(movie: TMDBMedia): Media {
     type: "movie",
     title: movie.title ?? movie.original_title ?? "",
     original_title: movie.original_title ?? null,
-    sanitize_title:
-      sanitizeToLatinWithApostrophe(movie.original_title ?? "") ??
-      movie.us_title ??
-      movie.title ??
-      "",
+    sanitize_title: toLatin(movie.original_title ?? "") ?? movie.us_title ?? movie.title ?? "",
     original_language: movie.original_language ?? null,
     overview: movie.overview ?? null,
     poster_path: movie.poster_path ?? null,
@@ -72,8 +68,7 @@ export function tmdbTVToMedia(tv: TMDBMedia): Media {
     type: "tv",
     title: tv.name ?? tv.original_name ?? "",
     original_title: tv.original_name ?? null,
-    sanitize_title:
-      sanitizeToLatinWithApostrophe(tv.original_name ?? "") ?? tv.us_title ?? tv.name ?? "",
+    sanitize_title: toLatin(tv.original_name ?? "") ?? tv.us_title ?? tv.name ?? "",
     original_language: tv.original_language ?? null,
     overview: tv.overview ?? null,
     poster_path: tv.poster_path ?? null,
