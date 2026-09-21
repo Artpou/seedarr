@@ -12,6 +12,7 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=file:/data/seedarr.db
       - DOWNLOADS_PATH=/downloads
+      - AVATARS_PATH=/data/avatars
       - API_PORT=3002
       - WEB_URL=http://localhost:5551
       # This api_keys are public and can be used by anyone, we don't need to keep them secret
