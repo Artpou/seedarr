@@ -6,7 +6,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { NotFoundError, UnauthorizedError } from "@/shared/errors/error";
 import { authRateLimiter } from "@/shared/middlewares/rate-limiter.middleware";
 
-import { SESSION_COOKIE_NAME, sessionCookieOptions } from "@/auth/auth.constants";
+import { getSessionCookieOptions, SESSION_COOKIE_NAME } from "@/auth/auth.constants";
 import { hashPassword } from "@/auth/password.util";
 import { createSession, deleteOtherSessions, resolveAuthenticatedSession, revokeSession } from "@/auth/session.util";
 import { ActivityService, trackRoute } from "@/modules/activity/activity.service";
@@ -28,7 +28,7 @@ export const authRoutes = new Hono()
     );
     const sessionToken = await createSession(newUser.id);
 
-    setCookie(c, SESSION_COOKIE_NAME, sessionToken, sessionCookieOptions);
+    setCookie(c, SESSION_COOKIE_NAME, sessionToken, getSessionCookieOptions(c));
     return c.json(newUser);
   })
   .post("/login", authRateLimiter, zValidator("json", loginDto), async (c) => {
@@ -39,7 +39,7 @@ export const authRoutes = new Hono()
       const userId = await userService.verifyLogin(username, password);
       const sessionToken = await createSession(userId);
       await deleteOtherSessions(userId, sessionToken);
-      setCookie(c, SESSION_COOKIE_NAME, sessionToken, sessionCookieOptions);
+      setCookie(c, SESSION_COOKIE_NAME, sessionToken, getSessionCookieOptions(c));
       return userService.get(userId);
     });
     return c.json(user);
@@ -65,7 +65,7 @@ export const authRoutes = new Hono()
     if (!resolved) throw new UnauthorizedError("Invalid or expired session");
 
     if (resolved.rotatedToken) {
-      setCookie(c, SESSION_COOKIE_NAME, resolved.rotatedToken, sessionCookieOptions);
+      setCookie(c, SESSION_COOKIE_NAME, resolved.rotatedToken, getSessionCookieOptions(c));
     }
 
     const currentUser = resolved.user;

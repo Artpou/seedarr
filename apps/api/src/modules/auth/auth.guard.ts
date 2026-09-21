@@ -1,7 +1,7 @@
 import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 
-import { SESSION_COOKIE_NAME, sessionCookieOptions } from "@/auth/auth.constants";
+import { getSessionCookieOptions, SESSION_COOKIE_NAME } from "@/auth/auth.constants";
 import { resolveAuthenticatedSession } from "@/auth/session.util";
 import { UnauthorizedError } from "../../shared/errors/error";
 import type { User } from "../user/user.schema";
@@ -18,7 +18,7 @@ export const authGuard = async (c: Context<{ Variables: HonoAuthenticatedVariabl
   if (!resolved) throw new UnauthorizedError();
 
   if (resolved.rotatedToken) {
-    setCookie(c, SESSION_COOKIE_NAME, resolved.rotatedToken, sessionCookieOptions);
+    setCookie(c, SESSION_COOKIE_NAME, resolved.rotatedToken, getSessionCookieOptions(c));
   }
 
   c.set("user", resolved.user);
