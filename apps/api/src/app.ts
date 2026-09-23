@@ -33,7 +33,7 @@ if (!process.env.WEB_URL) throw new Error("WEB_URL is not set");
 export const app = new Hono<{ Variables: HonoVariables }>()
   .use("*", requestLogger)
   .use("*", secureHeaders())
-  .use("*", csrf({ origin: process.env.WEB_URL }))
+  .use("*", csrf())
   .onError(errorHandler)
   .use(
     "*",
