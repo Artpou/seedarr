@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "@/shared/components/empty-state";
 import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { Select } from "@/shared/components/select/select";
-import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
 import { usePagedState } from "@/shared/hooks/use-paged-state";
 import { DataTable } from "@/shared/ui/data-table";
 import { DataTablePagination } from "@/shared/ui/data-table-pagination";
@@ -53,7 +52,6 @@ export function SettingsActivityView() {
   const [categoryFilter, setCategoryFilter] = useState<ActivityCategoryFilter>("all");
   const [typeFilter, setTypeFilter] = useState<ActivityTypeFilter>("all");
   const [query, setQuery] = useState("");
-  const [isStuck, setIsStuck] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
   const filters = {
     q: debouncedQuery.trim() || undefined,
@@ -103,28 +101,21 @@ export function SettingsActivityView() {
 
   return (
     <div className="space-y-4">
-      <SentinelStuck setIsStuck={setIsStuck} />
-      {!isStuck && searchInput}
-      <StickyFilterBar isStuck={isStuck}>
-        {isStuck ? (
-          <div className="flex w-full items-center gap-2">{searchInput}</div>
-        ) : (
-          <div className="flex w-full items-center justify-between gap-2">
-            <ResponsiveTabs
-              className="w-full"
-              value={categoryFilter}
-              onValueChange={(v) => setCategoryFilter(v as ActivityCategoryFilter)}
-              options={CATEGORY_FILTERS.map((f) => ({ value: f.id, label: f.label, icon: f.icon }))}
-            />
-            <Select
-              value={typeFilter}
-              onValueChange={setTypeFilter}
-              options={TYPE_FILTERS}
-              triggerClassName="shrink-0 min-w-36 w-fit"
-            />
-          </div>
-        )}
-      </StickyFilterBar>
+      {searchInput}
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <ResponsiveTabs
+          className="w-full"
+          value={categoryFilter}
+          onValueChange={(v) => setCategoryFilter(v as ActivityCategoryFilter)}
+          options={CATEGORY_FILTERS.map((f) => ({ value: f.id, label: f.label, icon: f.icon }))}
+        />
+        <Select
+          value={typeFilter}
+          onValueChange={setTypeFilter}
+          options={TYPE_FILTERS}
+          triggerClassName="shrink-0 min-w-36 w-full sm:w-fit"
+        />
+      </div>
 
       <DataTablePagination page={page} limit={PAGE_SIZE} total={total} onPageChange={setPage} />
 

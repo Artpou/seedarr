@@ -39,7 +39,7 @@ msgid "{0} active"
 msgstr "{0} actif"
 
 #. placeholder {0}: data.synced
-#: src/features/settings/hooks/remote-sync.queries.ts:28
+#: src/features/settings/hooks/remote-sync.queries.ts:36
 msgid "{0} files synced"
 msgstr ""
 
@@ -64,7 +64,7 @@ msgstr "{0} saisons · {1} épisodes"
 
 #. placeholder {0}: data.synced
 #. placeholder {1}: data.errors.length
-#: src/features/settings/hooks/remote-sync.queries.ts:24
+#: src/features/settings/hooks/remote-sync.queries.ts:32
 msgid "{0} synced, {1} need manual matching"
 msgstr ""
 
@@ -134,13 +134,6 @@ msgstr "Ajout en cours…"
 msgid "Admin"
 msgstr "Administrateur"
 
-#: src/features/module/components/module-tabs-filter.tsx:17
-#: src/features/person/components/person-filmography.tsx:45
-#: src/features/search/components/search-view.tsx:76
-#: src/features/settings/components/settings-activity-view.tsx:36
-msgid "All"
-msgstr "Tout"
-
 #. js-lingui-explicit-id
 #: src/features/request/components/request-tabs.tsx:9
 msgid "request-status.all"
@@ -150,6 +143,13 @@ msgstr "Tous"
 #: src/features/media/components/tabs/media-tabs-type.tsx:16
 #: src/features/request/components/request-tabs.tsx:24
 msgid "media-type.all"
+msgstr "Tout"
+
+#: src/features/module/components/module-tabs-filter.tsx:17
+#: src/features/person/components/person-filmography.tsx:45
+#: src/features/search/components/search-view.tsx:76
+#: src/features/settings/components/settings-activity-view.tsx:36
+msgid "All"
 msgstr "Tout"
 
 #: src/features/media/components/view/media-torrents-view.tsx:104
@@ -281,13 +281,13 @@ msgstr "Annuler"
 msgid "Cancel request"
 msgstr "Annuler la demande"
 
-#: src/features/request/components/request-status-badge.tsx:27
-msgid "Cancelled"
-msgstr "Annulé"
-
 #. js-lingui-explicit-id
 #: src/features/request/components/request-tabs.tsx:19
 msgid "request-status.cancelled"
+msgstr "Annulé"
+
+#: src/features/request/components/request-status-badge.tsx:27
+msgid "Cancelled"
 msgstr "Annulé"
 
 #: src/features/person/components/person-carousel.tsx:33
@@ -1108,6 +1108,10 @@ msgstr "Synchro manuelle"
 msgid "Manual sync complete"
 msgstr ""
 
+#: src/features/settings/hooks/remote-sync.queries.ts:47
+msgid "Manual sync failed"
+msgstr ""
+
 #: src/features/torrent/components/torrent-table.tsx:294
 msgid "Max {preferenceMaxSize} GB"
 msgstr "Max {preferenceMaxSize} Go"
@@ -1146,6 +1150,11 @@ msgstr "Filtre de qualité minimum appliqué lors de la recherche de torrents."
 #: src/features/media/components/filter/media-filter-rating.tsx:21
 msgid "Minimum rating"
 msgstr "Note minimale"
+
+#. js-lingui-explicit-id
+#: src/shared/components/app-topbar.tsx:23
+msgid "nav.module"
+msgstr ""
 
 #: src/features/settings/components/settings-activity-view.tsx:39
 #: src/features/settings/components/settings-modules-view.tsx:124
@@ -1436,13 +1445,13 @@ msgstr "En pause"
 msgid "Peers"
 msgstr "Pairs"
 
-#: src/features/request/components/request-status-badge.tsx:15
-msgid "Pending"
-msgstr "En attente"
-
 #. js-lingui-explicit-id
 #: src/features/request/components/request-tabs.tsx:10
 msgid "request-status.pending"
+msgstr "En attente"
+
+#: src/features/request/components/request-status-badge.tsx:15
+msgid "Pending"
 msgstr "En attente"
 
 #: src/features/request/components/request-carousel.tsx:28
@@ -1492,7 +1501,7 @@ msgstr ""
 
 #. js-lingui-explicit-id
 #: src/routes/_app.tsx:92
-#: src/shared/components/app-topbar.tsx:21
+#: src/shared/components/app-topbar.tsx:22
 msgid "nav.profile"
 msgstr "Profil"
 
@@ -1596,15 +1605,15 @@ msgstr "Serveur distant indisponible"
 msgid "Remote storage"
 msgstr "Stockage distant"
 
-#: src/features/settings/hooks/remote-sync.queries.ts:30
+#: src/features/settings/hooks/remote-sync.queries.ts:38
 msgid "Remote sync failed"
 msgstr ""
 
-#: src/features/settings/hooks/remote-sync.queries.ts:28
+#: src/features/settings/hooks/remote-sync.queries.ts:36
 msgid "Remote sync finished"
 msgstr ""
 
-#: src/features/settings/hooks/remote-sync.queries.ts:23
+#: src/features/settings/hooks/remote-sync.queries.ts:31
 msgid "Remote sync finished with unmatched files"
 msgstr ""
 
@@ -1729,7 +1738,7 @@ msgstr "Enregistrer"
 msgid "Save & continue"
 msgstr "Enregistrer et continuer"
 
-#: src/shared/components/app-topbar.tsx:102
+#: src/shared/components/app-topbar.tsx:114
 msgid "Search"
 msgstr "Rechercher"
 
@@ -1876,7 +1885,7 @@ msgid "Server"
 msgstr "Serveur"
 
 #: src/features/settings/components/settings-layout-view.tsx:45
-#: src/shared/components/app-topbar.tsx:108
+#: src/shared/components/app-topbar.tsx:120
 msgid "Settings"
 msgstr "Paramètres"
 
@@ -2179,14 +2188,14 @@ msgstr "Chemin séries"
 msgid "nav.tv-shows"
 msgstr "Séries"
 
-#: src/features/search/components/search-view.tsx:84
-msgid "TV Shows"
-msgstr "Séries"
-
 #. js-lingui-explicit-id
 #: src/features/media/components/tabs/media-tabs-type.tsx:18
 #: src/features/request/components/request-tabs.tsx:26
 msgid "media-type.tv-shows"
+msgstr "Séries"
+
+#: src/features/search/components/search-view.tsx:84
+msgid "TV Shows"
 msgstr "Séries"
 
 #: src/features/settings/components/settings-activity-view.tsx:163
@@ -2281,13 +2290,13 @@ msgstr "Utilisateurs"
 msgid "Validate request"
 msgstr ""
 
-#: src/features/request/components/request-status-badge.tsx:21
-msgid "Validated"
-msgstr "Validé"
-
 #. js-lingui-explicit-id
 #: src/features/request/components/request-tabs.tsx:14
 msgid "request-status.validated"
+msgstr "Validé"
+
+#: src/features/request/components/request-status-badge.tsx:21
+msgid "Validated"
 msgstr "Validé"
 
 #: src/features/user/components/role-badge.tsx:27
