@@ -24,11 +24,14 @@ services:
       - RESUME_DOWNLOADS=${RESUME_DOWNLOADS:-true}
       - SEED_AFTER_COMPLETE_MINUTES=${SEED_AFTER_COMPLETE_MINUTES:-5}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - HARDLINK_PATH=${HARDLINK_PATH:-}
+      - HARDLINK_MOVIE_PATH=${HARDLINK_MOVIE_PATH:-}
+      - HARDLINK_TV_PATH=${HARDLINK_TV_PATH:-}
     volumes:
       - db_data:/data
       - downloads:/downloads
-      # Mount your Plex media library here for hardlink support
-      # - /path/to/plex/media:/media
+      # Mount your media library here for hardlink support
+      # - /path/to/media:/media
     restart: unless-stopped
     stop_grace_period: 15s
     healthcheck:

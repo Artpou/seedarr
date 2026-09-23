@@ -54,7 +54,7 @@ You can retrieve all features and how to configure each one following the docume
 
 - Unified **Settings → Modules** — TMDB, SUBDL, indexers, storage, social, and notifications
 - Indexers: **Torrentio**, **Jackett**, **Prowlarr**, or a custom Stremio addon — with live health status
-- Optional **remote storage** (FTP/FTPS or WebDAV) — transfer completed downloads to a NAS, Nextcloud, or any remote server
+- Optional **remote storage** (FTP/FTPS or WebDAV) — transfer completed downloads to a NAS, Nextcloud, or any remote server; optional local-library hardlink via `HARDLINK_PATH` (+ optional movie/tv paths) (works alongside FTP/WebDAV)
 - **Letterboxd** import / sync (Trakt, SMB, and Discord/Telegram/Email notifications coming soon)
 
 ### Torrent Search & Download

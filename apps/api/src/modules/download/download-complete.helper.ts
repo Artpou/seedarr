@@ -11,6 +11,7 @@ import { validatePendingRequestsForMedia } from "@/modules/request/request.helpe
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { runLocalLibraryHardlink } from "./local-library-hardlink";
 import { markTransferStarting, runRemoteTransfer } from "./remote/remote-transfer.helper";
 
 /**
@@ -39,6 +40,11 @@ export async function handleDownloadComplete(
       await downloadRepository.updateTorrent(downloadId, { done: true, durationSeconds });
       dl = await downloadRepository.find(downloadId);
     }
+  }
+
+  // Local library hardlink (env-only) — finish before auto-transfer so local files still exist for link/copy.
+  if (options.torrentName) {
+    await runLocalLibraryHardlink(downloadId, options.torrentName);
   }
 
   if (dl?.torrent?.skipAutoTransfer) {

@@ -61,7 +61,7 @@ Unified **Settings → Modules** replaces separate Indexers + Storage settings:
 
 - **System:** TMDB (locked; API key + `TMDB_API_KEY` env fallback)
 - **Indexers:** Torrentio (recommended), Jackett, Prowlarr, custom Stremio addon
-- **Storage:** WebDAV, FTP (SMB coming soon)
+- **Storage:** WebDAV, FTP (SMB coming soon). Optional local-library hardlink via `HARDLINK_PATH` (+ optional `HARDLINK_MOVIE_PATH` / `HARDLINK_TV_PATH`); coexists with FTP/WebDAV; no Settings module.
 - **Social:** Letterboxd (Trakt coming soon)
 - **Notifications:** Discord / Telegram / Email (coming soon)
 

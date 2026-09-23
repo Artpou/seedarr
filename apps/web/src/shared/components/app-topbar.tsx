@@ -4,7 +4,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react";
 import { useLingui } from "@lingui/react/macro";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { MoonIcon, SearchIcon, SettingsIcon, SunIcon, UserIcon } from "lucide-react";
+import { MoonIcon, PuzzleIcon, SearchIcon, SettingsIcon, SunIcon, UserIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SelectI18nLang } from "@/shared/components/select/select-i18n-lang";
@@ -13,12 +13,14 @@ import { useTheme } from "@/shared/hooks/use-theme";
 import { Button } from "@/shared/ui/button";
 
 import { useAuth } from "@/features/auth/auth-store";
+import { useRole } from "@/features/auth/hooks/use-role";
 
 interface AppTopbarProps {
   isAuthenticated?: boolean;
 }
 
 const PROFILE_LINK = msg({ id: "nav.profile", message: "Profile" });
+const MODULE_LINK = msg({ id: "nav.module", message: "Module" });
 
 export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -26,7 +28,9 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
   const navigate = useNavigate();
   const { t } = useLingui();
   const currentUser = useAuth((s) => s.user);
+  const { hasRole } = useRole();
   const { theme, toggleTheme } = useTheme();
+  const showModulesLink = hasRole("admin");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,10 +62,10 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
                   alt="Seedarr"
                   className="size-8 transition-all duration-300 group-hover:drop-shadow-[0_0_16px_oklch(0.63_0.13_135/1)]"
                 />
-                <span className="text-lg font-semibold hidden sm:inline">Seedarr</span>
+                <span className="text-lg font-semibold inline md:hidden lg:inline">Seedarr</span>
               </Link>
 
-              <nav className="hidden lg:flex items-center gap-1">
+              <nav className="hidden md:flex items-center gap-1">
                 {APP_NAV_ITEMS.map((item) => {
                   const isActive = location.pathname.startsWith(item.url);
                   return (
@@ -95,6 +99,20 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
             </div>
 
             <div className="flex-1 flex justify-end items-center gap-2">
+              {showModulesLink && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="hidden xl:inline-flex font-medium"
+                  icon={PuzzleIcon}
+                  asChild
+                >
+                  <Link to="/settings/modules" search={{}}>
+                    <Trans id={MODULE_LINK.id} />
+                  </Link>
+                </Button>
+              )}
+
               <Button
                 variant="ghost"
                 size="icon"

@@ -8,7 +8,6 @@ import { useDebounce } from "@uidotdev/usehooks";
 import { UserPlusIcon } from "lucide-react";
 
 import { EmptyState } from "@/shared/components/empty-state";
-import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
 import { usePagedState } from "@/shared/hooks/use-paged-state";
 import { Button } from "@/shared/ui/button";
 import { DataTablePagination } from "@/shared/ui/data-table-pagination";
@@ -26,7 +25,6 @@ export function SettingsUsersView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [query, setQuery] = useState("");
-  const [isStuck, setIsStuck] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
   const { isAdmin } = useRole();
   const filters = { q: debouncedQuery.trim() || undefined };
@@ -67,21 +65,14 @@ export function SettingsUsersView() {
 
   return (
     <div className="space-y-4">
-      <SentinelStuck setIsStuck={setIsStuck} />
-      {!isStuck && searchInput}
-      <StickyFilterBar isStuck={isStuck}>
-        {isStuck ? (
-          <div className="flex w-full items-center gap-2">{searchInput}</div>
-        ) : (
-          <div className="flex items-center justify-between gap-2">
-            {isAdmin && (
-              <Button onClick={handleCreateUser} icon={UserPlusIcon} className="shrink-0">
-                <Trans>Create User</Trans>
-              </Button>
-            )}
-          </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {searchInput}
+        {isAdmin && (
+          <Button onClick={handleCreateUser} icon={UserPlusIcon} className="shrink-0 w-full sm:w-auto">
+            <Trans>Create User</Trans>
+          </Button>
         )}
-      </StickyFilterBar>
+      </div>
 
       <DataTablePagination page={page} limit={PAGE_SIZE} total={total} onPageChange={setPage} />
 

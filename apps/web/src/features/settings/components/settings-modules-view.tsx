@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -17,7 +17,6 @@ import {
 import { SettingsIcon, SparklesIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DataTable } from "@/shared/ui/data-table";
@@ -87,7 +86,6 @@ interface SettingsModulesViewProps {
 export function SettingsModulesView({ filter, search, onFilterChange, onSearchChange }: SettingsModulesViewProps) {
   const { t } = useLingui();
   const navigate = useNavigate();
-  const [isStuck, setIsStuck] = useState(false);
   const { data: modules = [] } = useQuery(moduleQueries.list());
   const createMutation = useCreateModule();
   const updateMutation = useUpdateModule();
@@ -231,33 +229,15 @@ export function SettingsModulesView({ filter, search, onFilterChange, onSearchCh
 
   return (
     <section className="space-y-4">
-      <SentinelStuck setIsStuck={setIsStuck} marginTop={-30} />
-      {!isStuck && (
-        <Input
-          placeholder={t(msg`Search modules…`)}
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          search
-          classNameWrapper="w-full"
-          h="lg"
-        />
-      )}
-      <StickyFilterBar isStuck={isStuck}>
-        {isStuck ? (
-          <Input
-            placeholder={t(msg`Search modules…`)}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            search
-            classNameWrapper="w-full min-w-0 flex-1"
-            h="lg"
-          />
-        ) : (
-          <div className="flex items-center justify-between gap-2">
-            <ModuleTabsFilter value={filter} onChange={onFilterChange} className="flex-1" />
-          </div>
-        )}
-      </StickyFilterBar>
+      <Input
+        placeholder={t(msg`Search modules…`)}
+        value={search}
+        onChange={(e) => onSearchChange(e.target.value)}
+        search
+        classNameWrapper="w-full"
+        h="lg"
+      />
+      <ModuleTabsFilter value={filter} onChange={onFilterChange} className="w-full" />
 
       <DataTable
         classNameContainer="px-2"
