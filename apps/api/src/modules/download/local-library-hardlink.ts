@@ -31,8 +31,7 @@ function absoluteOrganizedPath(basePath: string, organized: string): string {
  */
 export function resolveLibraryBase(mediaType: "movie" | "tv"): string | null {
   const rootRaw = process.env.HARDLINK_PATH?.trim() || "";
-  const typed =
-    (mediaType === "tv" ? process.env.HARDLINK_TV_PATH : process.env.HARDLINK_MOVIE_PATH)?.trim() || "";
+  const typed = (mediaType === "tv" ? process.env.HARDLINK_TV_PATH : process.env.HARDLINK_MOVIE_PATH)?.trim() || "";
 
   if (typed) {
     assertSafePath(typed, mediaType);
