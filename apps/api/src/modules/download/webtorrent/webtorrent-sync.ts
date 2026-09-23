@@ -2,7 +2,7 @@ import { formatError } from "@seedarr/shared";
 import type WebTorrent from "webtorrent";
 
 import { logger } from "@/shared/helpers/logger.helper";
-import { resolveWithinDownloads } from "@/shared/helpers/path.helper";
+import { getDownloadFolderName, resolveWithinDownloads } from "@/shared/helpers/path.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
 import type { TorrentLiveData } from "@/modules/download/download.schema";
@@ -10,6 +10,7 @@ import { invalidateStreamSource } from "@/modules/streaming/streaming-cache.help
 import fs from "node:fs/promises";
 import path from "node:path";
 import { handleDownloadComplete } from "../download-complete.helper";
+import { handleTorrentUnloaded } from "../local-library-hardlink";
 import { extractTorrentLiveData } from "./webtorrent.helper";
 import { torrentClient } from "./webtorrent-manager";
 
@@ -75,8 +76,14 @@ export function setupTorrentHandlers(torrent: WebTorrent.Torrent, downloadId: st
         if (wrapped) dl = await downloadRepository.find(downloadId);
       }
 
+      const torrentFolderName = (dl ? getDownloadFolderName(dl) : undefined) ?? torrent.name;
+      if (!torrentFolderName) {
+        logger.warn("WEBTORRENT", `Completed download ${downloadId} has no folder name; skipping post-complete hooks`);
+        return;
+      }
+
       await handleDownloadComplete(downloadId, {
-        torrentName: torrent.name,
+        torrentName: torrentFolderName,
         scheduleUnload,
       });
     } catch (err) {
@@ -169,6 +176,9 @@ function scheduleUnload(downloadId: string): void {
         torrentClient.unmarkDestroying(downloadId);
         clearHandlersForDownload(downloadId);
         logger.info("WEBTORRENT", `Unloaded completed torrent: ${current.name}`);
+        handleTorrentUnloaded(downloadId, current.name).catch((err) => {
+          logger.warn("HARDLINK", `Error handling unload staging cleanup: ${formatError(err)}`);
+        });
       });
     } catch {
       torrentClient.unmarkDestroying(downloadId);

@@ -1,7 +1,7 @@
 import { buildOrganizedRemotePath, extractYearFromDate, formatError, parseSeasonEpisode } from "@seedarr/shared";
 
 import { logger } from "@/shared/helpers/logger.helper";
-import { resolveWithinDownloads } from "@/shared/helpers/path.helper";
+import { getDownloadFolderName, resolveWithinDownloads } from "@/shared/helpers/path.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
 import { mediaRepository } from "@/modules/media/media.repository";
@@ -71,7 +71,7 @@ export function resolveLibraryBase(mediaType: "movie" | "tv"): string | null {
   return resolved;
 }
 
-async function hardlinkOrCopyOnExdev(src: string, dest: string): Promise<void> {
+async function hardlinkOrCopyOnExdev(src: string, dest: string): Promise<{ exdev: boolean }> {
   await fs.mkdir(path.dirname(dest), { recursive: true });
   try {
     await fs.unlink(dest);
@@ -80,18 +80,19 @@ async function hardlinkOrCopyOnExdev(src: string, dest: string): Promise<void> {
   }
   try {
     await fs.link(src, dest);
+    return { exdev: false };
   } catch (err: unknown) {
     const code = (err as NodeJS.ErrnoException)?.code;
     if (code === "EXDEV") {
       logger.warn("HARDLINK", `Cross-device link unsupported (${src} -> ${dest}); copying instead`);
       await fs.copyFile(src, dest);
-      return;
+      return { exdev: true };
     }
     throw err;
   }
 }
 
-async function hardlinkTree(localPath: string, targetDir: string): Promise<number> {
+async function hardlinkTree(localPath: string, targetDir: string): Promise<{ count: number; hasExdev: boolean }> {
   const stats = await fs.stat(localPath);
   const files: { src: string; dest: string }[] = [];
 
@@ -110,29 +111,56 @@ async function hardlinkTree(localPath: string, targetDir: string): Promise<numbe
     }
   }
 
+  let hasExdev = false;
   for (const file of files) {
-    await hardlinkOrCopyOnExdev(file.src, file.dest);
+    const res = await hardlinkOrCopyOnExdev(file.src, file.dest);
+    if (res.exdev) {
+      hasExdev = true;
+    }
   }
-  return files.length;
+  return { count: files.length, hasExdev };
+}
+
+const hardlinkSuccessDownloads = new Set<string>();
+
+function markHardlinkSuccess(downloadId: string): void {
+  hardlinkSuccessDownloads.add(downloadId);
+}
+
+export function hasHardlinkSuccess(downloadId: string): boolean {
+  return hardlinkSuccessDownloads.has(downloadId);
+}
+
+export function clearHardlinkSuccess(downloadId: string): void {
+  hardlinkSuccessDownloads.delete(downloadId);
+}
+
+export function isHardlinkRemoveSourceEnabled(): boolean {
+  const val = process.env.HARDLINK_REMOVE_SOURCE?.trim().toLowerCase();
+  return val === "true" || val === "1";
 }
 
 /**
- * Optional local-library hardlink via env only.
- * Enabled when HARDLINK_PATH and/or an absolute typed path is set.
- * Movie/TV overrides optional; default target base is HARDLINK_PATH (root).
+ * Optional local-library hardlink via env only (after torrent complete).
+ * Staging stays under DOWNLOADS_PATH; library gets extra hardlink paths (same inode when possible).
+ * Deleting staging in Seedarr removes only the download folder — library paths stay linked until removed too.
+ * Returns true if hardlink succeeded without EXDEV copy fallback.
  */
-export async function tryLocalLibraryHardlink(downloadId: string, torrentName: string): Promise<void> {
+export async function tryLocalLibraryHardlink(downloadId: string, torrentNameHint?: string): Promise<boolean> {
   const dl = await downloadRepository.find(downloadId);
   const mediaId = dl?.mediaId;
-  if (!mediaId) return;
+  if (!mediaId) return false;
+
+  const torrentFolderName = (dl ? getDownloadFolderName(dl) : undefined) ?? torrentNameHint?.trim();
+  if (!torrentFolderName) return false;
 
   const mediaRow = await mediaRepository.find(mediaId);
-  if (!mediaRow || (mediaRow.type !== "movie" && mediaRow.type !== "tv")) return;
+  if (!mediaRow || (mediaRow.type !== "movie" && mediaRow.type !== "tv")) return false;
 
   const basePath = resolveLibraryBase(mediaRow.type);
-  if (!basePath) return;
+  if (!basePath) return false;
 
-  const parsed = parseSeasonEpisode(torrentName);
+  const parsed = parseSeasonEpisode(torrentFolderName);
   const organized = buildOrganizedRemotePath({
     basePath,
     title: mediaRow.title,
@@ -148,16 +176,50 @@ export async function tryLocalLibraryHardlink(downloadId: string, torrentName: s
     throw new Error(`Hardlink target escapes library root: ${resolvedTarget}`);
   }
 
-  const localPath = resolveWithinDownloads(torrentName);
-  const count = await hardlinkTree(localPath, resolvedTarget);
-  logger.info("HARDLINK", `Linked ${count} file(s) for "${torrentName}" -> ${resolvedTarget}`);
+  const localPath = resolveWithinDownloads(torrentFolderName);
+  const { count, hasExdev } = await hardlinkTree(localPath, resolvedTarget);
+  logger.info(
+    "HARDLINK",
+    `Linked ${count} file(s) for "${torrentFolderName}" -> ${resolvedTarget}${hasExdev ? " (fallback to copy on EXDEV)" : ""}`,
+  );
+  return count > 0 && !hasExdev;
 }
 
 /** Awaitable wrapper: logs failures but does not throw (remote transfer may still run). */
-export async function runLocalLibraryHardlink(downloadId: string, torrentName: string): Promise<void> {
+export async function runLocalLibraryHardlink(downloadId: string, torrentNameHint?: string): Promise<boolean> {
+  const label = torrentNameHint ?? downloadId;
   try {
-    await tryLocalLibraryHardlink(downloadId, torrentName);
+    const ok = await tryLocalLibraryHardlink(downloadId, torrentNameHint);
+    if (ok) {
+      markHardlinkSuccess(downloadId);
+    }
+    return ok;
   } catch (err: unknown) {
-    logger.error("HARDLINK", `Local hardlink failed for "${torrentName}": ${formatError(err)}`);
+    logger.error("HARDLINK", `Local hardlink failed for "${label}": ${formatError(err)}`);
+    return false;
+  }
+}
+
+export async function removeHardlinkStaging(downloadId: string, torrentNameHint?: string): Promise<void> {
+  const dl = await downloadRepository.find(downloadId);
+  const torrentFolderName = (dl ? getDownloadFolderName(dl) : undefined) ?? torrentNameHint?.trim();
+  if (!torrentFolderName) {
+    logger.warn("HARDLINK", `Cannot remove staging for download ${downloadId}: folder name not found`);
+    return;
+  }
+
+  try {
+    const localPath = resolveWithinDownloads(torrentFolderName);
+    await fs.rm(localPath, { recursive: true, force: true });
+    logger.info("HARDLINK", `Removed staging files after unload for "${torrentFolderName}" (${localPath})`);
+  } catch (err: unknown) {
+    logger.warn("HARDLINK", `Failed to remove staging files for "${torrentFolderName}": ${formatError(err)}`);
+  }
+}
+
+export async function handleTorrentUnloaded(downloadId: string, torrentName?: string): Promise<void> {
+  if (isHardlinkRemoveSourceEnabled() && hasHardlinkSuccess(downloadId)) {
+    clearHardlinkSuccess(downloadId);
+    await removeHardlinkStaging(downloadId, torrentName);
   }
 }

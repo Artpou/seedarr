@@ -27,6 +27,7 @@ services:
       - HARDLINK_PATH=${HARDLINK_PATH:-}
       - HARDLINK_MOVIE_PATH=${HARDLINK_MOVIE_PATH:-}
       - HARDLINK_TV_PATH=${HARDLINK_TV_PATH:-}
+      - HARDLINK_REMOVE_SOURCE=${HARDLINK_REMOVE_SOURCE:-}
     volumes:
       - db_data:/data
       - downloads:/downloads
