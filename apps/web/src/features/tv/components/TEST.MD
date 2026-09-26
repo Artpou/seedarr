@@ -1,0 +1,8 @@
+j'ai implémenté @TECH-SPEC REFONTE DISCOVER.md. J'ai quelque petit fixe :
+- @topbar-movies.tsx et @onboarding-layout.tsx  : en mobile met la recherche en input avec le placeholder associé. renvoie sur la page de recherche (si on peut garder le focus c'est top)
+- revoie comment son charger mes catégories dans @media-discover.tsx . Actuellement on en charge plusierus d'un coup et ça fait lagger. il faudrait charger 1 par 1 et plus proprement. J'utilise aussi react-virtual dans @media-grid.tsx, peut être à creuser ? 
+- ajoute des icons pour new, top-rated et chaque catégorie (pour les catégorie on peut toujours mettre le meme
+- dans @search-view.tsx, rajoute les filtres tout à droite de movies/tv tabs. (@tv-filters-sheet.tsx et @movie-filters-sheet.tsx ) dans un bouton filter. si on selectionne des filtres, on masque la recherche. inversemment si on fiat une recherche, on masque les filtres. il ne faut pas le hide categories
+- dans @media-discover.tsx en non scoppé, retire la flèche et gère le nativement avec la topbar (remplacement du logo). met egalement le titre du meme design que @carousel-wrapper.tsx 
+- dans la @app-topbar.tsx il faut masquer le bouton "search-movie" si on est pas dans movie
+- change le design dans la @app-topbar.tsx pour "Movies/TV Shows/Library/Profile", tu créer un mode glass (assez simple) avec un gradient primary en haut en rond. soit créatif mais fait simple. 

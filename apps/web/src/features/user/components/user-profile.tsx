@@ -19,6 +19,7 @@ export function UserProfile({ user, size = "md", className }: UserProfileProps) 
     <Link
       to="/user/$id"
       params={{ id: user.id }}
+      search={{}}
       className={cn("hover:opacity-80 transition-opacity", className)}
       onClick={(e) => e.stopPropagation()}
     >

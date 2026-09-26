@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { Trans } from "@lingui/react/macro";
 import type { MediaRequest } from "@seedarr/sdk";
-import { BellRingIcon } from "lucide-react";
+import { BellRingIcon, type LucideIcon } from "lucide-react";
 
 import { CarouselItem } from "@/shared/ui/carousel";
 import { CarouselWrapper } from "@/shared/ui/carousel-wrapper";
@@ -12,23 +12,20 @@ import { RequestCard } from "./request-card";
 interface RequestCarouselProps {
   requests: MediaRequest[];
   title?: ReactNode;
+  titleIcon?: LucideIcon;
   seeMoreTo?: string;
   seeMoreSearch?: Record<string, unknown>;
 }
 
-export function RequestCarousel({ requests, title, seeMoreTo, seeMoreSearch }: RequestCarouselProps) {
+export function RequestCarousel({ requests, title, titleIcon, seeMoreTo, seeMoreSearch }: RequestCarouselProps) {
   if (requests.length === 0) return null;
+
+  const defaultTitle = <Trans>Pending Requests</Trans>;
 
   return (
     <CarouselWrapper
-      title={
-        title ?? (
-          <span className="flex items-center gap-2">
-            <BellRingIcon className="size-5" />
-            <Trans>Pending Requests</Trans>
-          </span>
-        )
-      }
+      title={title ?? defaultTitle}
+      titleIcon={titleIcon ?? (title ? undefined : BellRingIcon)}
       seeMoreTo={seeMoreTo}
       seeMoreSearch={seeMoreSearch}
     >

@@ -108,7 +108,7 @@ export function SelectI18nLang() {
     <Select
       value={currentCountry}
       onValueChange={handleChange}
-      triggerClassName="h-9 w-fit gap-2 px-2 border-none shadow-none"
+      triggerClassName="h-9 w-full sm:w-fit gap-2 px-2 border-none shadow-none"
       options={locales.map(({ country, displayName, isUiSupported }) => ({
         value: country,
         label: (

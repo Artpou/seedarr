@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { DownloadTorrentInput, Resolution } from "@seedarr/contracts";
 import type { Media, Torrent } from "@seedarr/sdk";
 import { ApiError } from "@seedarr/sdk";
-import { formatError, getVideoContainer, safeHttpUrl } from "@seedarr/shared";
+import { formatError, getVideoContainer } from "@seedarr/shared";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type SortingState, useTable } from "@tanstack/react-table";
 import { ArrowDownIcon, ArrowUpIcon, DownloadIcon, InfoIcon } from "lucide-react";
@@ -83,24 +83,24 @@ function TorrentMobileCard({
   onDownload: (torrent: TorrentWithMeta) => void;
 }) {
   const container = getVideoContainer(torrent.title);
-  const detailsHref = safeHttpUrl(torrent.detailsUrl);
 
   return (
     <Card className="gap-3 p-3 py-3">
-      {detailsHref ? (
-        <a
-          href={detailsHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full font-medium text-popover-foreground break-words"
-        >
-          {torrent.title}
-        </a>
-      ) : (
-        <span className="block w-full font-medium text-popover-foreground break-words">{torrent.title}</span>
-      )}
+      <div className="flex justify-between items-center">
+        <span className="font-bold text-muted-foreground">{(torrent.size / 1e9).toFixed(2)} GB</span>
+        <div className="flex items-center gap-1 font-bold text-success">
+          <ArrowUpIcon />
+          <span>{torrent.seeders}</span>
+        </div>
+        {torrent.indexerType !== "stremio" && (
+          <div className="flex items-center gap-1 font-bold text-destructive">
+            <ArrowDownIcon />
+            <span>{torrent.peers}</span>
+          </div>
+        )}
+      </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 mt-2">
         <Flag lang={torrent.mediaInfos?.languages?.[0] || media.original_language || ""} />
         {torrent.mediaInfos?.resolution && <Badge variant="secondary">{torrent.mediaInfos.resolution}</Badge>}
         {container && <Badge variant="secondary">{container}</Badge>}
@@ -108,26 +108,25 @@ function TorrentMobileCard({
         {torrent.indexerType && (
           <img src={indexerModuleImages[torrent.indexerType]} alt={torrent.indexerType} className="size-4" />
         )}
-        <span className="text-xs text-muted-foreground">{(torrent.size / 1e9).toFixed(2)} GB</span>
-        <div className="flex items-center gap-2 ml-auto">
-          <div className="flex items-center gap-1 font-bold text-green-500">
-            <ArrowUpIcon className="size-3" />
-            <span className="text-xs">{torrent.seeders}</span>
+        {torrent.indexerType !== "stremio" && (
+          <div className="flex items-center gap-1 font-bold text-destructive">
+            <ArrowDownIcon className="size-3" />
+            <span className="text-xs">{torrent.peers}</span>
           </div>
-          {torrent.indexerType !== "stremio" && (
-            <div className="flex items-center gap-1 font-bold text-destructive">
-              <ArrowDownIcon className="size-3" />
-              <span className="text-xs">{torrent.peers}</span>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      <div className="flex w-full gap-2">
-        <Button variant="secondary" size="sm" className="flex-1" icon={InfoIcon} onClick={() => onInspect(torrent)}>
+      <div className="flex w-full gap-2 mt-2">
+        <Button
+          variant="secondary"
+          size="default"
+          className="flex-1"
+          icon={InfoIcon}
+          onClick={() => onInspect(torrent)}
+        >
           <Trans>Info</Trans>
         </Button>
-        <Button size="sm" className="flex-1" icon={DownloadIcon} onClick={() => onDownload(torrent)}>
+        <Button size="default" className="flex-1" icon={DownloadIcon} onClick={() => onDownload(torrent)}>
           <Trans>Download</Trans>
         </Button>
       </div>

@@ -14,12 +14,12 @@ const VIEW_OPTIONS: { value: ViewMode; icon: typeof LayoutGridIcon }[] = [
   { value: "list", icon: ListIcon },
 ];
 
-export function MediaTabsViewMode({ scope }: { scope: ViewModeScope }) {
+export function MediaTabsViewMode({ scope, showOnMobile = false }: { scope: ViewModeScope; showOnMobile?: boolean }) {
   const isMobile = useIsMobile();
   const viewMode = useUserPreferences((s) => s.viewModes[scope]);
   const setViewMode = useUserPreferences((s) => s.setViewMode);
 
-  if (isMobile) return null;
+  if (isMobile && !showOnMobile) return null;
 
   return (
     <Tabs value={viewMode} onValueChange={(v) => setViewMode(scope, v as ViewMode)}>

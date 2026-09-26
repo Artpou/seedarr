@@ -9,6 +9,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { DialogDelete } from "@/shared/components/dialog/dialog-delete";
+import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 import { Card } from "@/shared/ui/card";
 
 import { ModuleConfigIndexer } from "@/features/module/components/config/module-config-indexer";
@@ -52,11 +53,7 @@ export function ModuleConfig({ moduleId }: ModuleConfigProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (isLoading) {
-    return (
-      <p className="text-muted-foreground">
-        <Trans>Loading…</Trans>
-      </p>
-    );
+    return <SeedarrLoader className="py-12" size={60} />;
   }
 
   if (isError || !mod) {

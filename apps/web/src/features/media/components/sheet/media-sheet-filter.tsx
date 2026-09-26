@@ -8,7 +8,7 @@ import { FilterIcon, RotateCcwIcon } from "lucide-react";
 
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
-import { Button } from "@/shared/ui/button";
+import { Button, type ButtonProps } from "@/shared/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -25,7 +25,6 @@ import { MediaFilterKeywords } from "@/features/media/components/filter/media-fi
 import { MediaFilterProviders } from "@/features/media/components/filter/media-filter-providers";
 import { MediaFilterRating } from "@/features/media/components/filter/media-filter-rating";
 import { MediaFilterRuntime } from "@/features/media/components/filter/media-filter-runtime";
-import { MediaSortTabs } from "@/features/media/components/tabs/media-tabs-sort";
 import type { FilterOption } from "@/features/media/helpers/filter-options.helper";
 import { genresForScope } from "@/features/media/helpers/genre.helper";
 import { genreQueries } from "@/features/media/hooks/genre.queries";
@@ -42,8 +41,6 @@ export interface MediaFiltersValue {
   vote_average_gte?: number;
 }
 
-type MediaSortValue = "new" | "top-rated" | "downloaded" | "upcoming";
-
 interface MediaSheetFilterProps {
   mode?: "discover" | "library";
   genreScope: Media["type"] | "both";
@@ -55,16 +52,15 @@ interface MediaSheetFilterProps {
   description: React.ReactNode;
   dateInputIdPrefix?: string;
   applyLabel?: React.ReactNode;
-  sortValue?: MediaSortValue;
-  onSortChange?: (value: MediaSortValue) => void;
-  showSortInSheet?: boolean;
+  triggerVariant?: ButtonProps["variant"];
+  hideCategories?: boolean;
 }
 
 const RATING_MIN = 0;
 
-function countActive(value: MediaFiltersValue, mode: "discover" | "library"): number {
+function countActive(value: MediaFiltersValue, mode: "discover" | "library", hideCategories = false): number {
   let count = 0;
-  if (value.with_genres) count++;
+  if (!hideCategories && value.with_genres) count++;
   if (value.date_gte || value.date_lte) count++;
   if (mode === "discover" && value.with_watch_providers) count++;
   if (mode === "discover" && value.with_keywords) count++;
@@ -84,9 +80,8 @@ export function MediaSheetFilter({
   description,
   dateInputIdPrefix = "date",
   applyLabel,
-  sortValue,
-  onSortChange,
-  showSortInSheet = false,
+  triggerVariant,
+  hideCategories = false,
 }: MediaSheetFilterProps) {
   const { t } = useLingui();
   const locale = useTmdbLocale();
@@ -99,8 +94,8 @@ export function MediaSheetFilter({
     if (open) setDraft(value);
   }, [open, value]);
 
-  const needsMovieGenres = genreScope === "movie" || genreScope === "both";
-  const needsTvGenres = genreScope === "tv" || genreScope === "both";
+  const needsMovieGenres = !hideCategories && (genreScope === "movie" || genreScope === "both");
+  const needsTvGenres = !hideCategories && (genreScope === "tv" || genreScope === "both");
 
   const { data: movieGenres = [] } = useQuery({
     ...genreQueries.list("movie", locale),
@@ -126,7 +121,7 @@ export function MediaSheetFilter({
   );
 
   const providerType = genreScope === "both" ? type : genreScope;
-  const activeCount = countActive(value, mode);
+  const activeCount = countActive(value, mode, hideCategories);
 
   const handleApply = () => {
     onChange(draft);
@@ -154,7 +149,7 @@ export function MediaSheetFilter({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
-          variant="secondary"
+          variant={triggerVariant ?? "secondary"}
           size={isMobile ? "icon-lg" : "lg"}
           className="relative shrink-0"
           aria-label={t(msg`Filters`)}
@@ -182,19 +177,17 @@ export function MediaSheetFilter({
         </SheetHeader>
 
         <div className="flex-1 space-y-6 overflow-y-auto px-4">
-          {showSortInSheet && sortValue && onSortChange ? (
-            <MediaSortTabs value={sortValue} type={type} onChange={onSortChange} className="w-full" />
-          ) : null}
-
-          <MediaFilterCategories
-            type={type}
-            genreScope={genreScope}
-            categoryValueMode={categoryValueMode}
-            genres={mergedGenres}
-            categoryOptions={categoryOptions}
-            value={draft.with_genres}
-            onChange={(next) => setDraft((prev) => ({ ...prev, with_genres: next }))}
-          />
+          {!hideCategories && (
+            <MediaFilterCategories
+              type={type}
+              genreScope={genreScope}
+              categoryValueMode={categoryValueMode}
+              genres={mergedGenres}
+              categoryOptions={categoryOptions}
+              value={draft.with_genres}
+              onChange={(next) => setDraft((prev) => ({ ...prev, with_genres: next }))}
+            />
+          )}
 
           <MediaFilterDateRange
             idPrefix={dateInputIdPrefix}

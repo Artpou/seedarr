@@ -136,7 +136,7 @@ export function SettingsModulesView({ filter, search, onFilterChange, onSearchCh
                     <p className="font-semibold text-sm md:text-base truncate">{title}</p>
                   </div>
                   <ModuleInfoBadges item={item} />
-                  <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2 hidden sm:block">{description}</p>
                 </div>
               </div>
             );

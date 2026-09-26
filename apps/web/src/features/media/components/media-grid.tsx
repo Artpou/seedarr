@@ -5,8 +5,8 @@ import { useElementScrollRestoration } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
 import { flattenInfiniteResults, type InfiniteResultsQuery } from "@/shared/hooks/use-infinite-list";
-import { Skeleton } from "@/shared/ui/skeleton";
 
+import { MediaGridSkeleton } from "@/features/media/components/media-grid-skeletons";
 import { MediaCard } from "./card/media-card";
 
 const MEDIA_GRID_MIN_COL = 165;
@@ -64,6 +64,7 @@ export function MediaGrid({ items, query, showType, downloadMode }: MediaGridPro
   const virtualizer = useWindowVirtualizer({
     count: isPending ? 0 : rowCount,
     estimateSize,
+    measureElement: (element) => element.getBoundingClientRect().height,
     overscan: 4,
     scrollMargin,
     initialOffset: scrollEntry?.scrollY,
@@ -84,13 +85,7 @@ export function MediaGrid({ items, query, showType, downloadMode }: MediaGridPro
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, lastRowIndex, rowCount]);
 
   if (isPending) {
-    return (
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(165px,1fr))] gap-4">
-        {Array.from({ length: 20 }, (_, i) => (
-          <Skeleton key={`skeleton-${i.toString()}`} className="aspect-2/3 w-full rounded-md" />
-        ))}
-      </div>
-    );
+    return <MediaGridSkeleton />;
   }
 
   if (displayItems.length === 0) return null;
@@ -106,6 +101,7 @@ export function MediaGrid({ items, query, showType, downloadMode }: MediaGridPro
             <div
               key={virtualRow.key}
               data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
               className="absolute top-0 left-0 w-full grid gap-4"
               style={{
                 gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,

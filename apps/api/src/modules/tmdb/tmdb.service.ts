@@ -26,9 +26,10 @@ import type {
 } from "./tmdb.types";
 
 const TMDB_API_URL = "https://api.themoviedb.org/3";
-const TMDB_FETCH_TIMEOUT_MS = 8_000;
 
+const TMDB_FETCH_TIMEOUT_MS = 8_000;
 const TRENDING_LIMIT = 10;
+const TOP_RATED_MIN_VOTE_COUNT = 500;
 
 const cache = createCache({
   max: 500,
@@ -70,7 +71,7 @@ function buildUrl(url: string, language: string | undefined, apiKey: string, opt
 function normalizeDiscoverOptions(opts: TmdbDiscoverQuery): FetchOptions {
   // biome-ignore lint/suspicious/noExplicitAny: any is used to allow any type of key
   const normalized: Record<string, any> = { ...opts };
-  if (opts.sort_by === "vote_average.desc") normalized["vote_count.gte"] = "300";
+  if (opts.sort_by === "vote_average.desc") normalized["vote_count.gte"] = TOP_RATED_MIN_VOTE_COUNT;
   if (opts.sort_by === "release_date.desc") {
     normalized.sort_by = "popularity.desc";
     const today = new Date().toISOString().split("T")[0];

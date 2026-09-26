@@ -2,6 +2,7 @@ import { type ReactNode, useMemo } from "react";
 
 import type { Media } from "@seedarr/sdk";
 import { Link } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
 import { InfoIcon } from "lucide-react";
 
 import { Badge } from "@/shared/ui/badge";
@@ -17,12 +18,19 @@ const MAX_ITEMS = 20;
 
 interface MediaCarouselHorizontalProps {
   title: string | ReactNode;
+  titleIcon?: LucideIcon;
   medias: Media[];
   seeMoreTo?: string;
   seeMoreSearch?: Record<string, unknown>;
 }
 
-export function MediaCarouselHorizontal({ title, medias, seeMoreTo, seeMoreSearch }: MediaCarouselHorizontalProps) {
+export function MediaCarouselHorizontal({
+  title,
+  titleIcon,
+  medias,
+  seeMoreTo,
+  seeMoreSearch,
+}: MediaCarouselHorizontalProps) {
   const uniqueMedias = useMemo(() => {
     if (!medias || medias.length === 0) return [];
     const uniqueMap = new Map(medias.map((item) => [item.id, item]));
@@ -32,7 +40,7 @@ export function MediaCarouselHorizontal({ title, medias, seeMoreTo, seeMoreSearc
   if (!medias || uniqueMedias.length === 0) return null;
 
   return (
-    <CarouselWrapper title={title} seeMoreTo={seeMoreTo} seeMoreSearch={seeMoreSearch}>
+    <CarouselWrapper title={title} titleIcon={titleIcon} seeMoreTo={seeMoreTo} seeMoreSearch={seeMoreSearch}>
       {uniqueMedias.map((item) => (
         <CarouselItem
           key={item.id}

@@ -1,9 +1,9 @@
 import { Trans } from "@lingui/react/macro";
-import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { ActivityIcon, PuzzleIcon, SettingsIcon, UsersIcon } from "lucide-react";
 
 import { AppVersionCard } from "@/shared/components/app-version-card";
-import { Select } from "@/shared/components/select/select";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Container } from "@/shared/ui/container";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
@@ -13,8 +13,8 @@ type SettingsTab = "general" | "activity" | "modules" | "users";
 
 export function SettingsLayoutView() {
   const { isAdmin, hasRole } = useRole();
-  const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const tabs = [
     { id: "general" as const, label: <Trans>General</Trans>, icon: SettingsIcon, adminOnly: false, memberOnly: false },
@@ -35,28 +35,10 @@ export function SettingsLayoutView() {
   return (
     <Container className="pb-3 sm:pb-6">
       <div className="flex flex-col md:flex-row md:gap-6 md:gap-8">
-        {!isModuleDetail && (
-          <aside className="md:w-56 shrink-0 md:sticky md:top-14 md:self-start md:overscroll-contain space-y-4">
-            <div className="md:hidden">
-              <Select
-                value={activeTab}
-                onValueChange={(value) => navigate({ to: `/settings/${value}` as `/settings/${SettingsTab}` })}
-                triggerClassName="w-full h-11"
-                label={<Trans>Settings</Trans>}
-                options={visibleTabs.map((tab) => ({
-                  value: tab.id,
-                  label: (
-                    <span className="flex items-center gap-2">
-                      <tab.icon className="size-4" />
-                      {tab.label}
-                    </span>
-                  ),
-                }))}
-              />
-            </div>
-
-            <Tabs className="hidden md:block" value={activeTab}>
-              <TabsList className="flex-col w-full gap-1 bg-transparent p-0 h-auto">
+        {!isModuleDetail && !isMobile && (
+          <aside className="shrink-0 space-y-4 md:sticky md:top-14 md:w-56 md:self-start md:overscroll-contain">
+            <Tabs value={activeTab}>
+              <TabsList className="h-auto w-full flex-col gap-1 bg-transparent p-0">
                 {visibleTabs.map((tab) => (
                   <TabsTrigger className="w-full justify-start" key={tab.id} value={tab.id} size="lg" asChild>
                     <Link to={`/settings/${tab.id}` as `/settings/${SettingsTab}`}>
@@ -72,7 +54,7 @@ export function SettingsLayoutView() {
           </aside>
         )}
 
-        <main className="flex-1 min-w-0">
+        <main className="min-w-0 flex-1">
           <Outlet />
         </main>
       </div>

@@ -91,12 +91,12 @@ export function TvCarousel({ tv, media, downloads, className, activeSeason, acti
     <div className="space-y-3">
       <CarouselWrapper
         title={
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex items-center gap-2">
             <Select
               value={selectedSeason.toString()}
               onValueChange={(value) => setSelectedSeason(Number(value))}
               options={seasonOptions}
-              triggerClassName="w-fit min-w-40"
+              triggerClassName="w-fit"
               panelLabel={<Trans>Season</Trans>}
               placeholder={<Trans>Season</Trans>}
             />

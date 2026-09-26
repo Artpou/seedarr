@@ -28,7 +28,11 @@ interface SyncError {
   type: "movie" | "tv";
 }
 
-export function DownloadButtonSynchronize() {
+interface DownloadButtonSynchronizeProps {
+  topbar?: boolean;
+}
+
+export function DownloadButtonSynchronize({ topbar = false }: DownloadButtonSynchronizeProps) {
   const isMobile = useIsMobile();
   const { t } = useLingui();
   const { isAdmin } = useRole();
@@ -56,8 +60,8 @@ export function DownloadButtonSynchronize() {
   return (
     <>
       <Button
-        variant="secondary"
-        size={isMobile ? "icon-lg" : "lg"}
+        variant={topbar ? "ghost" : "secondary"}
+        size={topbar || isMobile ? "icon-lg" : "lg"}
         onClick={handleSync}
         loading={syncMutation.isPending}
         icon={RefreshCwIcon}

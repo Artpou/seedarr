@@ -38,6 +38,8 @@ interface BaseSelectProps<T extends string = string> {
   onOpenChange?: (open: boolean) => void;
   onSearchChange?: (query: string) => void;
   searchPlaceholder?: string;
+  triggerVariant?: ButtonProps["variant"];
+  triggerSize?: ButtonProps["size"];
 }
 
 interface SingleSelectProps<T extends string = string> extends BaseSelectProps<T> {
@@ -65,7 +67,7 @@ function SelectTriggerButton({
     <Button
       variant={variant}
       size={size}
-      className={cn("w-full justify-between gap-2 bg-input hover:bg-input/80", className)}
+      className={cn("w-full justify-between gap-2", variant !== "ghost" && "bg-input hover:bg-input/80", className)}
       {...props}
     >
       <span className="truncate font-medium">{children}</span>
@@ -89,6 +91,8 @@ export function Select<T extends string = string>(props: SelectProps<T>) {
     onOpenChange: onOpenChangeProp,
     onSearchChange,
     searchPlaceholder = "Search...",
+    triggerVariant = "secondary",
+    triggerSize = "default",
   } = props;
 
   const [search, setSearch] = useState("");
@@ -163,7 +167,12 @@ export function Select<T extends string = string>(props: SelectProps<T>) {
       <DropDrawer open={open} onOpenChange={handleOpenChange}>
         <DropDrawerTrigger asChild disabled={disabled}>
           {trigger ?? (
-            <SelectTriggerButton className={triggerClassName} disabled={disabled}>
+            <SelectTriggerButton
+              variant={triggerVariant}
+              size={triggerSize}
+              className={triggerClassName}
+              disabled={disabled}
+            >
               {renderTriggerContent()}
             </SelectTriggerButton>
           )}
@@ -189,7 +198,7 @@ export function Select<T extends string = string>(props: SelectProps<T>) {
               />
             </div>
           ) : null}
-          <DropDrawerGroup className="max-h-64 overflow-y-auto">
+          <DropDrawerGroup data-slot="dropdown-menu-group" className="max-h-64 overflow-y-auto">
             {filteredOptions.length === 0 ? (
               <div className="px-4 py-3 text-sm text-muted-foreground">{emptyLabel}</div>
             ) : (

@@ -1,35 +1,38 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Trans } from "@lingui/react/macro";
 import type { Media } from "@seedarr/sdk";
 import type { InfiniteData, UseInfiniteQueryOptions } from "@tanstack/react-query";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useDebounce } from "@uidotdev/usehooks";
+import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useIntersectionObserver } from "@uidotdev/usehooks";
+import { LibraryIcon, SparklesIcon, TrophyIcon } from "lucide-react";
 
 import { PlaceholderEmpty } from "@/shared/components/seedarr-placeholder";
-import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
+import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
 import { flattenInfiniteResults } from "@/shared/hooks/use-infinite-list";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 import { Container } from "@/shared/ui/container";
-import { Input } from "@/shared/ui/input";
+import { SectionHeading } from "@/shared/ui/section-heading";
 
 import { useRole } from "@/features/auth/hooks/use-role";
+import { MediaCarousel } from "@/features/media/components/carousel/media-carousel";
 import { MediaCarouselWatching } from "@/features/media/components/carousel/media-carousel-watching";
 import { MediaGrid } from "@/features/media/components/media-grid";
 import { MediaTable } from "@/features/media/components/media-table";
-import { MediaSortTabs } from "@/features/media/components/tabs/media-tabs-sort";
 import { MediaTabsViewMode } from "@/features/media/components/tabs/media-tabs-view-mode";
+import { discoverScopedTitleIcon } from "@/features/media/helpers/discover-scoped-display.helper";
 import {
-  filterSearchResultsByDiscoverFilters,
-  isDiscoverTextSearch,
-  isDownloadedTab,
+  isScopedDiscoverSearch,
+  type MovieDiscoverSearch,
+  type TvDiscoverSearch,
 } from "@/features/media/helpers/discover-search.helper";
 import { genreQueries } from "@/features/media/hooks/genre.queries";
+import { movieQueries } from "@/features/movies/hooks/movie.queries";
 import { RequestCarousel } from "@/features/request/components/request-carousel";
 import { requestQueries } from "@/features/request/hooks/request.queries";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
-
-type MediaSelected = "new" | "top-rated" | "downloaded" | "upcoming";
+import { tvQueries } from "@/features/tv/hooks/tv.queries";
 
 type DiscoverResult = {
   results: Media[];
@@ -45,70 +48,147 @@ type DiscoverQueryOptions = UseInfiniteQueryOptions<
   number
 >;
 
-type MediaDiscoverSearch = {
-  selected?: MediaSelected;
-  with_genres?: string;
-  q?: string;
-  vote_average_gte?: number;
-  with_runtime_gte?: number;
-  with_runtime_lte?: number;
-  release_date_gte?: string;
-  release_date_lte?: string;
-  first_air_date_gte?: string;
-  first_air_date_lte?: string;
-};
+function DiscoverAdminPendingRequests({ type }: { type: "movie" | "tv" }) {
+  const { data: pendingRequests } = useSuspenseQuery(requestQueries.byType(type));
+  if (!pendingRequests.length) return null;
+  return (
+    <RequestCarousel requests={pendingRequests} seeMoreTo="/requests" seeMoreSearch={{ type, status: "pending" }} />
+  );
+}
 
-type MediaDiscoverProps<TSearch extends MediaDiscoverSearch> = {
+function CategorySentinel({ onReveal }: { onReveal: () => void }) {
+  const hasRevealedRef = useRef(false);
+  const [ref, entry] = useIntersectionObserver({
+    threshold: 0,
+    rootMargin: "0px 0px 320px 0px",
+  });
+
+  useEffect(() => {
+    if (!entry?.isIntersecting || hasRevealedRef.current) return;
+    hasRevealedRef.current = true;
+    onReveal();
+  }, [entry?.isIntersecting, onReveal]);
+
+  return <div ref={ref} className="h-4" aria-hidden />;
+}
+
+function MediaCategoryCarousel({
+  type,
+  genre,
+  locale,
+}: {
+  type: "movie" | "tv";
+  genre: { id: number; name: string };
+  locale: string;
+}) {
+  const query = useInfiniteQuery(
+    type === "movie"
+      ? movieQueries.discover({ with_genres: String(genre.id) }, locale)
+      : tvQueries.discover({ with_genres: String(genre.id) }, locale),
+  );
+  const items = query.data?.pages[0]?.results ?? [];
+  const routePath = type === "movie" ? "/movies" : "/tv";
+
+  if (query.isPending) return <div className="h-48 animate-pulse rounded-lg bg-muted/30" aria-hidden />;
+  if (items.length === 0) return null;
+
+  return (
+    <MediaCarousel
+      title={genre.name}
+      titleIcon={LibraryIcon}
+      data={items}
+      seeMoreTo={routePath}
+      seeMoreSearch={{ genre: String(genre.id) }}
+    />
+  );
+}
+
+function MediaDiscoverCarousels({
+  type,
+  locale,
+  genres,
+}: {
+  type: "movie" | "tv";
+  locale: string;
+  genres: Array<{ id: number; name: string }>;
+}) {
+  /** How many genre carousels are mounted (one discover call each). Grows by 1 when the sentinel is reached. */
+  const [genreRevealCount, setGenreRevealCount] = useState(0);
+
+  const newQuery = useInfiniteQuery(
+    type === "movie" ? movieQueries.discover({}, locale) : tvQueries.discover({}, locale),
+  );
+  const topRatedQuery = useInfiniteQuery({
+    ...(type === "movie"
+      ? movieQueries.discover({ sort_by: "vote_average.desc" }, locale)
+      : tvQueries.discover({ sort_by: "vote_average.desc" }, locale)),
+    enabled: newQuery.isFetched,
+  });
+
+  const revealNextGenre = useCallback(() => {
+    setGenreRevealCount((count) => Math.min(count + 1, genres.length));
+  }, [genres.length]);
+
+  const newItems = newQuery.data?.pages[0]?.results ?? [];
+  const topRatedItems = topRatedQuery.data?.pages[0]?.results ?? [];
+  const routePath = type === "movie" ? "/movies" : "/tv";
+  const canLoadGenres = topRatedQuery.isFetched;
+
+  return (
+    <div className="space-y-8">
+      {newQuery.isFetched && newItems.length > 0 && (
+        <MediaCarousel
+          title={<Trans>New</Trans>}
+          titleIcon={SparklesIcon}
+          data={newItems}
+          seeMoreTo={routePath}
+          seeMoreSearch={{ type: "new" }}
+        />
+      )}
+      {topRatedQuery.isFetched && topRatedItems.length > 0 && (
+        <MediaCarousel
+          title={<Trans>Top Rated</Trans>}
+          titleIcon={TrophyIcon}
+          data={topRatedItems}
+          seeMoreTo={routePath}
+          seeMoreSearch={{ type: "top_rated" }}
+        />
+      )}
+      {canLoadGenres &&
+        genres
+          .slice(0, genreRevealCount)
+          .map((genre) => <MediaCategoryCarousel key={genre.id} type={type} genre={genre} locale={locale} />)}
+      {canLoadGenres && genreRevealCount < genres.length && (
+        <CategorySentinel key={genreRevealCount} onReveal={revealNextGenre} />
+      )}
+    </div>
+  );
+}
+
+type MediaDiscoverProps<TSearch extends MovieDiscoverSearch | TvDiscoverSearch> = {
   type: "movie" | "tv";
   search: TSearch;
   queryOptions: object;
-  onSearchChange: (value: Partial<TSearch>) => void;
   filtersSheet: ReactNode;
   emptyTitle: ReactNode;
   emptySubtitle: ReactNode;
-  searchPlaceholder: string;
 };
 
-export function MediaDiscover<TSearch extends MediaDiscoverSearch>({
+export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSearch>({
   type,
   search,
   queryOptions,
-  onSearchChange,
   filtersSheet,
   emptyTitle,
   emptySubtitle,
-  searchPlaceholder,
 }: MediaDiscoverProps<TSearch>) {
   const locale = useTmdbLocale();
   const isMobile = useIsMobile();
   const { isAdmin } = useRole();
   const viewMode = useEffectiveViewMode(type);
-  const isDownloaded = isDownloadedTab(search.selected);
+  const isScoped = isScopedDiscoverSearch(search);
 
-  const [query, setQuery] = useState(search.q ?? "");
-  const [isStuck, setIsStuck] = useState(false);
-  const debouncedQuery = useDebounce(query, 300);
-  const isSearching = isDiscoverTextSearch(search.q);
-
-  useEffect(() => {
-    setQuery(search.q ?? "");
-  }, [search.q]);
-
-  useEffect(() => {
-    const next = debouncedQuery.trim() || undefined;
-    if ((search.q ?? undefined) === next) return;
-    onSearchChange({ q: next } as Partial<TSearch>);
-  }, [debouncedQuery, onSearchChange, search.q]);
-
-  const { data: pendingRequests } = useQuery({
-    ...requestQueries.byType(type),
-    enabled: isAdmin,
-  });
-
-  const { data: genres = [] } = useQuery({
-    ...genreQueries.list(type, locale),
-    enabled: isSearching,
-  });
+  const { data: genres = [] } = useQuery(genreQueries.list(type, locale));
 
   const genreNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -117,88 +197,65 @@ export function MediaDiscover<TSearch extends MediaDiscoverSearch>({
   }, [genres]);
 
   const discoverQuery = useInfiniteQuery(queryOptions as DiscoverQueryOptions);
-  const rawResults = flattenInfiniteResults(discoverQuery);
+  const results = flattenInfiniteResults(discoverQuery);
 
-  const results = useMemo(() => {
-    if (!isSearching) return rawResults;
-    return filterSearchResultsByDiscoverFilters(
-      rawResults,
-      {
-        with_genres: search.with_genres,
-        vote_average_gte: search.vote_average_gte,
-        date_gte: type === "movie" ? search.release_date_gte : search.first_air_date_gte,
-        date_lte: type === "movie" ? search.release_date_lte : search.first_air_date_lte,
-        with_runtime_gte: search.with_runtime_gte,
-        with_runtime_lte: search.with_runtime_lte,
-      },
-      genreNameById,
+  const sectionTitle = useMemo(() => {
+    if (search.type === "new") {
+      return type === "movie" ? <Trans>New Movies</Trans> : <Trans>New TV Shows</Trans>;
+    }
+    if (search.type === "top_rated" || search.type === "top-rated") {
+      return type === "movie" ? <Trans>Top Rated Movies</Trans> : <Trans>Top Rated TV Shows</Trans>;
+    }
+    if (search.genre) {
+      const name = genreNameById.get(search.genre);
+      if (name) return name;
+    }
+    return type === "movie" ? <Trans>Movies</Trans> : <Trans>TV Shows</Trans>;
+  }, [genreNameById, search.genre, search.type, type]);
+
+  if (!isScoped) {
+    return (
+      <Container className="space-y-8">
+        <MediaCarouselWatching type={type} />
+        {isAdmin && <DiscoverAdminPendingRequests type={type} />}
+        <MediaDiscoverCarousels type={type} locale={locale} genres={genres} />
+      </Container>
     );
-  }, [genreNameById, isSearching, rawResults, search, type]);
-
-  const showSortTabs = !isDownloaded && (!isMobile || !isStuck);
-  const showViewMode = !isMobile || !isStuck;
-
-  const searchInput = (
-    <Input
-      type="search"
-      search
-      classNameWrapper="w-full min-w-0 flex-1"
-      h="lg"
-      placeholder={searchPlaceholder}
-      value={query}
-      onChange={(e) => setQuery(e.target.value)}
-    />
-  );
+  }
 
   return (
-    <Container className="space-y-6">
-      <MediaCarouselWatching type={type} />
-      {pendingRequests && pendingRequests.length > 0 && (
-        <RequestCarousel requests={pendingRequests} seeMoreTo="/requests" seeMoreSearch={{ type, status: "pending" }} />
+    <Container className="sm:space-y-3">
+      {!isMobile && (
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="min-w-0 flex-1 text-lg font-medium">
+            <SectionHeading icon={discoverScopedTitleIcon(search)}>{sectionTitle}</SectionHeading>
+          </h2>
+          <div className="flex items-center gap-2">
+            <MediaTabsViewMode scope={type} />
+            {filtersSheet}
+          </div>
+        </div>
       )}
-      <div className="space-y-4">
-        <SentinelStuck setIsStuck={setIsStuck} marginTop={-30} />
 
-        {!isStuck && searchInput}
-
-        <StickyFilterBar isStuck={isStuck}>
-          {isStuck ? (
-            <div className="flex w-full items-center gap-2">
-              {searchInput}
-              {!isDownloaded && filtersSheet}
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-2">
-                {showViewMode && <MediaTabsViewMode scope={type} />}
-                {showSortTabs && (
-                  <MediaSortTabs
-                    value={search.selected}
-                    className="min-w-0 flex-1"
-                    onChange={(value) => onSearchChange({ selected: value } as Partial<TSearch>)}
-                    type={type}
-                  />
-                )}
-              </div>
-              {!isDownloaded && filtersSheet}
-            </div>
-          )}
-        </StickyFilterBar>
-
-        {discoverQuery.isPending ? (
-          viewMode === "grid" ? (
-            <MediaGrid query={discoverQuery} showType />
-          ) : (
-            <MediaTable query={discoverQuery} />
-          )
-        ) : results.length === 0 ? (
-          <PlaceholderEmpty title={emptyTitle} subtitle={emptySubtitle} />
-        ) : viewMode === "grid" ? (
-          <MediaGrid items={results} query={discoverQuery} />
+      {discoverQuery.isPending ? (
+        viewMode === "grid" ? (
+          <MediaGrid query={discoverQuery} />
         ) : (
+          <MediaTable query={discoverQuery} />
+        )
+      ) : results.length === 0 ? (
+        <PlaceholderEmpty title={emptyTitle} subtitle={emptySubtitle} />
+      ) : viewMode === "grid" ? (
+        <>
+          <MediaGrid items={results} query={discoverQuery} />
+          <InfiniteSentinel query={discoverQuery} />
+        </>
+      ) : (
+        <>
           <MediaTable media={results} query={discoverQuery} />
-        )}
-      </div>
+          <InfiniteSentinel query={discoverQuery} />
+        </>
+      )}
     </Container>
   );
 }

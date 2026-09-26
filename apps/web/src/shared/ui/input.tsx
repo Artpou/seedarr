@@ -14,9 +14,20 @@ interface InputProps extends React.ComponentProps<"input"> {
   search?: boolean;
   /** Password field with reveal toggle (overrides type="password"). */
   password?: boolean;
+  variant?: "default" | "ghost";
 }
 
-function Input({ className, classNameWrapper, type, label, h, search, password, ...props }: InputProps) {
+function Input({
+  className,
+  classNameWrapper,
+  type,
+  label,
+  h,
+  search,
+  password,
+  variant = "default",
+  ...props
+}: InputProps) {
   const [revealed, setRevealed] = useState(false);
   const inputType = password ? (revealed ? "text" : "password") : type;
 
@@ -25,9 +36,10 @@ function Input({ className, classNameWrapper, type, label, h, search, password, 
       type={inputType}
       data-slot="input"
       className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground bg-input h-9 w-full min-w-0 rounded-md px-3 py-5.5 sm:py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "hover:border-ring/30 hover:ring-ring/20 hover:ring-[3px]",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground h-9 w-full min-w-0 rounded-md px-3 py-5.5 sm:py-1 text-base transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        variant === "ghost"
+          ? "bg-transparent shadow-none hover:bg-transparent focus-visible:ring-0"
+          : "bg-input shadow-xs hover:border-ring/30 hover:ring-ring/20 hover:ring-[3px] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
         "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
         !!label && "rounded-tl-none",
         search && "pl-12",

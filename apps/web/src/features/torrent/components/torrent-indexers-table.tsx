@@ -29,8 +29,11 @@ function ModuleIndexerStatusBadge({ status }: { status: "loading" | "success" | 
   switch (status) {
     case "loading":
       return (
-        <Badge variant="outline">
-          <Trans>Loading</Trans>
+        <Badge variant="outline" className="gap-1.5">
+          <Spinner className="size-3" />
+          <span className="sr-only">
+            <Trans>Loading</Trans>
+          </span>
         </Badge>
       );
     case "error":

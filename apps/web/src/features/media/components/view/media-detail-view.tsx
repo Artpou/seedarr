@@ -155,11 +155,16 @@ export function MediaDetailView({
                     {children}
                   </div>
                 )}
-                {showTabs && tab === "downloads" && showDownloads && (
-                  <Card className="p-4">
+                {showTabs &&
+                  tab === "downloads" &&
+                  showDownloads &&
+                  (isMobile ? (
                     <MediaDownload downloads={torrentDownloads} mediaType={mediaType} />
-                  </Card>
-                )}
+                  ) : (
+                    <Card className="p-4">
+                      <MediaDownload downloads={torrentDownloads} mediaType={mediaType} />
+                    </Card>
+                  ))}
                 {showTabs && tab === "server" && showServer && (
                   <Card className="p-4 w-full">
                     <MediaServer downloads={remoteDownloads} mediaType={mediaType} />

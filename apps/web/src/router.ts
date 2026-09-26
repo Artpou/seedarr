@@ -2,6 +2,8 @@ import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import ms from "ms";
 
+import { RoutePendingFallback } from "@/shared/components/route-pending-fallback";
+
 import { routeTree } from "./routeTree.gen";
 
 export interface SeedarrRouterContext {
@@ -37,4 +39,8 @@ export const router = createRouter({
   scrollRestoration: true,
   scrollRestorationBehavior: "instant",
   defaultPreloadStaleTime: 0,
+  /** Show pending UI immediately instead of keeping the previous route frozen for ~1s. */
+  defaultPendingMs: 0,
+  defaultPendingMinMs: 200,
+  defaultPendingComponent: RoutePendingFallback,
 });

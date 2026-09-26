@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { formatBytes } from "@seedarr/shared";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { HardDriveIcon, ServerIcon } from "lucide-react";
 
 import { StatBlock, StatDivider } from "@/shared/components/stats/stat-block";
@@ -59,7 +59,7 @@ function StorageBar({ space, kind }: { space: StorageSpace; kind: "local" | "rem
 export function LibraryStats() {
   const { t } = useLingui();
   const { isEnabled: storageEnabled } = useStorageModule();
-  const { data: stats } = useQuery({
+  const { data: stats } = useSuspenseQuery({
     ...downloadQueries.stats(),
     refetchInterval: ({ state }) => {
       const s = state.data;
@@ -68,13 +68,11 @@ export function LibraryStats() {
     },
   });
 
-  if (!stats) return null;
-
   const hasStorage = stats.storage.local || (storageEnabled && stats.storage.remote);
 
   return (
     <div className="flex flex-col lg:flex-row justify-between gap-3">
-      {hasStorage && (
+      {hasStorage ? (
         <div className="w-full lg:max-w-[50%] xl:max-w-[33%] flex flex-col gap-3">
           {stats.storage.local && (
             <Card className="w-full flex flex-row gap-4 py-2.5 px-4 items-center flex-wrap">
@@ -88,6 +86,8 @@ export function LibraryStats() {
             </Card>
           )}
         </div>
+      ) : (
+        <div />
       )}
 
       <div className="flex items-start gap-3 w-full lg:max-w-[50%] xl:max-w-[33%]">

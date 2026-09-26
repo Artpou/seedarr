@@ -85,8 +85,8 @@ function Login() {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" disabled={isPending} className="w-full">
-            {isPending ? <Trans>Loading...</Trans> : <Trans>Login</Trans>}
+          <Button type="submit" loading={isPending} disabled={isPending} className="w-full">
+            <Trans>Login</Trans>
           </Button>
         </form>
       </CardContent>

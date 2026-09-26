@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildTvDiscoverOptions, validateTvDiscoverSearch } from "@/features/media/helpers/discover-search.helper";
 
@@ -6,25 +6,29 @@ describe("/tv validateSearch", () => {
   it("parses TV-specific date filters", () => {
     expect(
       validateTvDiscoverSearch({
-        selected: "upcoming",
+        type: "top_rated",
+        genre: "10759",
         first_air_date_gte: "2024-06-01",
         first_air_date_lte: "2024-12-31",
       }),
     ).toMatchObject({
-      selected: "upcoming",
+      type: "top_rated",
+      genre: "10759",
       first_air_date_gte: "2024-06-01",
       first_air_date_lte: "2024-12-31",
     });
   });
 
-  it("maps upcoming tab to first air date filter", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2024-03-15T12:00:00Z"));
-
-    expect(buildTvDiscoverOptions({ selected: "upcoming" })).toMatchObject({
-      "first_air_date.gte": "2024-03-15",
+  it("maps top_rated tab to vote sort", () => {
+    expect(buildTvDiscoverOptions({ type: "top_rated" })).toMatchObject({
+      sort_by: "vote_average.desc",
     });
+  });
 
-    vi.useRealTimers();
+  it("prefers type over genre when both are specified", () => {
+    expect(buildTvDiscoverOptions({ type: "top_rated", genre: "10759" })).toMatchObject({
+      sort_by: "vote_average.desc",
+      with_genres: undefined,
+    });
   });
 });

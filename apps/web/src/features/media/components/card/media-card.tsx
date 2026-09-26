@@ -58,46 +58,49 @@ export function MediaCard({
 
   const card = (
     <Card
+      data-slot="media-card"
       className={cn(
-        "relative group overflow-hidden pt-0 pb-0 border-2 border-transparent transition-colors hover:border-primary size-full",
+        "group w-full gap-0 overflow-hidden border-2 border-transparent pt-0 pb-0 text-center transition-colors hover:border-primary",
         className,
       )}
     >
-      <Link {...detailLinkProps}>
-        <MediaImg media={media} type="poster" />
+      <Link {...detailLinkProps} className="flex w-full flex-col">
+        <div className="relative aspect-2/3 w-full overflow-hidden">
+          <MediaImg media={media} type="poster" className="size-full object-cover" />
 
-        {media.download && showDownloadProgress && (
-          <div className="absolute top-2 right-2">
-            <DownloadProgress download={media.download} variant="circular" />
+          {media.download && showDownloadProgress && (
+            <div className="absolute top-2 right-2">
+              <DownloadProgress download={media.download} variant="circular" />
+            </div>
+          )}
+
+          <div className="absolute top-2 left-2 flex items-center gap-0.5">
+            {showType && <MediaBadgeType type={media.type} iconOnly />}
+            {showSocial && <MediaBadgeRating media={media} onlyOne />}
+            {showQuality && media.download?.quality && <Badge variant="glass">{media.download.quality}</Badge>}
           </div>
-        )}
 
-        <div className="absolute top-2 left-2 flex items-center gap-0.5">
-          {showType && <MediaBadgeType type={media.type} iconOnly />}
-          {showSocial && <MediaBadgeRating media={media} onlyOne />}
-          {showQuality && media.download?.quality && <Badge variant="glass">{media.download.quality}</Badge>}
+          {showSocial && media.liked && !showDownloadProgress && (
+            <Badge className="absolute top-2 right-2" variant="glass">
+              <HeartIcon className="fill-primary text-primary shrink-0" />
+            </Badge>
+          )}
+
+          {showSocial && media.inWatchList && !media.liked && !showDownloadProgress && (
+            <Badge className="absolute top-2 right-2" variant="glass">
+              <ClockPlusIcon className="text-primary shrink-0" />
+            </Badge>
+          )}
+
+          {showPlay && !isMobile && (
+            <div className="absolute bottom-2 left-2 right-2 flex gap-1 transition-all duration-200 ease-out md:-bottom-6.5 md:group-hover:bottom-2">
+              <MediaButtonPlay media={media} size="sm" className="w-full" />
+            </div>
+          )}
+          {showPlay && isMobile && !!media.download && (
+            <Progress value={media.progress?.position ?? 0} max={100} className="absolute bottom-0 left-0 h-1 w-full" />
+          )}
         </div>
-
-        {showSocial && media.liked && !showDownloadProgress && (
-          <Badge className="absolute top-2 right-2" variant="glass">
-            <HeartIcon className="fill-primary text-primary shrink-0" />
-          </Badge>
-        )}
-
-        {showSocial && media.inWatchList && !media.liked && !showDownloadProgress && (
-          <Badge className="absolute top-2 right-2" variant="glass">
-            <ClockPlusIcon className="text-primary shrink-0" />
-          </Badge>
-        )}
-
-        {showPlay && !isMobile && (
-          <div className="absolute bottom-2 left-2 right-2 flex gap-1 transition-all duration-200 ease-out md:-bottom-6.5 md:group-hover:bottom-2">
-            <MediaButtonPlay media={media} size="sm" className="w-full" />
-          </div>
-        )}
-        {showPlay && isMobile && !!media.download && (
-          <Progress value={media.progress?.position ?? 0} max={100} className="w-full h-1" />
-        )}
 
         {children}
       </Link>
