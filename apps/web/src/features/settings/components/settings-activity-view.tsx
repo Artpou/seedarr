@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "@/shared/components/empty-state";
 import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { Select } from "@/shared/components/select/select";
+import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { usePagedState } from "@/shared/hooks/use-paged-state";
 import { DataTable } from "@/shared/ui/data-table";
 import { DataTablePagination } from "@/shared/ui/data-table-pagination";
@@ -52,7 +53,7 @@ export function SettingsActivityView() {
   const [categoryFilter, setCategoryFilter] = useState<ActivityCategoryFilter>("all");
   const [typeFilter, setTypeFilter] = useState<ActivityTypeFilter>("all");
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 300);
+  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
   const filters = {
     q: debouncedQuery.trim() || undefined,
     category: categoryFilter,

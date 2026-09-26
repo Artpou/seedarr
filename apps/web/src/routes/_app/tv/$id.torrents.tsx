@@ -4,6 +4,7 @@ import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
 import { redirectIfNotRole } from "@/shared/helpers/role.helper";
 
 import { MediaTorrentsView } from "@/features/media/components/view/media-torrents-view";
+import { MediaTorrentsViewSkeleton } from "@/features/media/components/view/media-torrents-view-skeleton";
 import { moduleQueries } from "@/features/module/hooks/module.queries";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
 
@@ -22,6 +23,7 @@ const optionalPositiveInt = (v: unknown): number | undefined => {
 };
 
 export const Route = createFileRoute("/_app/tv/$id/torrents")({
+  pendingComponent: MediaTorrentsViewSkeleton,
   component: TvTorrentsRoute,
   beforeLoad: ({ context, params }) => {
     redirectIfNotRole(context, "member", { to: "/tv/$id", params: { id: params.id } });

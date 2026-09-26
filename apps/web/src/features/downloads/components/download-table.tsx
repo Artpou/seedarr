@@ -6,7 +6,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { type OnChangeFn, type RowSelectionState, type SortingState, useTable } from "@tanstack/react-table";
 import { Trash2Icon } from "lucide-react";
 
-import { InfiniteSentinel } from "@/shared/components/infinite-sentinel";
+import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
 import { flattenInfiniteResults, type InfiniteResultsQuery } from "@/shared/hooks/use-infinite-list";
 import { Button } from "@/shared/ui/button";
 import { DataTable } from "@/shared/ui/data-table";

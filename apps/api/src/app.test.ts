@@ -48,4 +48,43 @@ describe("app bootstrap", () => {
     const { app } = await import("@/app");
     expect((await app.request("/avatars/missing-user")).status).toBe(404);
   });
+
+  it("handles CORS preflight OPTIONS requests without CSRF 403", async () => {
+    const { app } = await import("@/app");
+    const res = await app.request("/auth/login", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "http://localhost:3000",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Content-Type",
+      },
+    });
+    expect(res.status).toBe(204);
+    expect(res.headers.get("access-control-allow-origin")).toBe("http://localhost:3000");
+  });
+
+  it("allows requests from WEB_URL through CSRF middleware", async () => {
+    const { app } = await import("@/app");
+    const res = await app.request("/health", {
+      method: "POST",
+      headers: {
+        Origin: "http://localhost:3000",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+    // Not 403 Forbidden
+    expect(res.status).not.toBe(403);
+  });
+
+  it("rejects untrusted cross-origin requests with CSRF 403", async () => {
+    const { app } = await import("@/app");
+    const res = await app.request("/health", {
+      method: "POST",
+      headers: {
+        Origin: "http://evil-site.com",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+    expect(res.status).toBe(403);
+  });
 });

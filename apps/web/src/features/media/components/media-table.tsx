@@ -5,7 +5,7 @@ import type { Media } from "@seedarr/sdk";
 import { useNavigate } from "@tanstack/react-router";
 import { type OnChangeFn, type SortingState, useTable } from "@tanstack/react-table";
 
-import { InfiniteSentinel } from "@/shared/components/infinite-sentinel";
+import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
 import { flattenInfiniteResults, type InfiniteResultsQuery } from "@/shared/hooks/use-infinite-list";
 import { DataTable } from "@/shared/ui/data-table";
 

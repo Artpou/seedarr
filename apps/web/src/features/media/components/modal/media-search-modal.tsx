@@ -8,6 +8,7 @@ import { CheckIcon, ClapperboardIcon, SearchIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SeedarrLoader } from "@/shared/components/seedarr-loader";
+import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
@@ -33,7 +34,7 @@ export function MediaSearchModal({ open, onOpenChange, downloadId, mediaId, medi
 
   const [query, setQuery] = useState("");
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
-  const debouncedQuery = useDebounce(query, 300);
+  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
 
   const { data: searchResults = [], isLoading } = useQuery({
     ...mediaQueries.search(debouncedQuery, locale),
@@ -208,7 +209,7 @@ export function MediaSearchPicker({ mediaType, selectedMedia, onSelect, fileName
   const locale = useTmdbLocale();
 
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 300);
+  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
 
   const { data: searchResults = [], isLoading } = useQuery({
     ...mediaQueries.search(debouncedQuery, locale),

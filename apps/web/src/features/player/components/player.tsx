@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 
-import { Spinner } from "@/shared/ui/spinner";
+import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 
 import { resolveSubtitleTracksToBlobs, type SubtitleTrack } from "@/features/downloads/helpers/subtitle-tracks.helper";
 import {
@@ -220,14 +220,8 @@ export function Player({
   return (
     <>
       {isEngineLoading && (
-        <div
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black aspect-video"
-          aria-busy="true"
-        >
-          <Spinner className="size-8 text-white" />
-          <p className="text-sm text-white/70">
-            <Trans>Loading player…</Trans>
-          </p>
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black aspect-video" aria-busy="true">
+          <SeedarrLoader size={72} delayMs={0} />
         </div>
       )}
       <div ref={hostRef} className={className} />

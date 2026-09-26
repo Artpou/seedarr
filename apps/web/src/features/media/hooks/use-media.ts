@@ -1,6 +1,6 @@
 import type { ListMediaQuery } from "@seedarr/contracts";
 import type { Media } from "@seedarr/sdk";
-import { useInfiniteQuery, useQuery, useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import { mediaQueries, refetchLibraryInterval, refetchMediaInterval } from "@/features/media/hooks/media.queries";
 
@@ -12,17 +12,9 @@ export function useMediaList(query: ListMediaQuery) {
   });
 }
 
-/** Suspense variant — library page and other suspended loaders. */
-export function useSuspenseMediaList(query: ListMediaQuery) {
-  return useSuspenseInfiniteQuery({
-    ...mediaQueries.list(query),
-    refetchInterval: refetchMediaInterval,
-  });
-}
-
-/** Flat “in progress” list with the same active-download refetch strategy. */
-export function useMediaInProgress(type: Media["type"]) {
-  return useQuery({
+/** Flat “in progress” list — prefetched on movies/tv discover routes. */
+export function useSuspenseMediaInProgress(type: Media["type"]) {
+  return useSuspenseQuery({
     ...mediaQueries.inProgress(type),
     refetchInterval: refetchLibraryInterval,
   });

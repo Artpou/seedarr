@@ -2,6 +2,7 @@ import { type ReactNode, useMemo } from "react";
 
 import type { Media } from "@seedarr/sdk";
 import { useNavigate } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
 
 import { handleSafeClick } from "@/shared/helpers/button.helper";
 import { CarouselItem } from "@/shared/ui/carousel";
@@ -13,13 +14,14 @@ const MAX_ITEMS = 20;
 
 interface MediaCarouselProps {
   title: string | ReactNode;
+  titleIcon?: LucideIcon;
   data: Media[];
   seeMoreTo?: string;
   seeMoreSearch?: Record<string, unknown>;
   showType?: boolean;
 }
 
-export function MediaCarousel({ title, data, seeMoreTo, seeMoreSearch, showType }: MediaCarouselProps) {
+export function MediaCarousel({ title, titleIcon, data, seeMoreTo, seeMoreSearch, showType }: MediaCarouselProps) {
   const navigate = useNavigate();
 
   const displayedData = useMemo(() => {
@@ -31,7 +33,7 @@ export function MediaCarousel({ title, data, seeMoreTo, seeMoreSearch, showType 
   if (!data || displayedData.length === 0) return null;
 
   return (
-    <CarouselWrapper title={title} seeMoreTo={seeMoreTo} seeMoreSearch={seeMoreSearch}>
+    <CarouselWrapper title={title} titleIcon={titleIcon} seeMoreTo={seeMoreTo} seeMoreSearch={seeMoreSearch}>
       {displayedData.map((item) => (
         <CarouselItem
           key={item.id}

@@ -12,6 +12,7 @@ allowBuilds:
   utf-8-validate: true
   utp-native: true
   sharp: true
+  node-pty: false
 
 catalog:
   hono: "^4.12.0"

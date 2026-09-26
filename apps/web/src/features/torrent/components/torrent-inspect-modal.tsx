@@ -4,6 +4,7 @@ import { formatError } from "@seedarr/shared";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2Icon, TriangleAlertIcon } from "lucide-react";
 
+import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { Skeleton } from "@/shared/ui/skeleton";
 
@@ -27,16 +28,11 @@ export function TorrentInspectModal({ open, onOpenChange, torrent, magnetUri }: 
       <DialogContent className="overflow-y-auto max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 flex-wrap break-words">
-            {name || <Trans>Loading...</Trans>}
+            {name ?? (isLoading ? <Skeleton className="h-6 w-48 max-w-full" /> : null)}
           </DialogTitle>
         </DialogHeader>
 
-        {isLoading && (
-          <div className="space-y-4 py-4">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-48 w-full" />
-          </div>
-        )}
+        {isLoading && <SeedarrLoader className="py-8" size={60} />}
 
         {error != null && (
           <div className="py-4 text-center">

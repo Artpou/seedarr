@@ -98,11 +98,12 @@ msgstr "Action"
 msgid "Actions"
 msgstr "Actions"
 
-#: src/features/settings/components/settings-activity-view.tsx:147
+#: src/features/settings/components/settings-activity-view.tsx:138
 msgid "Actions from the household will show up here."
 msgstr "Actions from the household will show up here."
 
 #: src/features/settings/components/settings-layout-view.tsx:22
+#: src/shared/components/topbar/topbar-settings.tsx:22
 msgid "Activity"
 msgstr "Activity"
 
@@ -134,22 +135,22 @@ msgstr "Adding…"
 msgid "Admin"
 msgstr "Admin"
 
+#: src/features/module/components/module-tabs-filter.tsx:17
+#: src/features/person/components/person-filmography.tsx:45
+#: src/features/search/components/search-view.tsx:76
+#: src/features/settings/components/settings-activity-view.tsx:35
+msgid "All"
+msgstr "All"
+
 #. js-lingui-explicit-id
-#: src/features/request/components/request-tabs.tsx:9
+#: src/features/request/components/request-tabs.tsx:12
 msgid "request-status.all"
 msgstr "All"
 
 #. js-lingui-explicit-id
 #: src/features/media/components/tabs/media-tabs-type.tsx:16
-#: src/features/request/components/request-tabs.tsx:24
+#: src/features/request/components/request-tabs.tsx:27
 msgid "media-type.all"
-msgstr "All"
-
-#: src/features/module/components/module-tabs-filter.tsx:17
-#: src/features/person/components/person-filmography.tsx:45
-#: src/features/search/components/search-view.tsx:76
-#: src/features/settings/components/settings-activity-view.tsx:36
-msgid "All"
 msgstr "All"
 
 #: src/features/media/components/view/media-torrents-view.tsx:104
@@ -165,11 +166,11 @@ msgid "All qualities"
 msgstr "All qualities"
 
 #: src/features/user/components/user-profile-stats.tsx:26
-#: src/features/user/components/user-profile-stats.tsx:30
+#: src/features/user/components/user-profile-stats.tsx:28
 msgid "all time"
 msgstr "all time"
 
-#: src/features/settings/components/settings-activity-view.tsx:44
+#: src/features/settings/components/settings-activity-view.tsx:43
 msgid "All types"
 msgstr "All types"
 
@@ -204,8 +205,8 @@ msgid "API Key"
 msgstr "API Key"
 
 #: src/features/settings/components/settings-general-view.tsx:35
-msgid "Appearance"
-msgstr "Appearance"
+#~ msgid "Appearance"
+#~ msgstr "Appearance"
 
 #. placeholder {0}: selectedIds.length
 #: src/features/downloads/components/download-table.tsx:106
@@ -260,7 +261,7 @@ msgstr "Budget"
 msgid "Buy / Rent"
 msgstr "Buy / Rent"
 
-#: src/features/user/components/user-profile-view.tsx:174
+#: src/features/user/components/user-profile-view.tsx:180
 msgid "Calendar"
 msgstr "Calendar"
 
@@ -281,13 +282,13 @@ msgstr "Cancel"
 msgid "Cancel request"
 msgstr "Cancel request"
 
-#. js-lingui-explicit-id
-#: src/features/request/components/request-tabs.tsx:19
-msgid "request-status.cancelled"
-msgstr "Cancelled"
-
 #: src/features/request/components/request-status-badge.tsx:27
 msgid "Cancelled"
+msgstr "Cancelled"
+
+#. js-lingui-explicit-id
+#: src/features/request/components/request-tabs.tsx:22
+msgid "request-status.cancelled"
 msgstr "Cancelled"
 
 #: src/features/person/components/person-carousel.tsx:33
@@ -310,7 +311,7 @@ msgstr "Categories"
 msgid "Change media"
 msgstr "Change media"
 
-#: src/features/settings/components/settings-general-view.tsx:59
+#: src/features/settings/components/settings-general-view.tsx:111
 #: src/features/user/components/password-change-modal.tsx:68
 msgid "Change Password"
 msgstr "Change Password"
@@ -319,8 +320,8 @@ msgstr "Change Password"
 msgid "Change profile picture"
 msgstr "Change profile picture"
 
-#: src/features/settings/components/settings-activity-view.tsx:137
-#: src/features/settings/components/settings-users-view.tsx:97
+#: src/features/settings/components/settings-activity-view.tsx:128
+#: src/features/settings/components/settings-users-view.tsx:88
 msgid "Check your connection and try again."
 msgstr "Check your connection and try again."
 
@@ -336,7 +337,7 @@ msgstr "Click or drag a file here"
 msgid "Collection"
 msgstr "Collection"
 
-#: src/features/settings/components/settings-modules-view.tsx:165
+#: src/features/settings/components/settings-modules-view.tsx:163
 msgid "Coming soon"
 msgstr "Coming soon"
 
@@ -344,8 +345,8 @@ msgstr "Coming soon"
 msgid "Comment"
 msgstr "Comment"
 
-#: src/features/settings/components/settings-modules-view.tsx:189
-#: src/features/settings/components/settings-modules-view.tsx:198
+#: src/features/settings/components/settings-modules-view.tsx:187
+#: src/features/settings/components/settings-modules-view.tsx:196
 msgid "Configure"
 msgstr "Configure"
 
@@ -418,7 +419,7 @@ msgstr "Could not finish onboarding"
 msgid "Could not install module"
 msgstr "Could not install module"
 
-#: src/features/settings/components/settings-activity-view.tsx:136
+#: src/features/settings/components/settings-activity-view.tsx:127
 msgid "Could not load activity"
 msgstr "Could not load activity"
 
@@ -430,7 +431,7 @@ msgstr "Could not load module"
 msgid "Could not load the video stream. Check that the file is still available."
 msgstr "Could not load the video stream. Check that the file is still available."
 
-#: src/features/settings/components/settings-users-view.tsx:96
+#: src/features/settings/components/settings-users-view.tsx:87
 msgid "Could not load users"
 msgstr "Could not load users"
 
@@ -491,7 +492,7 @@ msgid "Could not update likes"
 msgstr "Could not update likes"
 
 #: src/features/module/components/config/module-config.tsx:86
-#: src/features/settings/components/settings-modules-view.tsx:211
+#: src/features/settings/components/settings-modules-view.tsx:209
 msgid "Could not update module"
 msgstr "Could not update module"
 
@@ -527,7 +528,7 @@ msgstr "Create a new user account with specified role"
 msgid "Create owner account"
 msgstr "Create owner account"
 
-#: src/features/settings/components/settings-users-view.tsx:79
+#: src/features/settings/components/settings-users-view.tsx:72
 #: src/features/user/components/user-form-modal.tsx:89
 msgid "Create User"
 msgstr "Create User"
@@ -555,16 +556,16 @@ msgstr "Custom Stremio addon"
 
 #: src/features/downloads/hooks/use-download-table-columns.tsx:132
 #: src/features/media/hooks/use-media-table-columns.tsx:92
-#: src/features/settings/components/settings-activity-view.tsx:184
+#: src/features/settings/components/settings-activity-view.tsx:175
 #: src/features/settings/hooks/use-activity-columns.tsx:137
 msgid "Date"
 msgstr "Date"
 
-#: src/features/settings/components/settings-general-view.tsx:71
+#: src/features/settings/components/settings-general-view.tsx:124
 msgid "Default quality"
 msgstr "Default quality"
 
-#: src/features/module/components/config/module-config-letterboxd.tsx:22
+#: src/features/module/components/config/module-config-letterboxd.tsx:26
 msgid "Default username"
 msgstr "Default username"
 
@@ -638,15 +639,16 @@ msgstr "Discord"
 msgid "Disk quota (GB)"
 msgstr "Disk quota (GB)"
 
-#: src/features/user/components/user-profile-view.tsx:205
+#: src/features/settings/components/settings-general-view.tsx:62
+#: src/features/settings/components/settings-general-view.tsx:69
 msgid "Display name"
 msgstr "Display name"
 
 #: src/features/downloads/components/download-stats.tsx:107
 #: src/features/downloads/components/network/download-network-card.tsx:45
 #: src/features/media/components/button/media-button-download.tsx:33
-#: src/features/settings/components/settings-activity-view.tsx:38
-#: src/features/torrent/components/torrent-table.tsx:131
+#: src/features/settings/components/settings-activity-view.tsx:37
+#: src/features/torrent/components/torrent-table.tsx:130
 #: src/features/torrent/hooks/use-torrent-columns.tsx:153
 msgid "Download"
 msgstr "Download"
@@ -655,7 +657,7 @@ msgstr "Download"
 msgid "Download deleted"
 msgstr "Download deleted"
 
-#: src/features/torrent/components/torrent-table.tsx:216
+#: src/features/torrent/components/torrent-table.tsx:215
 msgid "Download failed"
 msgstr "Download failed"
 
@@ -667,7 +669,7 @@ msgstr "Download paused"
 msgid "Download resumed"
 msgstr "Download resumed"
 
-#: src/features/torrent/components/torrent-table.tsx:203
+#: src/features/torrent/components/torrent-table.tsx:202
 msgid "Download started"
 msgstr "Download started"
 
@@ -696,8 +698,12 @@ msgid "Edit"
 msgstr "Edit"
 
 #: src/features/user/components/user-profile-view.tsx:222
-msgid "Edit display name"
-msgstr "Edit display name"
+#~ msgid "Edit display name"
+#~ msgstr "Edit display name"
+
+#: src/shared/components/topbar/topbar-profile.tsx:82
+msgid "Edit profile"
+msgstr "Edit profile"
 
 #: src/features/user/components/user-form-modal.tsx:89
 msgid "Edit User"
@@ -741,12 +747,12 @@ msgstr "Enter your current password and choose a new one."
 msgid "Episode"
 msgstr "Episode"
 
-#: src/features/tv/components/tv-filters-sheet.tsx:58
+#: src/features/tv/components/tv-filters-sheet.tsx:61
 msgid "Episode runtime (minutes)"
 msgstr "Episode runtime (minutes)"
 
 #: src/features/settings/components/badge/settings-activity-badge-type.tsx:15
-#: src/features/settings/components/settings-activity-view.tsx:47
+#: src/features/settings/components/settings-activity-view.tsx:46
 #: src/features/torrent/components/torrent-indexers-table.tsx:39
 msgid "Error"
 msgstr "Error"
@@ -779,7 +785,7 @@ msgstr "File is too large"
 msgid "Files"
 msgstr "Files"
 
-#: src/features/person/components/person-filmography.tsx:60
+#: src/features/person/components/person-filmography.tsx:59
 msgid "Filmography"
 msgstr "Filmography"
 
@@ -836,6 +842,7 @@ msgid "FTPS (TLS)"
 msgstr "FTPS (TLS)"
 
 #: src/features/settings/components/settings-layout-view.tsx:20
+#: src/shared/components/topbar/topbar-settings.tsx:20
 msgid "General"
 msgstr "General"
 
@@ -871,9 +878,13 @@ msgstr "Healthy"
 msgid "Hide indexer"
 msgstr "Hide indexer"
 
-#: src/features/settings/components/settings-general-view.tsx:86
+#: src/features/settings/components/settings-general-view.tsx:139
 msgid "Hide torrents larger than this size. Leave empty for no limit."
 msgstr "Hide torrents larger than this size. Leave empty for no limit."
+
+#: src/shared/components/topbar/topbar-default.tsx:11
+msgid "Home"
+msgstr "Home"
 
 #: src/features/module/components/config/module-config-storage.tsx:52
 #: src/features/onboarding/components/onboarding-storage.tsx:81
@@ -932,12 +943,12 @@ msgstr "Indexers"
 #: src/features/downloads/hooks/use-download-table-columns.tsx:86
 #: src/features/media/components/view/media-detail-view.tsx:67
 #: src/features/media/hooks/use-media-table-columns.tsx:59
-#: src/features/torrent/components/torrent-table.tsx:128
+#: src/features/torrent/components/torrent-table.tsx:127
 msgid "Info"
 msgstr "Info"
 
 #: src/features/module/components/module-new-view.tsx:45
-#: src/features/settings/components/settings-modules-view.tsx:181
+#: src/features/settings/components/settings-modules-view.tsx:179
 msgid "Install"
 msgstr "Install"
 
@@ -959,7 +970,7 @@ msgstr "Integrations"
 msgid "Interface language"
 msgstr "Interface language"
 
-#: src/features/settings/components/settings-general-view.tsx:43
+#: src/features/settings/components/settings-general-view.tsx:94
 msgid "Interface language for Seedarr."
 msgstr "Interface language for Seedarr."
 
@@ -1001,7 +1012,7 @@ msgstr "Known for"
 msgid "Korean"
 msgstr "Korean"
 
-#: src/features/settings/components/settings-general-view.tsx:40
+#: src/features/settings/components/settings-general-view.tsx:91
 #: src/features/subtitles/components/subtitle-search-dialog.tsx:103
 msgid "Language"
 msgstr "Language"
@@ -1042,6 +1053,10 @@ msgstr "Letterboxd sync failed"
 msgid "Letterboxd synchronized"
 msgstr "Letterboxd synchronized"
 
+#: src/features/downloads/components/downloads-view.tsx:110
+msgid "Library"
+msgstr "Library"
+
 #. js-lingui-explicit-id
 #: src/shared/config/nav.ts:16
 msgid "nav.library"
@@ -1051,7 +1066,7 @@ msgstr "Library"
 msgid "Like"
 msgstr "Like"
 
-#: src/features/user/components/user-profile-view.tsx:176
+#: src/features/user/components/user-profile-view.tsx:182
 #: src/routes/_app/user/$id.likes.tsx:12
 msgid "Liked"
 msgstr "Liked"
@@ -1112,11 +1127,11 @@ msgstr "Manual sync complete"
 msgid "Manual sync failed"
 msgstr "Manual sync failed"
 
-#: src/features/torrent/components/torrent-table.tsx:294
+#: src/features/torrent/components/torrent-table.tsx:293
 msgid "Max {preferenceMaxSize} GB"
 msgstr "Max {preferenceMaxSize} GB"
 
-#: src/features/settings/components/settings-general-view.tsx:83
+#: src/features/settings/components/settings-general-view.tsx:136
 msgid "Max torrent size"
 msgstr "Max torrent size"
 
@@ -1128,7 +1143,7 @@ msgstr "Media reassigned"
 msgid "Member"
 msgstr "Member"
 
-#: src/features/settings/components/settings-activity-view.tsx:191
+#: src/features/settings/components/settings-activity-view.tsx:182
 msgid "Metadata"
 msgstr "Metadata"
 
@@ -1143,7 +1158,7 @@ msgstr "Min 3 characters"
 msgid "Min 8 characters"
 msgstr "Min 8 characters"
 
-#: src/features/settings/components/settings-general-view.tsx:74
+#: src/features/settings/components/settings-general-view.tsx:127
 msgid "Minimum quality filter applied when searching torrents."
 msgstr "Minimum quality filter applied when searching torrents."
 
@@ -1152,12 +1167,12 @@ msgid "Minimum rating"
 msgstr "Minimum rating"
 
 #. js-lingui-explicit-id
-#: src/shared/components/app-topbar.tsx:23
+#: src/shared/components/app-topbar.tsx:32
 msgid "nav.module"
 msgstr "Module"
 
-#: src/features/settings/components/settings-activity-view.tsx:39
-#: src/features/settings/components/settings-modules-view.tsx:124
+#: src/features/settings/components/settings-activity-view.tsx:38
+#: src/features/settings/components/settings-modules-view.tsx:122
 msgid "Module"
 msgstr "Module"
 
@@ -1170,6 +1185,7 @@ msgid "Module uninstalled"
 msgstr "Module uninstalled"
 
 #: src/features/settings/components/settings-layout-view.tsx:21
+#: src/shared/components/topbar/topbar-settings.tsx:21
 msgid "Modules"
 msgstr "Modules"
 
@@ -1189,15 +1205,16 @@ msgid "nav.movies"
 msgstr "Movies"
 
 #: src/features/downloads/components/download-stats.tsx:97
+#: src/features/media/components/media-discover.tsx:161
 #: src/features/search/components/search-view.tsx:80
-#: src/features/user/components/user-profile-stats.tsx:24
+#: src/features/user/components/user-profile-stats.tsx:25
 #: src/features/user/components/user-profile-stats.tsx:26
 msgid "Movies"
 msgstr "Movies"
 
 #. js-lingui-explicit-id
 #: src/features/media/components/tabs/media-tabs-type.tsx:17
-#: src/features/request/components/request-tabs.tsx:25
+#: src/features/request/components/request-tabs.tsx:28
 msgid "media-type.movies"
 msgstr "Movies"
 
@@ -1240,7 +1257,7 @@ msgstr "New password"
 msgid "Next episode: S{0}E{1} - {2}"
 msgstr "Next episode: S{0}E{1} - {2}"
 
-#: src/features/settings/components/settings-activity-view.tsx:146
+#: src/features/settings/components/settings-activity-view.tsx:137
 msgid "No activity yet"
 msgstr "No activity yet"
 
@@ -1252,7 +1269,7 @@ msgstr "No categories found."
 msgid "No downloads"
 msgstr "No downloads"
 
-#: src/features/downloads/components/downloads-view.tsx:183
+#: src/features/downloads/components/downloads-view.tsx:201
 msgid "No downloads yet"
 msgstr "No downloads yet"
 
@@ -1285,7 +1302,7 @@ msgstr "No keyword found."
 msgid "No magnet URI found"
 msgstr "No magnet URI found"
 
-#: src/features/settings/components/settings-modules-view.tsx:265
+#: src/features/settings/components/settings-modules-view.tsx:245
 msgid "No modules found"
 msgstr "No modules found"
 
@@ -1301,7 +1318,7 @@ msgstr "No peers detected"
 msgid "No remote files"
 msgstr "No remote files"
 
-#: src/features/request/components/requests-view.tsx:36
+#: src/features/request/components/requests-view.tsx:47
 msgid "No requests found."
 msgstr "No requests found."
 
@@ -1313,13 +1330,17 @@ msgstr "No requests."
 msgid "No results found"
 msgstr "No results found"
 
+#: src/features/downloads/components/downloads-view.tsx:199
+msgid "No results found for \"{effectiveQuery}\""
+msgstr "No results found for \"{effectiveQuery}\""
+
 #: src/features/search/components/search-view.tsx:125
 msgid "No results found for \"{q}\""
 msgstr "No results found for \"{q}\""
 
 #: src/features/downloads/components/downloads-view.tsx:183
-msgid "No results found for \"{query}\""
-msgstr "No results found for \"{query}\""
+#~ msgid "No results found for \"{query}\""
+#~ msgstr "No results found for \"{query}\""
 
 #: src/features/onboarding/components/onboarding-indexers.tsx:89
 msgid "No setup required. Browse torrents from public trackers instantly."
@@ -1349,7 +1370,7 @@ msgstr "No trackers found in this torrent — peer discovery relies on DHT only.
 msgid "No TV shows found"
 msgstr "No TV shows found"
 
-#: src/features/settings/components/settings-users-view.tsx:106
+#: src/features/settings/components/settings-users-view.tsx:97
 #: src/features/user/components/users-table.tsx:71
 msgid "No users found"
 msgstr "No users found"
@@ -1359,7 +1380,7 @@ msgid "No watched media yet"
 msgstr "No watched media yet"
 
 #: src/features/media/components/media-table.tsx:55
-#: src/features/user/components/user-profile-view.tsx:58
+#: src/features/user/components/user-profile-view.tsx:57
 msgid "Nothing here yet"
 msgstr "Nothing here yet"
 
@@ -1376,6 +1397,10 @@ msgstr "Off"
 msgid "Only .zip files, max 50MB"
 msgstr "Only .zip files, max 50MB"
 
+#: src/shared/components/topbar/topbar-profile.tsx:47
+msgid "Open profile"
+msgstr "Open profile"
+
 #: src/features/onboarding/components/onboarding-integrations.tsx:54
 msgid "Optional extras — add a TMDB key and import your Letterboxd taste. You can skip and configure later."
 msgstr "Optional extras — add a TMDB key and import your Letterboxd taste. You can skip and configure later."
@@ -1384,7 +1409,7 @@ msgstr "Optional extras — add a TMDB key and import your Letterboxd taste. You
 msgid "Optionally connect FTP or WebDAV to move completed downloads to a NAS or cloud folder."
 msgstr "Optionally connect FTP or WebDAV to move completed downloads to a NAS or cloud folder."
 
-#: src/features/settings/components/settings-activity-view.tsx:40
+#: src/features/settings/components/settings-activity-view.tsx:39
 msgid "Others"
 msgstr "Others"
 
@@ -1403,7 +1428,7 @@ msgstr "Page not found"
 #: src/features/module/components/config/module-config-storage.tsx:64
 #: src/features/onboarding/components/onboarding-account.tsx:104
 #: src/features/onboarding/components/onboarding-storage.tsx:102
-#: src/features/settings/components/settings-general-view.tsx:56
+#: src/features/settings/components/settings-general-view.tsx:107
 #: src/features/user/components/user-form-modal.tsx:116
 #: src/routes/_auth/login.tsx:76
 msgid "Password"
@@ -1445,13 +1470,13 @@ msgstr "Paused"
 msgid "Peers"
 msgstr "Peers"
 
-#. js-lingui-explicit-id
-#: src/features/request/components/request-tabs.tsx:10
-msgid "request-status.pending"
-msgstr "Pending"
-
 #: src/features/request/components/request-status-badge.tsx:15
 msgid "Pending"
+msgstr "Pending"
+
+#. js-lingui-explicit-id
+#: src/features/request/components/request-tabs.tsx:13
+msgid "request-status.pending"
 msgstr "Pending"
 
 #: src/features/request/components/request-carousel.tsx:28
@@ -1499,9 +1524,14 @@ msgstr "Port"
 msgid "Portuguese"
 msgstr "Portuguese"
 
+#: src/features/settings/components/settings-general-view.tsx:53
+#: src/shared/components/topbar/topbar-profile.tsx:69
+msgid "Profile"
+msgstr "Profile"
+
 #. js-lingui-explicit-id
 #: src/routes/_app.tsx:92
-#: src/shared/components/app-topbar.tsx:22
+#: src/shared/components/app-topbar.tsx:31
 msgid "nav.profile"
 msgstr "Profile"
 
@@ -1565,16 +1595,16 @@ msgstr "Recheck started"
 
 #: src/features/movies/components/movie-related.tsx:37
 #: src/features/onboarding/components/onboarding-indexers.tsx:82
-#: src/features/settings/components/settings-modules-view.tsx:65
+#: src/features/settings/components/settings-modules-view.tsx:64
 #: src/features/tv/components/tv-related.tsx:17
 msgid "Recommended"
 msgstr "Recommended"
 
-#: src/features/movies/components/movie-filters-sheet.tsx:65
+#: src/features/movies/components/movie-filters-sheet.tsx:68
 msgid "Refine the list of movies by combining several criteria."
 msgstr "Refine the list of movies by combining several criteria."
 
-#: src/features/tv/components/tv-filters-sheet.tsx:59
+#: src/features/tv/components/tv-filters-sheet.tsx:62
 msgid "Refine the list of TV shows by combining several criteria."
 msgstr "Refine the list of TV shows by combining several criteria."
 
@@ -1689,8 +1719,8 @@ msgid "Resume watching"
 msgstr "Resume watching"
 
 #: src/features/module/components/config/module-config.tsx:70
-#: src/features/settings/components/settings-activity-view.tsx:140
-#: src/features/settings/components/settings-users-view.tsx:100
+#: src/features/settings/components/settings-activity-view.tsx:131
+#: src/features/settings/components/settings-users-view.tsx:91
 #: src/features/torrent/components/torrent-unavailable-dialog.tsx:60
 #: src/shared/components/error/error-layout.tsx:40
 msgid "Retry"
@@ -1717,7 +1747,7 @@ msgstr "Role"
 
 #: src/features/media/components/sheet/media-sheet-filter-library.tsx:55
 #: src/features/media/components/sheet/media-sheet-filter.tsx:211
-#: src/features/movies/components/movie-filters-sheet.tsx:64
+#: src/features/movies/components/movie-filters-sheet.tsx:67
 msgid "Runtime (minutes)"
 msgstr "Runtime (minutes)"
 
@@ -1730,7 +1760,7 @@ msgstr "Russian"
 #: src/features/media/components/modal/media-search-modal.tsx:100
 #: src/features/module/components/config/module-config-actions.tsx:39
 #: src/features/onboarding/components/onboarding-integrations.tsx:88
-#: src/features/user/components/user-profile-view.tsx:211
+#: src/features/settings/components/settings-general-view.tsx:79
 msgid "Save"
 msgstr "Save"
 
@@ -1738,7 +1768,7 @@ msgstr "Save"
 msgid "Save & continue"
 msgstr "Save & continue"
 
-#: src/shared/components/app-topbar.tsx:114
+#: src/shared/components/app-topbar.tsx:160
 msgid "Search"
 msgstr "Search"
 
@@ -1746,11 +1776,15 @@ msgstr "Search"
 msgid "Search a movie..."
 msgstr "Search a movie..."
 
+#: src/shared/components/topbar/topbar-requests.tsx:23
+msgid "Search a request..."
+msgstr "Search a request..."
+
 #: src/features/search/components/search-view.tsx:66
 msgid "Search a TV show..."
 msgstr "Search a TV show..."
 
-#: src/features/settings/components/settings-activity-view.tsx:96
+#: src/features/settings/components/settings-activity-view.tsx:94
 msgid "Search activity…"
 msgstr "Search activity…"
 
@@ -1767,13 +1801,15 @@ msgstr "Search and download subtitles for movies and TV shows."
 msgid "Search failed"
 msgstr "Search failed"
 
-#: src/features/user/components/user-profile-view.tsx:267
-#: src/features/user/components/user-profile-view.tsx:281
+#: src/features/user/components/user-profile-view.tsx:248
+#: src/features/user/components/user-profile-view.tsx:262
+#: src/shared/components/topbar/topbar-profile.tsx:62
 msgid "Search in my profile..."
 msgstr "Search in my profile..."
 
-#: src/features/downloads/components/downloads-view.tsx:107
-#: src/features/downloads/components/downloads-view.tsx:121
+#: src/features/downloads/components/downloads-view.tsx:119
+#: src/features/downloads/components/downloads-view.tsx:134
+#: src/shared/components/topbar/topbar-downloads.tsx:51
 msgid "Search in your library..."
 msgstr "Search in your library..."
 
@@ -1781,8 +1817,7 @@ msgstr "Search in your library..."
 msgid "Search keywords..."
 msgstr "Search keywords..."
 
-#: src/features/settings/components/settings-modules-view.tsx:237
-#: src/features/settings/components/settings-modules-view.tsx:248
+#: src/features/settings/components/settings-modules-view.tsx:233
 msgid "Search modules…"
 msgstr "Search modules…"
 
@@ -1791,14 +1826,16 @@ msgid "Search movies and TV shows..."
 msgstr "Search movies and TV shows..."
 
 #: src/features/movies/components/movies-view.tsx:66
+#: src/shared/components/topbar/topbar-movies.tsx:34
 msgid "Search movies..."
 msgstr "Search movies..."
 
 #: src/features/tv/components/tv-view.tsx:66
+#: src/shared/components/topbar/topbar-tv.tsx:30
 msgid "Search TV shows..."
 msgstr "Search TV shows..."
 
-#: src/features/settings/components/settings-users-view.tsx:60
+#: src/features/settings/components/settings-users-view.tsx:58
 msgid "Search users…"
 msgstr "Search users…"
 
@@ -1884,8 +1921,9 @@ msgstr "Send download and request notifications to a Discord webhook."
 msgid "Server"
 msgstr "Server"
 
-#: src/features/settings/components/settings-layout-view.tsx:45
-#: src/shared/components/app-topbar.tsx:120
+#: src/shared/components/app-topbar.tsx:171
+#: src/shared/components/topbar/topbar-profile.tsx:105
+#: src/shared/components/topbar/topbar-settings.tsx:51
 msgid "Settings"
 msgstr "Settings"
 
@@ -1905,7 +1943,8 @@ msgstr "Show indexer"
 msgid "Show less"
 msgstr "Show less"
 
-#: src/features/settings/components/settings-general-view.tsx:110
+#: src/features/settings/components/settings-general-view.tsx:163
+#: src/shared/components/topbar/topbar-profile.tsx:115
 msgid "Sign out"
 msgstr "Sign out"
 
@@ -1942,13 +1981,13 @@ msgstr "Something went wrong"
 msgid "Spanish"
 msgstr "Spanish"
 
-#: src/features/torrent/components/torrent-table.tsx:199
+#: src/features/torrent/components/torrent-table.tsx:198
 msgid "Starting download…"
 msgstr "Starting download…"
 
 #: src/features/media/components/media-details.tsx:39
 #: src/features/media/components/media-details.tsx:81
-#: src/features/settings/components/settings-modules-view.tsx:150
+#: src/features/settings/components/settings-modules-view.tsx:148
 #: src/features/settings/hooks/use-activity-columns.tsx:122
 #: src/features/torrent/components/torrent-indexers-table.tsx:92
 msgid "Status"
@@ -1989,7 +2028,7 @@ msgid "Subtitle added"
 msgstr "Subtitle added"
 
 #: src/features/settings/components/badge/settings-activity-badge-type.tsx:27
-#: src/features/settings/components/settings-activity-view.tsx:45
+#: src/features/settings/components/settings-activity-view.tsx:44
 #: src/features/torrent/components/torrent-indexers-table.tsx:45
 msgid "Success"
 msgstr "Success"
@@ -2076,8 +2115,8 @@ msgstr "This will delete the remote files. Check the option below to only unlink
 msgid "This will stop the torrent and delete local files. If a remote copy exists, it will not be affected."
 msgstr "This will stop the torrent and delete local files. If a remote copy exists, it will not be affected."
 
-#: src/features/user/components/user-profile-stats.tsx:24
-#: src/features/user/components/user-profile-stats.tsx:28
+#: src/features/user/components/user-profile-stats.tsx:25
+#: src/features/user/components/user-profile-stats.tsx:27
 msgid "this year"
 msgstr "this year"
 
@@ -2126,7 +2165,7 @@ msgstr "Torrentio"
 
 #: src/features/media/components/button/media-button-torrent.tsx:31
 #: src/features/media/components/button/media-button-torrent.tsx:42
-#: src/features/settings/components/settings-general-view.tsx:66
+#: src/features/settings/components/settings-general-view.tsx:119
 #: src/features/tv/components/tv-carousel.tsx:110
 #: src/features/tv/components/tv-episodes-section.tsx:114
 #: src/features/tv/components/tv-episodes-section.tsx:209
@@ -2155,7 +2194,7 @@ msgstr "Transfer started"
 msgid "Transferring"
 msgstr "Transferring"
 
-#: src/features/settings/components/settings-users-view.tsx:107
+#: src/features/settings/components/settings-users-view.tsx:98
 msgid "Try a different search or create a new user."
 msgstr "Try a different search or create a new user."
 
@@ -2173,8 +2212,8 @@ msgid "Try adjusting your search query"
 msgstr "Try adjusting your search query"
 
 #: src/features/downloads/components/download-stats.tsx:101
+#: src/features/user/components/user-profile-stats.tsx:27
 #: src/features/user/components/user-profile-stats.tsx:28
-#: src/features/user/components/user-profile-stats.tsx:30
 msgid "TV"
 msgstr "TV"
 
@@ -2188,17 +2227,18 @@ msgstr "TV path"
 msgid "nav.tv-shows"
 msgstr "TV Shows"
 
-#. js-lingui-explicit-id
-#: src/features/media/components/tabs/media-tabs-type.tsx:18
-#: src/features/request/components/request-tabs.tsx:26
-msgid "media-type.tv-shows"
-msgstr "TV Shows"
-
+#: src/features/media/components/media-discover.tsx:161
 #: src/features/search/components/search-view.tsx:84
 msgid "TV Shows"
 msgstr "TV Shows"
 
-#: src/features/settings/components/settings-activity-view.tsx:163
+#. js-lingui-explicit-id
+#: src/features/media/components/tabs/media-tabs-type.tsx:18
+#: src/features/request/components/request-tabs.tsx:29
+msgid "media-type.tv-shows"
+msgstr "TV Shows"
+
+#: src/features/settings/components/settings-activity-view.tsx:154
 msgid "Type"
 msgstr "Type"
 
@@ -2220,7 +2260,7 @@ msgstr "Uninstall"
 msgid "Uninstall {0}"
 msgstr "Uninstall {0}"
 
-#: src/features/torrent/components/torrent-table.tsx:215
+#: src/features/torrent/components/torrent-table.tsx:214
 msgid "Unknown error"
 msgstr "Unknown error"
 
@@ -2257,14 +2297,14 @@ msgstr "URL"
 msgid "Use HTTPS for the WebDAV server."
 msgstr "Use HTTPS for the WebDAV server."
 
-#: src/features/settings/components/settings-activity-view.tsx:37
-#: src/features/settings/components/settings-activity-view.tsx:170
+#: src/features/settings/components/settings-activity-view.tsx:36
+#: src/features/settings/components/settings-activity-view.tsx:161
 #: src/features/settings/hooks/use-activity-columns.tsx:127
 #: src/features/user/hooks/use-users-columns.tsx:54
 msgid "User"
 msgstr "User"
 
-#: src/features/settings/components/settings-activity-view.tsx:177
+#: src/features/settings/components/settings-activity-view.tsx:168
 msgid "User ID"
 msgstr "User ID"
 
@@ -2283,6 +2323,7 @@ msgid "Username is required"
 msgstr "Username is required"
 
 #: src/features/settings/components/settings-layout-view.tsx:23
+#: src/shared/components/topbar/topbar-settings.tsx:23
 msgid "Users"
 msgstr "Users"
 
@@ -2290,13 +2331,13 @@ msgstr "Users"
 msgid "Validate request"
 msgstr "Validate request"
 
-#. js-lingui-explicit-id
-#: src/features/request/components/request-tabs.tsx:14
-msgid "request-status.validated"
-msgstr "Validated"
-
 #: src/features/request/components/request-status-badge.tsx:21
 msgid "Validated"
+msgstr "Validated"
+
+#. js-lingui-explicit-id
+#: src/features/request/components/request-tabs.tsx:17
+msgid "request-status.validated"
 msgstr "Validated"
 
 #: src/features/user/components/role-badge.tsx:27
@@ -2304,11 +2345,11 @@ msgid "Viewer"
 msgstr "Viewer"
 
 #: src/features/settings/components/badge/settings-activity-badge-type.tsx:21
-#: src/features/settings/components/settings-activity-view.tsx:46
+#: src/features/settings/components/settings-activity-view.tsx:45
 msgid "Warning"
 msgstr "Warning"
 
-#: src/features/user/components/user-profile-view.tsx:177
+#: src/features/user/components/user-profile-view.tsx:183
 msgid "Watch history"
 msgstr "Watch history"
 
@@ -2329,7 +2370,7 @@ msgid "Watched on"
 msgstr "Watched on"
 
 #: src/features/media/components/media-social-actions.tsx:60
-#: src/features/user/components/user-profile-view.tsx:175
+#: src/features/user/components/user-profile-view.tsx:181
 msgid "Watchlist"
 msgstr "Watchlist"
 

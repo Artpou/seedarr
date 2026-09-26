@@ -1,9 +1,12 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react";
+import { useLingui } from "@lingui/react/macro";
 import type { RequestStatus } from "@seedarr/contracts";
 import { BanIcon, CheckCircleIcon, ClockIcon, FilmIcon, LayoutGridIcon, TvIcon } from "lucide-react";
 
 import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { Button } from "@/shared/ui/button";
 
 const STATUS_OPTIONS = [
   { value: "all" as const, icon: LayoutGridIcon, label: msg({ id: "request-status.all", message: "All" }) },
@@ -34,8 +37,12 @@ interface RequestTabsProps {
 }
 
 export function RequestTabs({ status, type, onStatusChange, onTypeChange }: RequestTabsProps) {
+  const isMobile = useIsMobile();
+  const { t } = useLingui();
+  const activeType = type ?? "all";
+
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <ResponsiveTabs
         value={status ?? "all"}
         onValueChange={(v) => onStatusChange(v === "all" ? undefined : (v as RequestStatus))}
@@ -44,17 +51,35 @@ export function RequestTabs({ status, type, onStatusChange, onTypeChange }: Requ
           icon,
           label: <Trans id={label.id} />,
         }))}
+        className="min-w-0 flex-1"
       />
 
-      <ResponsiveTabs
-        value={type ?? "all"}
-        onValueChange={(v) => onTypeChange(v === "all" ? undefined : (v as "movie" | "tv"))}
-        options={TYPE_OPTIONS.map(({ value, icon, label }) => ({
-          value,
-          icon,
-          label: <Trans id={label.id} />,
-        }))}
-      />
+      {isMobile ? (
+        <div className="flex items-center gap-1">
+          {TYPE_OPTIONS.map(({ value, icon: Icon, label }) => (
+            <Button
+              key={value}
+              type="button"
+              size="icon"
+              variant={activeType === value ? "secondary" : "ghost"}
+              aria-label={t(label)}
+              aria-pressed={activeType === value}
+              onClick={() => onTypeChange(value === "all" ? undefined : value)}
+              icon={Icon}
+            />
+          ))}
+        </div>
+      ) : (
+        <ResponsiveTabs
+          value={activeType}
+          onValueChange={(v) => onTypeChange(v === "all" ? undefined : (v as "movie" | "tv"))}
+          options={TYPE_OPTIONS.map(({ value, icon, label }) => ({
+            value,
+            icon,
+            label: <Trans id={label.id} />,
+          }))}
+        />
+      )}
     </div>
   );
 }

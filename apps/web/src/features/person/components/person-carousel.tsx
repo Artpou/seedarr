@@ -25,16 +25,7 @@ export function PersonCarousel({ people, title }: PersonCarouselProps) {
   if (people.length === 0) return null;
 
   return (
-    <CarouselWrapper
-      title={
-        title ?? (
-          <span className="flex items-center gap-2">
-            <UsersIcon className="size-5" />
-            <Trans>Cast & Crew</Trans>
-          </span>
-        )
-      }
-    >
+    <CarouselWrapper title={title ?? <Trans>Cast & Crew</Trans>} titleIcon={title ? undefined : UsersIcon}>
       {people.map((person) => (
         <CarouselItem
           key={`${person.id}-${person.role}`}

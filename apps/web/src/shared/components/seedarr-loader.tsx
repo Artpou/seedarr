@@ -1,11 +1,27 @@
+import { useEffect, useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 interface SeedarrLoaderProps {
   className?: string;
   size?: number;
+  delayMs?: number;
 }
 
-export function SeedarrLoader({ className, size = 100 }: SeedarrLoaderProps) {
+export function SeedarrLoader({ className, size = 100, delayMs = 250 }: SeedarrLoaderProps) {
+  const [visible, setVisible] = useState(delayMs <= 0);
+
+  useEffect(() => {
+    if (delayMs <= 0) {
+      setVisible(true);
+      return;
+    }
+    setVisible(false);
+    const id = window.setTimeout(() => setVisible(true), delayMs);
+    return () => window.clearTimeout(id);
+  }, [delayMs]);
+
+  if (!visible) return null;
   return (
     <div className={cn("flex flex-col items-center justify-center gap-3", className)}>
       <svg width={size} height={size} viewBox="0 0 5960 5900" xmlns="http://www.w3.org/2000/svg" aria-label="Loading">

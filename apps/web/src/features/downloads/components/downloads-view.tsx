@@ -1,12 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ListMediaQuery } from "@seedarr/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import type { SortingState } from "@tanstack/react-table";
 import { useDebounce } from "@uidotdev/usehooks";
+import { LibraryIcon } from "lucide-react";
 
+import { DiscoverSectionLabel } from "@/shared/components/discover-section-label";
 import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
+import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Card } from "@/shared/ui/card";
 import { Container } from "@/shared/ui/container";
@@ -20,8 +23,9 @@ import { LibraryFiltersSheet } from "@/features/media/components/sheet/media-she
 import { MediaTypeTabs } from "@/features/media/components/tabs/media-tabs-type";
 import { MediaTabsViewMode } from "@/features/media/components/tabs/media-tabs-view-mode";
 import { listQueryToSorting, sortingToListQuery } from "@/features/media/helpers/media-sort.helper";
-import { useSuspenseMediaList } from "@/features/media/hooks/use-media";
+import { useMediaList } from "@/features/media/hooks/use-media";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
+import { buildDownloadsListQuery } from "@/routes/helpers/downloads-route.helper";
 
 export interface DownloadsViewProps {
   search: Partial<ListMediaQuery>;
@@ -30,6 +34,7 @@ export interface DownloadsViewProps {
 export function DownloadsView({ search }: DownloadsViewProps) {
   const {
     type,
+    q: searchQ,
     with_genres: withGenres,
     release_date_gte,
     release_date_lte,
@@ -42,27 +47,31 @@ export function DownloadsView({ search }: DownloadsViewProps) {
   const navigate = useNavigate();
   const { t } = useLingui();
   const isMobile = useIsMobile();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(searchQ ?? "");
   const [isStuck, setIsStuck] = useState(false);
-  const debouncedQuery = useDebounce(query, 300);
+  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
   const viewMode = useEffectiveViewMode("downloads");
 
-  const listQuery = {
-    filter: "downloaded" as const,
-    type,
-    with_genres: withGenres,
-    release_date_gte,
-    release_date_lte,
-    with_runtime_gte,
-    with_runtime_lte,
-    vote_average_gte,
-    q: debouncedQuery.trim() || undefined,
-    sortBy,
-    sortOrder,
-  };
+  useEffect(() => {
+    setQuery(searchQ ?? "");
+  }, [searchQ]);
 
-  const mediaQuery = useSuspenseMediaList(listQuery);
-  const results = mediaQuery.data.pages.flatMap((page) => page.results);
+  useEffect(() => {
+    if (isMobile) return;
+    const next = debouncedQuery.trim() || undefined;
+    if ((searchQ ?? undefined) === next) return;
+    navigate({
+      to: "/downloads",
+      search: { ...search, q: next },
+      resetScroll: false,
+    });
+  }, [debouncedQuery, isMobile, navigate, search, searchQ]);
+
+  const effectiveQuery = (searchQ ?? "").trim();
+  const listQuery = buildDownloadsListQuery(search);
+
+  const mediaQuery = useMediaList(listQuery);
+  const results = mediaQuery.data?.pages.flatMap((page) => page.results) ?? [];
 
   const sorting = listQueryToSorting({ sortBy, sortOrder });
 
@@ -78,6 +87,8 @@ export function DownloadsView({ search }: DownloadsViewProps) {
   const genreScope = type ?? "both";
   const filterType = type ?? "movie";
   const showViewMode = !isMobile || !isStuck;
+  const showPageSearch = !isMobile;
+  const showPageFilters = !isMobile;
 
   const libraryFilters = useMemo(
     () => ({
@@ -98,20 +109,26 @@ export function DownloadsView({ search }: DownloadsViewProps) {
 
         <SentinelStuck setIsStuck={setIsStuck} marginTop={-30} />
 
-        {!isStuck && (
-          <Input
-            type="search"
-            search
-            classNameWrapper="w-full"
-            h="lg"
-            placeholder={t`Search in your library...`}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+        {isMobile ? (
+          <DiscoverSectionLabel icon={LibraryIcon}>
+            <Trans>Library</Trans>
+          </DiscoverSectionLabel>
+        ) : (
+          !isStuck && (
+            <Input
+              type="search"
+              search
+              classNameWrapper="w-full"
+              h="lg"
+              placeholder={t`Search in your library...`}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          )
         )}
 
         <StickyFilterBar isStuck={isStuck}>
-          {isStuck ? (
+          {isStuck && showPageSearch ? (
             <div className="flex w-full items-center gap-2">
               <Input
                 type="search"
@@ -138,26 +155,28 @@ export function DownloadsView({ search }: DownloadsViewProps) {
           ) : (
             <div className="flex items-center justify-between gap-2">
               {showViewMode && (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                   <MediaTabsViewMode scope="downloads" />
-                  <MediaTypeTabs value={type} />
+                  {!isMobile && <MediaTypeTabs value={type} />}
                 </div>
               )}
-              <div className="flex items-center gap-2">
-                <LibraryFiltersSheet
-                  genreScope={genreScope}
-                  type={filterType}
-                  value={libraryFilters}
-                  onChange={(value) =>
-                    navigate({
-                      to: "/downloads",
-                      search: { ...search, ...value },
-                      resetScroll: false,
-                    })
-                  }
-                />
-                {showViewMode && <DownloadButtonSynchronize />}
-              </div>
+              {showPageFilters && (
+                <div className="flex items-center gap-2">
+                  <LibraryFiltersSheet
+                    genreScope={genreScope}
+                    type={filterType}
+                    value={libraryFilters}
+                    onChange={(value) =>
+                      navigate({
+                        to: "/downloads",
+                        search: { ...search, ...value },
+                        resetScroll: false,
+                      })
+                    }
+                  />
+                  {showViewMode && <DownloadButtonSynchronize />}
+                </div>
+              )}
             </div>
           )}
         </StickyFilterBar>
@@ -180,7 +199,11 @@ export function DownloadsView({ search }: DownloadsViewProps) {
           <Card>
             <div className="py-10 text-center">
               <p className="text-muted-foreground">
-                {query.trim() ? <Trans>No results found for "{query}"</Trans> : <Trans>No downloads yet</Trans>}
+                {effectiveQuery ? (
+                  <Trans>No results found for "{effectiveQuery}"</Trans>
+                ) : (
+                  <Trans>No downloads yet</Trans>
+                )}
               </p>
             </div>
           </Card>

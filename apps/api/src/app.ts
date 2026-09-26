@@ -33,8 +33,6 @@ if (!process.env.WEB_URL) throw new Error("WEB_URL is not set");
 export const app = new Hono<{ Variables: HonoVariables }>()
   .use("*", requestLogger)
   .use("*", secureHeaders())
-  .use("*", csrf())
-  .onError(errorHandler)
   .use(
     "*",
     cors({
@@ -46,6 +44,8 @@ export const app = new Hono<{ Variables: HonoVariables }>()
       maxAge: 600,
     }),
   )
+  .use("*", csrf({ origin: process.env.WEB_URL }))
+  .onError(errorHandler)
   .use("*", requestTimeout)
   .route("/auth", authRoutes)
   .route("/users", userRoutes)

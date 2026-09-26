@@ -10,7 +10,8 @@ import ms from "ms";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { AppTopbar } from "@/shared/components/app-topbar";
+import { RoutePendingFallback } from "@/shared/components/route-pending-fallback";
+import { AppTopbar } from "@/shared/components/topbar/app-topbar";
 import { ErrorView } from "@/shared/components/view/error-view";
 import { APP_NAV_ITEMS } from "@/shared/config/nav";
 
@@ -49,6 +50,7 @@ export const Route = createFileRoute("/_app")({
     }
   },
   errorComponent: ErrorView,
+  pendingComponent: RoutePendingFallback,
   component: AuthenticatedLayout,
 });
 

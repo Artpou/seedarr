@@ -4,7 +4,7 @@ import { PlayCircleIcon } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-store";
 import { MediaCarouselHorizontal } from "@/features/media/components/carousel/media-carousel-horizontal";
-import { useMediaInProgress } from "@/features/media/hooks/use-media";
+import { useSuspenseMediaInProgress } from "@/features/media/hooks/use-media";
 
 interface MediaCarouselWatchingProps {
   type: Media["type"];
@@ -13,23 +13,15 @@ interface MediaCarouselWatchingProps {
 export function MediaCarouselWatching({ type }: MediaCarouselWatchingProps) {
   const authUser = useAuth((s) => s.user);
 
-  const { data } = useMediaInProgress(type);
-
-  const items = data ?? [];
+  const { data: items } = useSuspenseMediaInProgress(type);
   if (items.length === 0 || !authUser) return null;
 
   return (
     <MediaCarouselHorizontal
       medias={items}
       seeMoreTo="/downloads"
-      title={
-        <span className="flex items-center gap-2 flex-wrap">
-          <PlayCircleIcon className="size-5 shrink-0" />
-          <span className="flex items-center gap-1.5 flex-wrap">
-            <Trans>Resume watching</Trans>
-          </span>
-        </span>
-      }
+      titleIcon={PlayCircleIcon}
+      title={<Trans>Resume watching</Trans>}
     />
   );
 }

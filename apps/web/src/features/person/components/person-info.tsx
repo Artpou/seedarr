@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 
 import { Trans } from "@lingui/react/macro";
 import type { TMDBPersonDetails } from "@seedarr/sdk";
-import { MapPinIcon } from "lucide-react";
+import { ExternalLinkIcon, MapPinIcon } from "lucide-react";
 
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 
 import { MediaBadgeLabel } from "@/features/media/components/badge/media-badge-label";
@@ -77,11 +78,37 @@ export function PersonInfo({ person }: PersonInfoProps) {
       {biography && (
         <div className="space-y-2">
           <p className="text-sm font-medium leading-relaxed whitespace-pre-line">{displayedBio}</p>
-          {isLongBio && (
-            <Button variant="ghost" size="sm" className="px-0 h-auto" onClick={() => setExpanded((v) => !v)}>
-              {expanded ? <Trans>Show less</Trans> : <Trans>Read more</Trans>}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {isLongBio && (
+              <Button variant="secondary" onClick={() => setExpanded((v) => !v)}>
+                {expanded ? <Trans>Show less</Trans> : <Trans>Read more</Trans>}
+              </Button>
+            )}
+            {person.imdb_id && (
+              <Badge variant="secondary" className="text-md px-2 py-1">
+                <a
+                  href={`https://www.imdb.com/name/${person.imdb_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2"
+                >
+                  <Trans>IMDb</Trans>
+                  <ExternalLinkIcon className="size-4" />
+                </a>
+              </Badge>
+            )}
+            <Badge variant="secondary" className="text-md px-2 py-1">
+              <a
+                href={`https://www.themoviedb.org/person/${person.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2"
+              >
+                <Trans>TMDB</Trans>
+                <ExternalLinkIcon className="size-4" />
+              </a>
+            </Badge>
+          </div>
         </div>
       )}
     </div>

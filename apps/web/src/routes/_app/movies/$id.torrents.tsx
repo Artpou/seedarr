@@ -4,9 +4,11 @@ import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
 import { redirectIfNotRole } from "@/shared/helpers/role.helper";
 
 import { MediaTorrentsView } from "@/features/media/components/view/media-torrents-view";
+import { MediaTorrentsViewSkeleton } from "@/features/media/components/view/media-torrents-view-skeleton";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
 
 export const Route = createFileRoute("/_app/movies/$id/torrents")({
+  pendingComponent: MediaTorrentsViewSkeleton,
   component: MovieTorrentsRoute,
   beforeLoad: ({ context, params }) => {
     redirectIfNotRole(context, "member", { to: "/movies/$id", params: { id: params.id } });

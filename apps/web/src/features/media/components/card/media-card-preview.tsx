@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, type LinkProps } from "@tanstack/react-router";
 
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
+import { Badge } from "@/shared/ui/badge";
 
 import { useRole } from "@/features/auth/hooks/use-role";
 import { MediaBadgeDate } from "@/features/media/components/badge/media-badge-date";
@@ -68,11 +69,15 @@ export function MediaCardPreview({ media, detailLinkProps }: MediaCardPreviewPro
           <MediaBadgeDate date={media.release_date} yearOnly />
         </div>
 
-        {categories.length > 0 && (
-          <span className="text-sm font-bold text-muted-foreground">{categories.slice(0, 3).join(", ")}</span>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {categories?.slice(0, 3).map((category) => (
+            <Badge variant="secondary" key={category}>
+              {category}
+            </Badge>
+          ))}
+        </div>
 
-        {media.overview && <p className="text-sm leading-relaxed line-clamp-3 mt-1">{media.overview}</p>}
+        {media.overview && <p className="text-sm leading-relaxed line-clamp-4 mt-1">{media.overview}</p>}
 
         {media.download ? (
           <MediaButtonPlay media={media} className="w-full" />

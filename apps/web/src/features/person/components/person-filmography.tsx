@@ -54,13 +54,11 @@ export function PersonFilmography({ filmography, departments }: PersonFilmograph
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <ClapperboardIcon className="size-5" />
-          <Trans>Filmography</Trans>
-        </h2>
-        <ResponsiveTabs value={activeTab} onValueChange={setActiveTab} options={options} className="md:w-auto" />
-      </div>
+      <h2 className="flex items-center gap-2 text-lg">
+        <ClapperboardIcon className="size-5" />
+        <Trans>Filmography</Trans>
+      </h2>
+      <ResponsiveTabs value={activeTab} onValueChange={setActiveTab} options={options} />
 
       <MediaGrid items={items} showType />
     </div>

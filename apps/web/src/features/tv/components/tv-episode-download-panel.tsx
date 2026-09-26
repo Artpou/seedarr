@@ -3,6 +3,7 @@ import type { Download } from "@seedarr/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { HardDriveIcon, ServerIcon } from "lucide-react";
 
+import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 import { DownloadFilesList } from "@/features/downloads/components/download-files-list";
@@ -59,13 +60,7 @@ export function TvEpisodeDownloadPanel({ download }: TvEpisodeDownloadPanelProps
             <DownloadFilesList files={torrentFiles} />
           </TabsContent>
           <TabsContent value="remote">
-            {remoteFiles ? (
-              <DownloadFilesList files={remoteFiles} />
-            ) : (
-              <p className="text-sm text-muted-foreground py-4">
-                <Trans>Loading remote files…</Trans>
-              </p>
-            )}
+            {remoteFiles ? <DownloadFilesList files={remoteFiles} /> : <SeedarrLoader className="py-6" size={48} />}
           </TabsContent>
         </Tabs>
       ) : (
@@ -75,9 +70,7 @@ export function TvEpisodeDownloadPanel({ download }: TvEpisodeDownloadPanelProps
             remoteFiles ? (
               <DownloadFilesList files={remoteFiles} />
             ) : isRemoteFilesLoading ? (
-              <p className="text-sm text-muted-foreground py-4">
-                <Trans>Loading remote files…</Trans>
-              </p>
+              <SeedarrLoader className="py-6" size={48} />
             ) : null
           ) : hasTorrentFiles ? (
             <DownloadFilesList files={torrentFiles} />

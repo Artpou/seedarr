@@ -5,6 +5,7 @@ import type { Download } from "@seedarr/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRightLeftIcon, ChevronDownIcon, Trash2Icon } from "lucide-react";
 
+import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 import { Button } from "@/shared/ui/button";
 import {
   DropDrawer,
@@ -98,9 +99,7 @@ function ServerEntry({ download, mediaType }: { download: Download; mediaType?: 
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground py-4">
-          <Trans>Loading remote files…</Trans>
-        </p>
+        <SeedarrLoader className="py-6" size={48} />
       ) : remoteFiles && remoteFiles.length > 0 ? (
         <DownloadFilesList files={remoteFiles} />
       ) : null}

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
 
 import type { MediaDetailTab } from "@/features/media/components/view/media-detail-view";
+import { MediaDetailsViewSkeleton } from "@/features/media/components/view/media-details-view-skeleton";
 import { TvDetailView } from "@/features/tv/components/tv-detail-view";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
 
@@ -17,6 +18,7 @@ function validateSearch(search: Record<string, unknown>): { tab?: MediaDetailTab
 export const Route = createFileRoute("/_app/tv/$id/")({
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(tvQueries.details(params.id, countryToTmdbLocale(context.language))),
+  pendingComponent: MediaDetailsViewSkeleton,
   component: TvRoute,
   validateSearch,
 });

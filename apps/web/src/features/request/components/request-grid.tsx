@@ -1,6 +1,6 @@
 import type { MediaRequest } from "@seedarr/sdk";
 
-import { InfiniteSentinel } from "@/shared/components/infinite-sentinel";
+import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
 import { flattenInfiniteResults, type InfiniteResultsQuery } from "@/shared/hooks/use-infinite-list";
 import { Skeleton } from "@/shared/ui/skeleton";
 

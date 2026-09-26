@@ -8,6 +8,7 @@ import { useDebounce } from "@uidotdev/usehooks";
 import { UserPlusIcon } from "lucide-react";
 
 import { EmptyState } from "@/shared/components/empty-state";
+import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { usePagedState } from "@/shared/hooks/use-paged-state";
 import { Button } from "@/shared/ui/button";
 import { DataTablePagination } from "@/shared/ui/data-table-pagination";
@@ -25,7 +26,7 @@ export function SettingsUsersView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 300);
+  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
   const { isAdmin } = useRole();
   const filters = { q: debouncedQuery.trim() || undefined };
   const { page, setPage } = usePagedState(filters);

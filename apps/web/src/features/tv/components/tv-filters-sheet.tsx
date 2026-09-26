@@ -1,5 +1,8 @@
 import { Trans } from "@lingui/react/macro";
 
+import { useIsMobile } from "@/shared/hooks/use-mobile";
+import type { ButtonProps } from "@/shared/ui/button";
+
 import { type MediaFiltersValue, MediaSheetFilter } from "@/features/media/components/sheet/media-sheet-filter";
 
 export interface TvFiltersValue {
@@ -14,14 +17,10 @@ export interface TvFiltersValue {
   vote_average_gte?: number;
 }
 
-type MediaSortValue = "new" | "top-rated" | "downloaded" | "upcoming";
-
 interface TvFiltersSheetProps {
   value: TvFiltersValue;
   onChange: (value: TvFiltersValue) => void;
-  sortValue?: MediaSortValue;
-  onSortChange?: (value: MediaSortValue) => void;
-  showSortInSheet?: boolean;
+  triggerVariant?: ButtonProps["variant"];
 }
 
 function toGeneric(value: TvFiltersValue): MediaFiltersValue {
@@ -36,7 +35,6 @@ function fromGeneric(value: MediaFiltersValue): TvFiltersValue {
   return {
     first_air_date_gte: value.date_gte,
     first_air_date_lte: value.date_lte,
-    with_genres: value.with_genres,
     with_watch_providers: value.with_watch_providers,
     with_keywords: value.with_keywords,
     with_keywords_label: value.with_keywords_label,
@@ -46,21 +44,21 @@ function fromGeneric(value: MediaFiltersValue): TvFiltersValue {
   };
 }
 
-export function TvFiltersSheet({ value, onChange, sortValue, onSortChange, showSortInSheet }: TvFiltersSheetProps) {
+export function TvFiltersSheet({ value, onChange, triggerVariant }: TvFiltersSheetProps) {
+  const isMobile = useIsMobile();
   return (
     <MediaSheetFilter
       mode="discover"
       genreScope="tv"
       categoryValueMode="id"
       type="tv"
+      hideCategories
       value={toGeneric(value)}
       onChange={(v) => onChange(fromGeneric(v))}
       runtimeLabel={<Trans>Episode runtime (minutes)</Trans>}
-      description={<Trans>Refine the list of TV shows by combining several criteria.</Trans>}
+      description={isMobile ? undefined : <Trans>Refine the list of TV shows by combining several criteria.</Trans>}
       dateInputIdPrefix="first-air-date"
-      sortValue={sortValue}
-      onSortChange={onSortChange}
-      showSortInSheet={showSortInSheet}
+      triggerVariant={triggerVariant}
     />
   );
 }

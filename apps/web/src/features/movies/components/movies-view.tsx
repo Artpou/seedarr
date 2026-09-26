@@ -1,69 +1,36 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import { useNavigate } from "@tanstack/react-router";
 
-import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 
 import { MediaDiscover } from "@/features/media/components/media-discover";
-import {
-  buildMovieDiscoverOptions,
-  isDiscoverTextSearch,
-  isDownloadedTab,
-  type MovieDiscoverSearch,
-  pickMovieFilters,
-} from "@/features/media/helpers/discover-search.helper";
-import { mediaQueries } from "@/features/media/hooks/media.queries";
+import { getDiscoverMainQueryOptions } from "@/features/media/helpers/discover-query.helper";
+import { type MovieDiscoverSearch, pickMovieFilters } from "@/features/media/helpers/discover-search.helper";
 import { MovieFiltersSheet } from "@/features/movies/components/movie-filters-sheet";
-import { movieQueries } from "@/features/movies/hooks/movie.queries";
 
 export interface MoviesViewProps {
   search: MovieDiscoverSearch;
 }
 
 export function MoviesView({ search }: MoviesViewProps) {
-  const { t } = useLingui();
   const locale = useTmdbLocale();
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const isSearching = isDiscoverTextSearch(search.q);
-  const isDownloaded = isDownloadedTab(search.selected);
-  const query = (search.q ?? "").trim();
-  const discoverOptions = buildMovieDiscoverOptions(search);
 
   const handleSearchChange = (value: Partial<MovieDiscoverSearch>) => {
     const next = { ...search, ...value };
-    if (isDownloadedTab(next.selected)) {
-      next.with_genres = undefined;
-    }
     navigate({ to: "/movies", search: next, resetScroll: false });
   };
 
-  const queryOptions = isSearching
-    ? movieQueries.search(query, locale)
-    : isDownloaded
-      ? mediaQueries.list({ filter: "downloaded", type: "movie" })
-      : movieQueries.discover(discoverOptions, locale);
+  const queryOptions = getDiscoverMainQueryOptions("movie", search, locale);
 
   return (
     <MediaDiscover
       type="movie"
       search={search}
       queryOptions={queryOptions}
-      onSearchChange={handleSearchChange}
-      filtersSheet={
-        !isDownloaded ? (
-          <MovieFiltersSheet
-            value={pickMovieFilters(search)}
-            onChange={handleSearchChange}
-            sortValue={search.selected ?? "new"}
-            onSortChange={(selected) => handleSearchChange({ selected })}
-            showSortInSheet={isMobile}
-          />
-        ) : null
-      }
+      filtersSheet={<MovieFiltersSheet value={pickMovieFilters(search)} onChange={handleSearchChange} />}
       emptyTitle={<Trans>No movies found</Trans>}
-      emptySubtitle={<Trans>Try adjusting your filters or search criteria</Trans>}
-      searchPlaceholder={t`Search movies...`}
+      emptySubtitle={<Trans>Try adjusting your filters or criteria</Trans>}
     />
   );
 }

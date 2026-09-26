@@ -20,7 +20,7 @@ interface UserAvatarProps {
 }
 
 const SIZE_CLASS = {
-  xs: "size-8",
+  xs: "size-9",
   sm: "size-16",
   md: "size-20",
 } as const;
@@ -28,7 +28,7 @@ const SIZE_CLASS = {
 const ICON_SIZE_CLASS = {
   xs: "size-4",
   sm: "size-7",
-  md: "size-8",
+  md: "size-9",
 } as const;
 
 function getAvatarUrl(userId: string, avatarPath: string | null | undefined): string | null {
@@ -82,7 +82,7 @@ export function UserAvatar({ user, editable = false, size = "md", className }: U
         <>
           <button
             type="button"
-            className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+            className="absolute inset-0 rounded-full bg-black/50 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
             onClick={() => inputRef.current?.click()}
             disabled={uploadAvatar.isPending}
             aria-label={t`Change profile picture`}

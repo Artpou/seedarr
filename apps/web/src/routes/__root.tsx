@@ -3,10 +3,9 @@ import { lazy } from "react";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 
-import { SeedarrLoader } from "@/shared/components/seedarr-loader";
+import { RoutePendingFallback } from "@/shared/components/route-pending-fallback";
 import { ErrorView, NotFoundView } from "@/shared/components/view/error-view";
 import { useThemeStore, useThemeSync } from "@/shared/hooks/use-theme";
-import { Container } from "@/shared/ui/container";
 
 import type { SeedarrRouterContext } from "@/router";
 
@@ -36,11 +35,7 @@ const TanStackDevtools =
 export const Route = createRootRouteWithContext<SeedarrRouterContext>()({
   errorComponent: ErrorView,
   notFoundComponent: NotFoundView,
-  pendingComponent: () => (
-    <Container full>
-      <SeedarrLoader />
-    </Container>
-  ),
+  pendingComponent: () => <RoutePendingFallback variant="full" />,
   component: RootComponent,
 });
 

@@ -85,7 +85,7 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold truncate">{download.torrent?.name || download.id}</h3>
+          <h3 className="hidden sm:block font-semibold truncate">{download.torrent?.name || download.id}</h3>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <DownloadMetadata download={download} />
             {status === "failed" && (
@@ -166,7 +166,7 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="space-y-3">
           <DownloadNetworkChart download={download} />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid sm:grid-cols-2 gap-2">
             {!isCompleted && <DownloadNetworkCard type="download" value={downloadSpeed} />}
             <DownloadNetworkCard type="upload" value={uploadSpeed} />
             <DownloadNetworkCard type="peers" value={numPeers} />

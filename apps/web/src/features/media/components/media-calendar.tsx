@@ -64,12 +64,12 @@ export function MediaCalendar({ items, viewMode }: MediaCalendarProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {groups.map((group) => {
         const isCollapsed = collapsed[group.key] ?? false;
         return (
-          <section key={group.key} className="space-y-4">
-            <div className="flex items-center gap-3">
+          <section key={group.key} className="space-y-1">
+            <div className="flex items-center gap-1">
               <Button
                 type="button"
                 variant="ghost"
@@ -78,7 +78,7 @@ export function MediaCalendar({ items, viewMode }: MediaCalendarProps) {
                 aria-label={isCollapsed ? "Expand month" : "Collapse month"}
                 onClick={() => setCollapsed((prev) => ({ ...prev, [group.key]: !isCollapsed }))}
               />
-              <h2 className="text-sm font-medium whitespace-nowrap capitalize">
+              <h2 className="text-lg sm:text-sm font-medium whitespace-nowrap capitalize">
                 {group.label} ({group.items.length})
               </h2>
               <Separator className="flex-1" />

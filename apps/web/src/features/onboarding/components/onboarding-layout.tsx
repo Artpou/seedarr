@@ -18,8 +18,8 @@ export function OnboardingLayout({ children }: OnboardingLayoutProps) {
         }}
       />
 
-      <div className="relative grid min-h-svh lg:grid-cols-3">
-        <aside className="hidden flex-col justify-center items-end px-10 py-12 lg:flex">
+      <div className="relative grid min-h-svh lg:grid-cols-2">
+        <aside className="hidden flex-col justify-center items-center px-10 py-12 lg:pl-30 lg:flex">
           <div className="flex flex-col items-center max-w-sm space-y-5 pb-20">
             <img
               src="/logo.svg"
@@ -30,7 +30,7 @@ export function OnboardingLayout({ children }: OnboardingLayoutProps) {
             />
             <h1 className="text-4xl font-extrabold">Seedarr</h1>
             <span className="text-popover-foreground leading-relaxed text-center">
-              Your self-hosted media center — discover, download, and stream from one place.
+              Your self-hosted media center - discover, download, and stream from one place.
             </span>
             <div className="flex gap-2">
               <Badge>Open source</Badge>
@@ -40,7 +40,7 @@ export function OnboardingLayout({ children }: OnboardingLayoutProps) {
           </div>
         </aside>
 
-        <section className="flex flex-col justify-center px-4 py-10 sm:px-8 lg:col-span-2 lg:px-16">
+        <section className="flex flex-col justify-center px-4 py-10 sm:px-8 lg:px-16 lg:pr-30">
           <div className="mb-8 flex flex-col items-start gap-2 lg:hidden">
             <img
               src="/logo.svg"

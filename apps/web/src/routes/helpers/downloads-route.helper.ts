@@ -19,6 +19,7 @@ function parseSortOrder(value: unknown): ListMediaQuery["sortOrder"] {
 export function validateDownloadsSearch(search: Record<string, unknown>): Partial<ListMediaQuery> {
   return {
     type: getMediaType(search.type),
+    q: parseString(search.q),
     with_genres: parseString(search.with_genres),
     release_date_gte: parseString(search.release_date_gte),
     release_date_lte: parseString(search.release_date_lte),
@@ -28,4 +29,26 @@ export function validateDownloadsSearch(search: Record<string, unknown>): Partia
     sortBy: parseSortBy(search.sortBy),
     sortOrder: parseSortOrder(search.sortOrder),
   };
+}
+
+export function buildDownloadsListQuery(search: Partial<ListMediaQuery>): ListMediaQuery {
+  const q = search.q?.trim();
+  return {
+    filter: "downloaded",
+    type: search.type,
+    with_genres: search.with_genres,
+    release_date_gte: search.release_date_gte,
+    release_date_lte: search.release_date_lte,
+    with_runtime_gte: search.with_runtime_gte,
+    with_runtime_lte: search.with_runtime_lte,
+    vote_average_gte: search.vote_average_gte,
+    ...(q ? { q } : {}),
+    sortBy: search.sortBy,
+    sortOrder: search.sortOrder,
+  };
+}
+
+export function omitDownloadsSearchQuery<T extends { q?: string }>(search: T): Omit<T, "q"> {
+  const { q: _q, ...rest } = search;
+  return rest;
 }

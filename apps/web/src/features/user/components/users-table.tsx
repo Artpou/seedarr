@@ -5,6 +5,7 @@ import type { User } from "@seedarr/sdk";
 import { type SortingState, useTable } from "@tanstack/react-table";
 
 import { DialogDelete } from "@/shared/components/dialog/dialog-delete";
+import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 import { DataTable } from "@/shared/ui/data-table";
 
 import { useRole } from "@/features/auth/hooks/use-role";
@@ -59,11 +60,7 @@ export function UsersTable({ users, isLoading, onEditUser, onRefetch, empty }: U
   });
 
   if (isLoading) {
-    return (
-      <div>
-        <Trans>Loading...</Trans>
-      </div>
-    );
+    return <SeedarrLoader className="py-12" size={60} />;
   }
 
   return (

@@ -1,6 +1,8 @@
 import { Trans } from "@lingui/react/macro";
 import type { Media } from "@seedarr/sdk";
 
+import type { ButtonProps } from "@/shared/ui/button";
+
 import { type MediaFiltersValue, MediaSheetFilter } from "@/features/media/components/sheet/media-sheet-filter";
 
 export interface LibraryFiltersValue {
@@ -17,6 +19,7 @@ interface LibraryFiltersSheetProps {
   type: Media["type"];
   value: LibraryFiltersValue;
   onChange: (value: LibraryFiltersValue) => void;
+  triggerVariant?: ButtonProps["variant"];
 }
 
 function toGeneric(value: LibraryFiltersValue): MediaFiltersValue {
@@ -41,7 +44,7 @@ function fromGeneric(value: MediaFiltersValue): LibraryFiltersValue {
   };
 }
 
-export function LibraryFiltersSheet({ genreScope, type, value, onChange }: LibraryFiltersSheetProps) {
+export function LibraryFiltersSheet({ genreScope, type, value, onChange, triggerVariant }: LibraryFiltersSheetProps) {
   return (
     <MediaSheetFilter
       mode="library"
@@ -53,6 +56,7 @@ export function LibraryFiltersSheet({ genreScope, type, value, onChange }: Libra
       description={<Trans>Filter your library by category and other criteria.</Trans>}
       dateInputIdPrefix="release-date"
       runtimeLabel={<Trans>Runtime (minutes)</Trans>}
+      triggerVariant={triggerVariant}
     />
   );
 }
