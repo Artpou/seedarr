@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ListMediaQuery } from "@seedarr/contracts";
-import type { Media } from "@seedarr/sdk";
-import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import type { OnChangeFn, SortingState } from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
 import { useDebounce } from "@uidotdev/usehooks";
 import { BookmarkIcon, CalendarIcon, ClockIcon, HeartIcon } from "lucide-react";
 
@@ -13,7 +12,7 @@ import { BadgeRole } from "@/shared/components/badge/badge-role";
 import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
 import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
-import { flattenInfiniteResults, type InfiniteResultsQuery } from "@/shared/hooks/use-infinite-list";
+import { flattenInfiniteResults } from "@/shared/hooks/use-infinite-list";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Badge } from "@/shared/ui/badge";
 import { Card } from "@/shared/ui/card";
@@ -21,7 +20,6 @@ import { Container } from "@/shared/ui/container";
 import { Input } from "@/shared/ui/input";
 
 import { useAuth } from "@/features/auth/auth-store";
-import { MediaCalendar } from "@/features/media/components/media-calendar";
 import { MediaGrid } from "@/features/media/components/media-grid";
 import { MediaTable } from "@/features/media/components/media-table";
 import type { LibraryFiltersValue } from "@/features/media/components/sheet/media-sheet-filter-library";
@@ -35,7 +33,8 @@ import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-vi
 import { UserAvatar } from "@/features/user/components/user-avatar";
 import { UserProfileStats } from "@/features/user/components/user-profile-stats";
 import { userQueries } from "@/features/user/hooks/user.queries";
-import { pickProfileLibraryFilters, type ProfileRouteSearch } from "@/routes/helpers/profile-route.helper";
+import { ProfileCalendar } from "@/features/user/profile-calendar";
+import { type ProfileRouteSearch, pickProfileLibraryFilters } from "@/routes/helpers/profile-route.helper";
 
 type ProfileTab = "calendar" | "watchlist" | "liked" | "history";
 
@@ -52,71 +51,6 @@ type ProfileListBase = Pick<
   | "sortBy"
   | "sortOrder"
 >;
-
-function ProfileCalendar({ listBase, viewMode }: { listBase: ProfileListBase; viewMode: "grid" | "list" }) {
-  const calendarQuery = useInfiniteQuery({
-    ...mediaQueries.list({ filter: "calendar", ...listBase, limit: 100 }),
-  });
-
-  useEffect(() => {
-    if (calendarQuery.hasNextPage && !calendarQuery.isFetchingNextPage) {
-      void calendarQuery.fetchNextPage();
-    }
-  }, [calendarQuery.hasNextPage, calendarQuery.isFetchingNextPage, calendarQuery.fetchNextPage]);
-
-  const calendarItems = flattenInfiniteResults(calendarQuery);
-  return <MediaCalendar items={calendarItems} viewMode={viewMode} />;
-}
-
-function ProfileOwnPendingRequests({ userId }: { userId: string }) {
-  const { data: requestsData } = useSuspenseQuery(requestQueries.mine());
-  const pendingRequests = useMemo(
-    () =>
-      requestsData.filter((r) => {
-        const status = (r as { status?: string }).status;
-        return !status || status === "pending";
-      }),
-    [requestsData],
-  );
-
-  if (pendingRequests.length === 0) return null;
-
-  return (
-    <RequestCarousel
-      requests={pendingRequests}
-      seeMoreTo={`/user/${userId}/requests`}
-      seeMoreSearch={{ status: "pending" }}
-    />
-  );
-}
-
-function MediaCollectionView({
-  items,
-  query,
-  viewMode,
-  sorting,
-  onSortingChange,
-}: {
-  items: Media[];
-  query: InfiniteResultsQuery<Media>;
-  viewMode: "grid" | "list";
-  sorting?: SortingState;
-  onSortingChange?: OnChangeFn<SortingState>;
-}) {
-  if (!query.isPending && items.length === 0) {
-    return (
-      <p className="py-10 text-center text-sm text-muted-foreground">
-        <Trans>Nothing here yet</Trans>
-      </p>
-    );
-  }
-
-  if (viewMode === "grid") {
-    return <MediaGrid items={items} query={query} showType />;
-  }
-
-  return <MediaTable media={items} query={query} sorting={sorting} onSortingChange={onSortingChange} />;
-}
 
 export interface UserProfileViewProps {
   userId: string;
@@ -140,6 +74,15 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
   const sortQuery = sortingToListQuery(sorting);
 
   const { data: profileUser } = useSuspenseQuery(userQueries.details(id));
+  const { data: requestsData = [] } = useQuery({ ...requestQueries.mine(), enabled: isOwnProfile });
+  const pendingRequests = useMemo(
+    () =>
+      requestsData.filter((r) => {
+        const status = (r as { status?: string }).status;
+        return !status || status === "pending";
+      }),
+    [requestsData],
+  );
 
   useEffect(() => {
     setQuery(search.q ?? "");
@@ -238,7 +181,13 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
 
       {mobileOwnProfile && <UserProfileStats userId={id} />}
 
-      {isOwnProfile && <ProfileOwnPendingRequests userId={id} />}
+      {isOwnProfile && pendingRequests.length > 0 && (
+        <RequestCarousel
+          requests={pendingRequests}
+          seeMoreTo={`/user/${id}/requests`}
+          seeMoreSearch={{ status: "pending" }}
+        />
+      )}
 
       <div className="space-y-4">
         {showPageToolbar && (
@@ -314,13 +263,27 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
         {mobileOwnProfile || tab === "calendar" ? (
           <ProfileCalendar listBase={listBase} viewMode={viewMode} />
         ) : (
-          <MediaCollectionView
-            items={tab === "watchlist" ? watchListItems : tab === "liked" ? likesItems : historyItems}
-            query={activeQuery}
-            viewMode={viewMode}
-            sorting={listQueryToSorting(sortQuery)}
-            onSortingChange={setSorting}
-          />
+          (() => {
+            const items = tab === "watchlist" ? watchListItems : tab === "liked" ? likesItems : historyItems;
+            if (!activeQuery.isPending && items.length === 0) {
+              return (
+                <p className="py-10 text-center text-sm text-muted-foreground">
+                  <Trans>Nothing here yet</Trans>
+                </p>
+              );
+            }
+            if (viewMode === "grid") {
+              return <MediaGrid items={items} query={activeQuery} showType />;
+            }
+            return (
+              <MediaTable
+                media={items}
+                query={activeQuery}
+                sorting={listQueryToSorting(sortQuery)}
+                onSortingChange={setSorting}
+              />
+            );
+          })()
         )}
       </div>
     </Container>

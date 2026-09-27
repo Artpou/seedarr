@@ -64,12 +64,12 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
   const reannounce = useDownloadReannounce();
   const transfer = useDownloadTransfer();
   const { isEnabled: storageRemoteEnabled } = useStorageModule();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangeMedia, setShowChangeMedia] = useState(false);
 
   const status = getDownloadStatus(download);
   const torrentFiles = getTorrentFiles(download);
-  const hasTorrentFiles = torrentFiles.length > 0;
   const { downloadSpeed, uploadSpeed, numPeers } = download.torrent ?? {};
   const isPaused = status === "paused";
   const isCompleted = status === "completed";
@@ -96,7 +96,7 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
           </div>
         </div>
 
-        <DropDrawer>
+        <DropDrawer open={menuOpen} onOpenChange={setMenuOpen}>
           <DropDrawerTrigger asChild>
             <Button variant="secondary" icon={ChevronDownIcon}>
               <Trans>Actions</Trans>
@@ -141,7 +141,10 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
                 variant="destructive"
                 icon={<Trash2Icon className="size-4" />}
                 disabled={deleteTorrent.isPending}
-                onSelect={() => setShowDeleteConfirm(true)}
+                onSelect={() => {
+                  setMenuOpen(false);
+                  window.setTimeout(() => setShowDeleteConfirm(true), 0);
+                }}
               >
                 <Trans>Delete</Trans>
               </DropDrawerItem>
@@ -172,7 +175,7 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
             <DownloadNetworkCard type="peers" value={numPeers} />
           </div>
         </div>
-        {hasTorrentFiles && (
+        {torrentFiles.length > 0 && (
           <Card className="p-4 gap-0">
             <DownloadFilesList files={torrentFiles} />
           </Card>

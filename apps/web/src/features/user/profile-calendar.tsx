@@ -1,20 +1,33 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Trans } from "@lingui/react/macro";
+import type { ListMediaQuery } from "@seedarr/contracts";
 import type { Media } from "@seedarr/sdk";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 
+import { flattenInfiniteResults } from "@/shared/hooks/use-infinite-list";
 import { Button } from "@/shared/ui/button";
 import { Separator } from "@/shared/ui/separator";
 
 import { MediaCard } from "@/features/media/components/card/media-card";
 import { MediaTable } from "@/features/media/components/media-table";
+import { mediaQueries } from "@/features/media/hooks/media.queries";
 import type { ViewMode } from "@/features/settings/stores/user-preference-store";
 
-interface MediaCalendarProps {
-  items: Media[];
-  viewMode: ViewMode;
-}
+type ProfileListBase = Pick<
+  ListMediaQuery,
+  | "userId"
+  | "with_genres"
+  | "release_date_gte"
+  | "release_date_lte"
+  | "with_runtime_gte"
+  | "with_runtime_lte"
+  | "vote_average_gte"
+  | "q"
+  | "sortBy"
+  | "sortOrder"
+>;
 
 interface MonthGroup {
   key: string;
@@ -51,7 +64,7 @@ function groupByMonth(items: Media[]): MonthGroup[] {
   return [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
 }
 
-export function MediaCalendar({ items, viewMode }: MediaCalendarProps) {
+function ProfileCalendarGrid({ items, viewMode }: { items: Media[]; viewMode: ViewMode }) {
   const groups = useMemo(() => groupByMonth(items), [items]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
@@ -106,4 +119,19 @@ export function MediaCalendar({ items, viewMode }: MediaCalendarProps) {
       })}
     </div>
   );
+}
+
+export function ProfileCalendar({ listBase, viewMode }: { listBase: ProfileListBase; viewMode: ViewMode }) {
+  const calendarQuery = useInfiniteQuery({
+    ...mediaQueries.list({ filter: "calendar", ...listBase, limit: 100 }),
+  });
+
+  useEffect(() => {
+    if (calendarQuery.hasNextPage && !calendarQuery.isFetchingNextPage) {
+      void calendarQuery.fetchNextPage();
+    }
+  }, [calendarQuery.hasNextPage, calendarQuery.isFetchingNextPage, calendarQuery.fetchNextPage]);
+
+  const calendarItems = flattenInfiniteResults(calendarQuery);
+  return <ProfileCalendarGrid items={calendarItems} viewMode={viewMode} />;
 }

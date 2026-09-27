@@ -7,7 +7,7 @@ import { StarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/shared/ui/label";
 
-import { MediaReviewModal } from "@/features/media/components/modal/media-review-modal";
+import { MediaReview } from "@/features/media/components/media-review";
 
 interface MediaRatingProps {
   label: ReactNode;
@@ -140,7 +140,7 @@ export function MediaRatingUser({ media, className }: MediaRatingUserProps) {
         onClick={() => setOpen(true)}
         className={className}
       />
-      <MediaReviewModal media={media} open={open} onOpenChange={setOpen} />
+      <MediaReview media={media} open={open} onOpenChange={setOpen} />
     </>
   );
 }

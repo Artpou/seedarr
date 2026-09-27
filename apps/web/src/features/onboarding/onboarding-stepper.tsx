@@ -5,8 +5,6 @@ import { cn } from "@/lib/utils";
 const OWNER_STEPS = [
   { id: "account", label: <Trans>Account</Trans> },
   { id: "indexers", label: <Trans>Indexers</Trans> },
-  { id: "storage", label: <Trans>Storage</Trans> },
-  { id: "integrations", label: <Trans>Integrations</Trans> },
 ] as const;
 
 interface OnboardingStepperProps {

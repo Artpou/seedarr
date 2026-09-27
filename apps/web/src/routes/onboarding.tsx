@@ -5,13 +5,11 @@ import { createFileRoute, isRedirect, redirect } from "@tanstack/react-router";
 import ms from "ms";
 
 import { useAuth } from "@/features/auth/auth-store";
-import { OnboardingAccount } from "@/features/onboarding/components/onboarding-account";
-import { OnboardingIndexers } from "@/features/onboarding/components/onboarding-indexers";
-import { OnboardingIntegrations } from "@/features/onboarding/components/onboarding-integrations";
-import { OnboardingLayout } from "@/features/onboarding/components/onboarding-layout";
-import { OnboardingMember } from "@/features/onboarding/components/onboarding-member";
-import { OnboardingStepper } from "@/features/onboarding/components/onboarding-stepper";
-import { OnboardingStorage } from "@/features/onboarding/components/onboarding-storage";
+import { OnboardingAccountView } from "@/features/onboarding/onboarding-account-view";
+import { OnboardingIndexersView } from "@/features/onboarding/onboarding-indexers-view";
+import { OnboardingLayoutView } from "@/features/onboarding/onboarding-layout-view";
+import { OnboardingMemberView } from "@/features/onboarding/onboarding-member-view";
+import { OnboardingStepper } from "@/features/onboarding/onboarding-stepper";
 
 export const Route = createFileRoute("/onboarding")({
   beforeLoad: async ({ context }) => {
@@ -50,7 +48,7 @@ function OnboardingPage() {
   const user = useAuth((s) => s.user);
   const isOwner = !user || user.role === "owner";
 
-  return <OnboardingLayout>{isOwner ? <OwnerOnboarding /> : <OnboardingMember />}</OnboardingLayout>;
+  return <OnboardingLayoutView>{isOwner ? <OwnerOnboarding /> : <OnboardingMemberView />}</OnboardingLayoutView>;
 }
 
 function OwnerOnboarding() {
@@ -60,10 +58,8 @@ function OwnerOnboarding() {
     <div className="space-y-8">
       <OnboardingStepper currentStep={step} />
 
-      {step === 0 && <OnboardingAccount onContinue={() => setStep(1)} />}
-      {step === 1 && <OnboardingIndexers onContinue={() => setStep(2)} onBack={() => setStep(0)} />}
-      {step === 2 && <OnboardingStorage onContinue={() => setStep(3)} onBack={() => setStep(1)} />}
-      {step === 3 && <OnboardingIntegrations onBack={() => setStep(2)} />}
+      {step === 0 && <OnboardingAccountView onContinue={() => setStep(1)} />}
+      {step === 1 && <OnboardingIndexersView onBack={() => setStep(0)} />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-import { OnboardingLayout } from "@/features/onboarding/components/onboarding-layout";
+import { OnboardingLayoutView } from "@/features/onboarding/onboarding-layout-view";
 
 export const Route = createFileRoute("/_auth")({
   component: AuthLayout,
@@ -8,8 +8,8 @@ export const Route = createFileRoute("/_auth")({
 
 function AuthLayout() {
   return (
-    <OnboardingLayout>
+    <OnboardingLayoutView>
       <Outlet />
-    </OnboardingLayout>
+    </OnboardingLayoutView>
   );
 }
