@@ -2,8 +2,8 @@ import { VIDEO_EXTENSIONS } from "@seedarr/shared";
 
 import { logger } from "@/shared/helpers/logger.helper";
 import { resolveWithinDownloads } from "@/shared/helpers/path.helper";
-import { findLargestVideoInDirectory } from "@/shared/helpers/video-file.helper";
 import { probeVideoDuration } from "@/shared/helpers/video.helper";
+import { findLargestVideoInDirectory } from "@/shared/helpers/video-file.helper";
 
 import { activityFor } from "@/modules/activity/activity.service";
 import { downloadRepository } from "@/modules/download/download.repository";

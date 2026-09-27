@@ -12,8 +12,8 @@ import path from "node:path";
 import { handleDownloadComplete } from "../download-complete.helper";
 import { applyTorrentFilePolicy } from "../download-tv-scope.helper";
 import { handleTorrentUnloaded } from "../local/local-library-hardlink";
-import { torrentClient } from "./webtorrent-manager";
 import { extractTorrentLiveData } from "./webtorrent.service";
+import { torrentClient } from "./webtorrent-manager";
 
 const SYNC_THROTTLE_MS = 1_000;
 const HEALTH_CHECK_INTERVAL_MS = 60_000;
