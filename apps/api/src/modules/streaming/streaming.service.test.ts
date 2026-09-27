@@ -50,12 +50,16 @@ vi.mock("@/shared/helpers/video.helper", () => ({
   getVideoInputFormat: (name: string) => (name.endsWith(".mkv") ? "matroska" : undefined),
 }));
 
+const { mediaRepository } = await import("@/modules/media/media.repository");
 const { StreamingService } = await import("./streaming.service");
-const { invalidateStreamSource } = await import("./streaming-cache.helper");
+const { getCachedStreamSource, invalidateStreamSource, setCachedStreamSource } = await import(
+  "./streaming-cache.helper"
+);
 
 describe("StreamingService", () => {
   let tmpRoot: string;
   let previousDownloadsPath: string | undefined;
+  const envBackup: Record<string, string | undefined> = {};
   const user = {
     id: "user-1",
     username: "u",
@@ -68,6 +72,9 @@ describe("StreamingService", () => {
     tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "seedarr-stream-"));
     previousDownloadsPath = process.env.DOWNLOADS_PATH;
     process.env.DOWNLOADS_PATH = tmpRoot;
+    for (const key of ["HARDLINK_PATH", "HARDLINK_MOVIE_PATH", "HARDLINK_TV_PATH"]) {
+      envBackup[key] = process.env[key];
+    }
     testDbRef.current = createTestDb();
     seedTestUser(testDbRef.current, user);
     getActiveTorrent.mockReset();
@@ -79,6 +86,11 @@ describe("StreamingService", () => {
 
   afterEach(async () => {
     process.env.DOWNLOADS_PATH = previousDownloadsPath;
+    for (const [key, value] of Object.entries(envBackup)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    vi.restoreAllMocks();
     await fs.rm(tmpRoot, { recursive: true, force: true });
   });
 
@@ -134,7 +146,7 @@ describe("StreamingService", () => {
     });
 
     const info = await service.resolveSourceInfo(
-      dl({ id: "dl-remote", remoteLocation: "/movies/Remote", torrent: null }),
+      dl({ id: "dl-remote", remoteLocation: "/movies/Remote", moduleStorageId: "storage-1", torrent: null }),
     );
     expect(info).toMatchObject({ isRemote: true, remotePath: "/movies/Remote.mkv", fileName: "Remote.mkv" });
   });
@@ -257,5 +269,47 @@ describe("StreamingService", () => {
     invalidateStreamSource("dl-missing");
     getActiveTorrent.mockReturnValue(undefined);
     await expect(service.getPlaybackInfo(dl({ id: "dl-missing", torrent: null }))).rejects.toThrow(/Video file/);
+  });
+
+  it("re-resolves from library when cached staging path was removed after hardlink", async () => {
+    process.env.HARDLINK_PATH = path.join(tmpRoot, "lib");
+    process.env.HARDLINK_MOVIE_PATH = "movies";
+
+    const staging = path.join(tmpRoot, "Movie");
+    const libDir = path.join(tmpRoot, "lib", "movies", "Dune (2021)");
+    await fs.mkdir(staging, { recursive: true });
+    await fs.mkdir(libDir, { recursive: true });
+    const libVideo = path.join(libDir, "dune.mkv");
+    await fs.writeFile(libVideo, Buffer.from("from-library"));
+
+    const download = dl({
+      id: "dl-hardlink",
+      mediaId: 42,
+      torrent: {
+        name: "Dune.2021.1080p",
+        done: true,
+        progress: 1,
+        length: 12,
+        durationSeconds: 10,
+      } as Download["torrent"],
+    });
+
+    vi.spyOn(mediaRepository, "find").mockResolvedValue({
+      id: 42,
+      type: "movie",
+      title: "Dune",
+      release_date: "2021-01-01",
+    } as never);
+
+    const staleStagingFile = path.join(staging, "Dune.mkv");
+    setCachedStreamSource("dl-hardlink", {
+      size: 4,
+      fileName: "Dune.mkv",
+      filePath: staleStagingFile,
+    });
+
+    const info = await service.resolveSourceInfo(download);
+    expect(info?.filePath).toBe(libVideo);
+    expect(getCachedStreamSource("dl-hardlink")?.filePath).toBe(libVideo);
   });
 });

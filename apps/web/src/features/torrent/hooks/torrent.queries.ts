@@ -5,7 +5,7 @@ import type { Media, ModuleIndexer, Torrent } from "@seedarr/sdk";
 import { api, unwrap } from "@seedarr/sdk";
 import { queryOptions, useQueries } from "@tanstack/react-query";
 
-import { getSeasonEpisodeRelevance } from "@/features/torrent/helpers/torrent-sort.helper";
+import { compareTorrentsForList, isTorrentVisibleForTvFilter } from "@/features/torrent/helpers/torrent-sort.helper";
 
 export const torrentQueries = {
   key: ["torrent"] as const,
@@ -63,9 +63,14 @@ function buildTorrentSources(indexers: ModuleIndexer[]): TorrentSource[] {
 interface UseTorrentsOptions {
   season?: number;
   episode?: number;
+  existingInfoHashes?: ReadonlySet<string>;
 }
 
-export function useTorrents(media: Media, indexers: ModuleIndexer[], { season, episode }: UseTorrentsOptions = {}) {
+export function useTorrents(
+  media: Media,
+  indexers: ModuleIndexer[],
+  { season, episode, existingInfoHashes }: UseTorrentsOptions = {},
+) {
   const sources = useMemo(() => buildTorrentSources(indexers), [indexers]);
 
   return useQueries({
@@ -102,30 +107,23 @@ export function useTorrents(media: Media, indexers: ModuleIndexer[], { season, e
       });
 
       const year = new Date(media?.release_date || "").getFullYear().toString();
+      const existingHashes = existingInfoHashes ?? new Set<string>();
 
       const torrents = results
         .flatMap((query, index) => {
           if (!query.data) return [];
           const source = sources[index];
 
-          return query.data.map((torrent: Torrent) => ({
-            ...torrent,
-            indexerId: source.id,
-            indexerType: source.indexerType,
-            moduleId: source.moduleId,
-          }));
+          return query.data
+            .filter((torrent: Torrent) => isTorrentVisibleForTvFilter(torrent, season, episode))
+            .map((torrent: Torrent) => ({
+              ...torrent,
+              indexerId: source.id,
+              indexerType: source.indexerType,
+              moduleId: source.moduleId,
+            }));
         })
-        .sort((a, b) => {
-          const relevanceDiff =
-            getSeasonEpisodeRelevance(b, season, episode) - getSeasonEpisodeRelevance(a, season, episode);
-          if (relevanceDiff !== 0) return relevanceDiff;
-
-          const aHasYear = a.title.includes(year);
-          const bHasYear = b.title.includes(year);
-          if (aHasYear && !bHasYear) return -1;
-          if (!aHasYear && bHasYear) return 1;
-          return b.seeders - a.seeders;
-        });
+        .sort((a, b) => compareTorrentsForList(a, b, { existingInfoHashes: existingHashes, yearInTitle: year }));
 
       const isFetching = results.some((query) => query.isFetching);
 

@@ -3,7 +3,10 @@ import type WebTorrent from "webtorrent";
 
 import { ServiceUnavailableError } from "@/shared/errors/error";
 import { logger } from "@/shared/helpers/logger.helper";
+import { getDownloadsRoot } from "@/shared/helpers/path.helper";
 
+import fs from "node:fs/promises";
+import path from "node:path";
 import { waitForTorrentMetadata } from "./webtorrent.helper";
 
 const DOWNLOAD_PATH = process.env.DOWNLOADS_PATH || "./downloads";
@@ -123,7 +126,7 @@ class WebTorrentManager {
     return ids;
   }
 
-  safeAdd(source: string | Buffer, opts: { path: string }): WebTorrent.Torrent {
+  safeAdd(source: string | Buffer, opts: { path: string; deselect?: boolean }): WebTorrent.Torrent {
     const client = this.getClient();
     if (typeof source === "string") {
       const existing = client.torrents.find(
@@ -131,19 +134,29 @@ class WebTorrentManager {
       );
       if (existing) return existing;
     }
-    return client.add(source, opts);
+    const deselect = opts.deselect ?? true;
+    return client.add(source, { path: opts.path, deselect } as WebTorrent.TorrentOptions);
   }
 
-  async attachTorrent(downloadId: string, magnetURI: string, infoHash?: string): Promise<WebTorrent.Torrent> {
+  async attachTorrent(
+    downloadId: string,
+    magnetURI: string,
+    infoHash?: string,
+    storePath?: string,
+  ): Promise<WebTorrent.Torrent> {
+    const addPath = path.resolve(storePath ?? getDownloadsRoot());
     const existing = this.resolveTorrent(downloadId, infoHash);
     if (existing) {
       if (!existing.ready) await waitForTorrentMetadata(existing, 15_000);
+      for (const file of existing.files) file.deselect();
       this.activeTorrents.set(downloadId, existing);
       return existing;
     }
 
-    const torrent = this.safeAdd(magnetURI, { path: DOWNLOAD_PATH });
+    await fs.mkdir(addPath, { recursive: true });
+    const torrent = this.safeAdd(magnetURI, { path: addPath });
     if (!torrent.ready) await waitForTorrentMetadata(torrent, 15_000);
+    for (const file of torrent.files) file.deselect();
     this.activeTorrents.set(downloadId, torrent);
     return torrent;
   }

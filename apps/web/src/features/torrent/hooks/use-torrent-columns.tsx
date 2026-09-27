@@ -41,9 +41,10 @@ interface UseTorrentColumnsOptions {
   count: number;
   onInspect: (torrent: TorrentWithMeta) => void;
   onDownload: (torrent: TorrentWithMeta) => void;
+  isInLibrary?: (torrent: TorrentWithMeta) => boolean;
 }
 
-export function useTorrentColumns({ media, count, onInspect, onDownload }: UseTorrentColumnsOptions) {
+export function useTorrentColumns({ media, count, onInspect, onDownload, isInLibrary }: UseTorrentColumnsOptions) {
   return useMemo(
     () =>
       columnHelper.columns([
@@ -78,6 +79,11 @@ export function useTorrentColumns({ media, count, onInspect, onDownload }: UseTo
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {isInLibrary?.(torrent) && (
+                    <Badge variant="default">
+                      <Trans>In library</Trans>
+                    </Badge>
+                  )}
                   <Flag lang={torrent.mediaInfos?.languages?.[0] || media.original_language || ""} />
                   {torrent.mediaInfos?.resolution && <Badge variant="secondary">{torrent.mediaInfos.resolution}</Badge>}
                   {container && <Badge variant="secondary">{container}</Badge>}
@@ -150,7 +156,7 @@ export function useTorrentColumns({ media, count, onInspect, onDownload }: UseTo
                     onDownload(torrent);
                   }}
                 >
-                  <Trans>Download</Trans>
+                  {isInLibrary?.(torrent) ? <Trans>Add episode</Trans> : <Trans>Download</Trans>}
                 </Button>
               </div>
             );
@@ -158,6 +164,6 @@ export function useTorrentColumns({ media, count, onInspect, onDownload }: UseTo
           enableSorting: false,
         }),
       ]),
-    [media.original_language, count, onInspect, onDownload],
+    [media.original_language, count, onInspect, onDownload, isInLibrary],
   );
 }

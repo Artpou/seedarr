@@ -2,7 +2,7 @@ import { formatError } from "@seedarr/shared";
 import type WebTorrent from "webtorrent";
 
 import { logger } from "@/shared/helpers/logger.helper";
-import { getDownloadFolderName, resolveWithinDownloads } from "@/shared/helpers/path.helper";
+import { getDownloadFolderName, resolveTorrentStorePath, resolveWithinDownloads } from "@/shared/helpers/path.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
 import type { TorrentLiveData } from "@/modules/download/download.schema";
@@ -10,6 +10,7 @@ import { invalidateStreamSource } from "@/modules/streaming/streaming-cache.help
 import fs from "node:fs/promises";
 import path from "node:path";
 import { handleDownloadComplete } from "../download-complete.helper";
+import { applyTorrentFilePolicy } from "../download-tv-scope.helper";
 import { handleTorrentUnloaded } from "../local-library-hardlink";
 import { extractTorrentLiveData } from "./webtorrent.helper";
 import { torrentClient } from "./webtorrent-manager";
@@ -23,10 +24,24 @@ const lastSyncTimestamps = new Map<string, number>();
 const handlersAttached = new Set<string>();
 let healthCheckTimer: ReturnType<typeof setInterval> | null = null;
 
+function reapplyTorrentFilePolicy(torrent: WebTorrent.Torrent, downloadId: string): void {
+  if (torrentClient.isDestroying(downloadId)) return;
+  void downloadRepository.find(downloadId).then((dl) => {
+    if (!dl?.torrent || torrentClient.isDestroying(downloadId)) return;
+    try {
+      applyTorrentFilePolicy(torrent, dl.torrent.tvScope);
+    } catch (err) {
+      logger.warn("WEBTORRENT", `File policy reapply failed for ${downloadId}: ${formatError(err)}`);
+    }
+  });
+}
+
 export function setupTorrentHandlers(torrent: WebTorrent.Torrent, downloadId: string): void {
   if (torrent.ready) {
     torrentClient.setActiveTorrent(downloadId, torrent);
   }
+
+  reapplyTorrentFilePolicy(torrent, downloadId);
 
   if (handlersAttached.has(downloadId)) return;
   handlersAttached.add(downloadId);
@@ -42,7 +57,8 @@ export function setupTorrentHandlers(torrent: WebTorrent.Torrent, downloadId: st
     lastSyncTimestamps.set(downloadId, Date.now());
 
     await downloadRepository.updateTorrent(downloadId, (current) => {
-      const liveData = extractTorrentLiveData(torrent);
+      const tvScope = current?.torrent?.tvScope;
+      const liveData = extractTorrentLiveData(torrent, { tvScope });
       if (current?.torrent?.paused && extraFields?.paused !== false) {
         liveData.paused = true;
         liveData.downloadSpeed = 0;
@@ -55,6 +71,7 @@ export function setupTorrentHandlers(torrent: WebTorrent.Torrent, downloadId: st
   torrent.on("ready", () => {
     logger.info("WEBTORRENT", `Ready: ${torrent.name}`);
     torrentClient.setActiveTorrent(downloadId, torrent);
+    reapplyTorrentFilePolicy(torrent, downloadId);
     syncDb(true).catch((err) => logger.error("WEBTORRENT", `syncDb error on ready: ${err}`));
   });
 
@@ -203,7 +220,14 @@ export async function restoreActiveTorrents(): Promise<void> {
   const results = await Promise.allSettled(
     activeDownloads.map(async (item) => {
       if (!item.torrent?.magnetURI) return;
-      const restored = await torrentClient.attachTorrent(item.id, item.torrent.magnetURI, item.torrent.infoHash);
+      const storePath = resolveTorrentStorePath(item);
+      const restored = await torrentClient.attachTorrent(
+        item.id,
+        item.torrent.magnetURI,
+        item.torrent.infoHash,
+        storePath,
+      );
+      applyTorrentFilePolicy(restored, item.torrent.tvScope);
       setupTorrentHandlers(restored, item.id);
       reannounce(restored);
       logger.debug("WEBTORRENT", `Restored: ${restored.name}`);

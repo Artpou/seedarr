@@ -39,7 +39,13 @@ export async function listEnrichedMedia(userId: string, query: ListMediaQuery = 
 
   const conditions = [];
   if (type) conditions.push(eq(media.type, type));
-  if (ids) conditions.push(inArray(media.id, ids.map(Number)));
+  if (ids?.length) {
+    const numericIds = [
+      ...new Set(ids.map((value) => Number.parseInt(String(value), 10)).filter((id) => Number.isFinite(id) && id > 0)),
+    ];
+    if (numericIds.length === 0) return [];
+    conditions.push(inArray(media.id, numericIds));
+  }
 
   if (withGenres) {
     const genreNames = withGenres

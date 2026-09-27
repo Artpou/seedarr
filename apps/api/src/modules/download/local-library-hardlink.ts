@@ -1,10 +1,12 @@
-import { buildOrganizedRemotePath, extractYearFromDate, formatError, parseSeasonEpisode } from "@seedarr/shared";
+import { formatError } from "@seedarr/shared";
 
 import { logger } from "@/shared/helpers/logger.helper";
-import { getDownloadFolderName, resolveWithinDownloads } from "@/shared/helpers/path.helper";
+import { getDownloadFolderName, resolveDownloadStagingPath } from "@/shared/helpers/path.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
+import { getOrganizedMediaRelativePath } from "@/modules/download/download-staging-path.helper";
 import { mediaRepository } from "@/modules/media/media.repository";
+import { invalidateStreamSource } from "@/modules/streaming/streaming-cache.helper";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -15,7 +17,7 @@ function assertSafePath(p: string, label: string): void {
 }
 
 /** Restore leading `/` lost by `buildOrganizedRemotePath` when base was absolute. */
-function absoluteOrganizedPath(basePath: string, organized: string): string {
+export function absoluteOrganizedPath(basePath: string, organized: string): string {
   if (path.isAbsolute(basePath) && !path.isAbsolute(organized)) {
     return path.resolve("/", organized);
   }
@@ -69,6 +71,50 @@ export function resolveLibraryBase(mediaType: "movie" | "tv"): string | null {
     }
   }
   return resolved;
+}
+
+/** Library roots to probe, in priority order: typed movie/tv path first, then HARDLINK_PATH root. */
+export function listLibraryBaseCandidates(mediaType: "movie" | "tv"): string[] {
+  const rootRaw = process.env.HARDLINK_PATH?.trim() || "";
+  const typed = (mediaType === "tv" ? process.env.HARDLINK_TV_PATH : process.env.HARDLINK_MOVIE_PATH)?.trim() || "";
+
+  const candidates: string[] = [];
+
+  if (typed) {
+    if (path.isAbsolute(typed)) {
+      candidates.push(path.resolve(typed));
+    } else if (rootRaw) {
+      candidates.push(path.resolve(path.join(rootRaw, typed)));
+    }
+  }
+
+  if (rootRaw) {
+    const root = path.resolve(rootRaw);
+    if (!candidates.includes(root)) {
+      candidates.push(root);
+    }
+  }
+
+  return candidates;
+}
+
+/** Target directory where completed downloads are hardlinked (same layout as transfer). */
+export function getHardlinkTargetDir(
+  media: { type: "movie" | "tv"; title: string; release_date: string | null },
+  torrentFolderName: string,
+): string | null {
+  const basePath = resolveLibraryBase(media.type);
+  if (!basePath) return null;
+
+  const organized = getOrganizedMediaRelativePath(media, torrentFolderName, basePath);
+  const targetDir = absoluteOrganizedPath(basePath, organized);
+  assertSafePath(targetDir, "hardlink target");
+
+  const resolvedTarget = path.resolve(targetDir);
+  if (resolvedTarget !== basePath && !resolvedTarget.startsWith(basePath + path.sep)) {
+    throw new Error(`Hardlink target escapes library root: ${resolvedTarget}`);
+  }
+  return resolvedTarget;
 }
 
 async function hardlinkOrCopyOnExdev(src: string, dest: string): Promise<{ exdev: boolean }> {
@@ -157,26 +203,14 @@ export async function tryLocalLibraryHardlink(downloadId: string, torrentNameHin
   const mediaRow = await mediaRepository.find(mediaId);
   if (!mediaRow || (mediaRow.type !== "movie" && mediaRow.type !== "tv")) return false;
 
-  const basePath = resolveLibraryBase(mediaRow.type);
-  if (!basePath) return false;
+  const resolvedTarget = getHardlinkTargetDir(mediaRow, torrentFolderName);
+  if (!resolvedTarget) return false;
 
-  const parsed = parseSeasonEpisode(torrentFolderName);
-  const organized = buildOrganizedRemotePath({
-    basePath,
-    title: mediaRow.title,
-    year: extractYearFromDate(mediaRow.release_date),
-    type: mediaRow.type,
-    season: mediaRow.type === "tv" ? (parsed?.season ?? null) : null,
-  });
-  const targetDir = absoluteOrganizedPath(basePath, organized);
-  assertSafePath(targetDir, "hardlink target");
+  const localPath =
+    (dl ? resolveDownloadStagingPath(dl) : null) ??
+    resolveDownloadStagingPath({ torrent: { name: torrentFolderName } });
+  if (!localPath) return false;
 
-  const resolvedTarget = path.resolve(targetDir);
-  if (resolvedTarget !== basePath && !resolvedTarget.startsWith(basePath + path.sep)) {
-    throw new Error(`Hardlink target escapes library root: ${resolvedTarget}`);
-  }
-
-  const localPath = resolveWithinDownloads(torrentFolderName);
   const { count, hasExdev } = await hardlinkTree(localPath, resolvedTarget);
   logger.info(
     "HARDLINK",
@@ -209,8 +243,15 @@ export async function removeHardlinkStaging(downloadId: string, torrentNameHint?
   }
 
   try {
-    const localPath = resolveWithinDownloads(torrentFolderName);
+    const localPath =
+      resolveDownloadStagingPath(dl ?? { torrent: null, remoteLocation: null }) ??
+      (torrentNameHint ? resolveDownloadStagingPath({ torrent: { name: torrentNameHint } }) : null);
+    if (!localPath) {
+      logger.warn("HARDLINK", `Cannot remove staging for download ${downloadId}: path not found`);
+      return;
+    }
     await fs.rm(localPath, { recursive: true, force: true });
+    invalidateStreamSource(downloadId);
     logger.info("HARDLINK", `Removed staging files after unload for "${torrentFolderName}" (${localPath})`);
   } catch (err: unknown) {
     logger.warn("HARDLINK", `Failed to remove staging files for "${torrentFolderName}": ${formatError(err)}`);

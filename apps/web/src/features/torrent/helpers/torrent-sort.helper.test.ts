@@ -1,7 +1,7 @@
 import type { Torrent } from "@seedarr/sdk";
 import { describe, expect, it } from "vitest";
 
-import { getSeasonEpisodeRelevance } from "./torrent-sort.helper";
+import { compareTorrentsForList, getSeasonEpisodeRelevance } from "./torrent-sort.helper";
 
 function makeTorrent(mediaInfos: Torrent["mediaInfos"] | Record<string, unknown>): Torrent {
   return {
@@ -51,5 +51,16 @@ describe("getSeasonEpisodeRelevance", () => {
 
   it("returns -1 when the torrent season does not match", () => {
     expect(getSeasonEpisodeRelevance(makeTorrent({ isTv: true, seasons: [1], episodeNumbers: [1] }), 2, 5)).toBe(-1);
+  });
+});
+
+describe("compareTorrentsForList", () => {
+  it("pins existing library torrents before seeders", () => {
+    const libHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const otherHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const existing = new Set([libHash]);
+    const inLib = { ...makeTorrent({ isTv: true, seasons: [1] }), guid: libHash, seeders: 1 };
+    const popular = { ...makeTorrent({ isTv: true, seasons: [1] }), guid: otherHash, seeders: 500 };
+    expect(compareTorrentsForList(inLib, popular, { existingInfoHashes: existing })).toBeLessThan(0);
   });
 });

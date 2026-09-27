@@ -2,6 +2,7 @@ export { todayIsoDate } from "./date";
 export { formatError } from "./error";
 export { formatBytes, formatRuntime, formatTime, getEndsAt } from "./format";
 export { MAX_ZIP_BYTES } from "./limits";
+export { parseInfoHashFromMagnet } from "./magnet";
 export {
   buildMediaFolderName,
   buildOrganizedRemotePath,

@@ -2,11 +2,18 @@ import type WebTorrent from "webtorrent";
 
 import { BadRequestError } from "@/shared/errors/error";
 import { logger } from "@/shared/helpers/logger.helper";
-import { resolveWithinDownloads } from "@/shared/helpers/path.helper";
+import {
+  collectDownloadDeletePaths,
+  getDownloadsRoot,
+  resolveDownloadStagingPath,
+  resolveTorrentStorePath,
+} from "@/shared/helpers/path.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
 import type { Download } from "@/modules/download/download.schema";
 import fs from "node:fs/promises";
+import path from "node:path";
+import { applyTorrentFilePolicy } from "../download-tv-scope.helper";
 import { extractTorrentLiveData } from "./webtorrent.helper";
 import { torrentClient, UNMARK_DESTROYING_DELAY_MS } from "./webtorrent-manager";
 import { clearHandlersForDownload, setupTorrentHandlers } from "./webtorrent-sync";
@@ -49,7 +56,9 @@ export async function resumeTorrent(id: string, item: Download): Promise<{ succe
   if (!item.torrent?.paused) throw new BadRequestError("Torrent is not paused");
   if (!item.torrent.magnetURI) throw new BadRequestError("No magnet URI found");
 
-  const resumed = await torrentClient.attachTorrent(id, item.torrent.magnetURI, item.torrent.infoHash);
+  const storePath = resolveTorrentStorePath(item);
+  const resumed = await torrentClient.attachTorrent(id, item.torrent.magnetURI, item.torrent.infoHash, storePath);
+  applyTorrentFilePolicy(resumed, item.torrent.tvScope);
   setupTorrentHandlers(resumed, id);
 
   await downloadRepository.updateTorrent(id, { paused: false });
@@ -72,7 +81,9 @@ export async function recheckTorrent(id: string, item: Download): Promise<{ succ
     setTimeout(() => torrentClient.unmarkDestroying(id), UNMARK_DESTROYING_DELAY_MS);
   }
 
-  const resumed = await torrentClient.attachTorrent(id, item.torrent.magnetURI, item.torrent.infoHash);
+  const storePath = resolveTorrentStorePath(item);
+  const resumed = await torrentClient.attachTorrent(id, item.torrent.magnetURI, item.torrent.infoHash, storePath);
+  applyTorrentFilePolicy(resumed, item.torrent.tvScope);
   setupTorrentHandlers(resumed, id);
 
   await downloadRepository.updateTorrent(id, { paused: false }, { error: null });
@@ -108,14 +119,45 @@ export function destroyLocalTorrentFiles(id: string, item: Download): void {
       .catch((err) => logger.error("DOWNLOAD", `Error destroying files`, err));
 
     setTimeout(() => torrentClient.unmarkDestroying(id), UNMARK_DESTROYING_DELAY_MS);
-  } else if (torrentName) {
-    try {
-      const targetPath = resolveWithinDownloads(torrentName);
+  } else {
+    const targets = collectDownloadDeletePaths(item);
+    if (targets.length === 0) {
+      const fallback = resolveDownloadStagingPath(item);
+      if (fallback) targets.push(fallback);
+    }
+    if (targets.length === 0) {
+      if (torrentName) {
+        logger.warn("DOWNLOAD", `Could not resolve delete path for torrent: ${torrentName}`);
+      }
+      return;
+    }
+
+    const deletedRoots = new Set<string>();
+    for (const targetPath of targets) {
+      if (deletedRoots.has(targetPath)) continue;
+      deletedRoots.add(targetPath);
       fs.rm(targetPath, { recursive: true, force: true })
-        .then(() => logger.info("DOWNLOAD", `FS deleted: ${targetPath}`))
+        .then(async () => {
+          logger.info("DOWNLOAD", `FS deleted: ${targetPath}`);
+          await pruneEmptyStagingParents(targetPath);
+        })
         .catch((err) => logger.error("DOWNLOAD", `FS delete failed for ${targetPath}`, err));
-    } catch (error) {
-      logger.error("DOWNLOAD", `Refusing to delete path outside downloads: ${torrentName}`, error);
+    }
+  }
+}
+
+async function pruneEmptyStagingParents(deletedPath: string): Promise<void> {
+  const root = getDownloadsRoot();
+  let dir = path.dirname(deletedPath);
+  while (dir !== root && dir.startsWith(`${root}${path.sep}`)) {
+    try {
+      const entries = await fs.readdir(dir);
+      if (entries.length > 0) break;
+      await fs.rmdir(dir);
+      logger.info("DOWNLOAD", `Removed empty staging folder: ${dir}`);
+      dir = path.dirname(dir);
+    } catch {
+      break;
     }
   }
 }

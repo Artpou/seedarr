@@ -103,68 +103,6 @@ function MediaCategoryCarousel({
   );
 }
 
-function MediaDiscoverCarousels({
-  type,
-  locale,
-  genres,
-}: {
-  type: "movie" | "tv";
-  locale: string;
-  genres: Array<{ id: number; name: string }>;
-}) {
-  /** How many genre carousels are mounted (one discover call each). Grows by 1 when the sentinel is reached. */
-  const [genreRevealCount, setGenreRevealCount] = useState(0);
-
-  const newQuery = useInfiniteQuery(
-    type === "movie" ? movieQueries.discover({}, locale) : tvQueries.discover({}, locale),
-  );
-  const topRatedQuery = useInfiniteQuery({
-    ...(type === "movie"
-      ? movieQueries.discover({ sort_by: "vote_average.desc" }, locale)
-      : tvQueries.discover({ sort_by: "vote_average.desc" }, locale)),
-    enabled: newQuery.isFetched,
-  });
-
-  const revealNextGenre = useCallback(() => {
-    setGenreRevealCount((count) => Math.min(count + 1, genres.length));
-  }, [genres.length]);
-
-  const newItems = newQuery.data?.pages[0]?.results ?? [];
-  const topRatedItems = topRatedQuery.data?.pages[0]?.results ?? [];
-  const routePath = type === "movie" ? "/movies" : "/tv";
-  const canLoadGenres = topRatedQuery.isFetched;
-
-  return (
-    <div className="space-y-8">
-      {newQuery.isFetched && newItems.length > 0 && (
-        <MediaCarousel
-          title={<Trans>New</Trans>}
-          titleIcon={SparklesIcon}
-          data={newItems}
-          seeMoreTo={routePath}
-          seeMoreSearch={{ type: "new" }}
-        />
-      )}
-      {topRatedQuery.isFetched && topRatedItems.length > 0 && (
-        <MediaCarousel
-          title={<Trans>Top Rated</Trans>}
-          titleIcon={TrophyIcon}
-          data={topRatedItems}
-          seeMoreTo={routePath}
-          seeMoreSearch={{ type: "top_rated" }}
-        />
-      )}
-      {canLoadGenres &&
-        genres
-          .slice(0, genreRevealCount)
-          .map((genre) => <MediaCategoryCarousel key={genre.id} type={type} genre={genre} locale={locale} />)}
-      {canLoadGenres && genreRevealCount < genres.length && (
-        <CategorySentinel key={genreRevealCount} onReveal={revealNextGenre} />
-      )}
-    </div>
-  );
-}
-
 type MediaDiscoverProps<TSearch extends MovieDiscoverSearch | TvDiscoverSearch> = {
   type: "movie" | "tv";
   search: TSearch;
@@ -189,15 +127,24 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
   const isScoped = isScopedDiscoverSearch(search);
 
   const { data: genres = [] } = useQuery(genreQueries.list(type, locale));
+  const discoverQuery = useInfiniteQuery(queryOptions as DiscoverQueryOptions);
+  const newQuery = useInfiniteQuery(
+    type === "movie" ? movieQueries.discover({}, locale) : tvQueries.discover({}, locale),
+  );
+  const topRatedQuery = useInfiniteQuery({
+    ...(type === "movie"
+      ? movieQueries.discover({ sort_by: "vote_average.desc" }, locale)
+      : tvQueries.discover({ sort_by: "vote_average.desc" }, locale)),
+    enabled: newQuery.isFetched,
+  });
+
+  const [genreRevealCount, setGenreRevealCount] = useState(0);
 
   const genreNameById = useMemo(() => {
     const map = new Map<string, string>();
     for (const genre of genres) map.set(genre.id.toString(), genre.name);
     return map;
   }, [genres]);
-
-  const discoverQuery = useInfiniteQuery(queryOptions as DiscoverQueryOptions);
-  const results = flattenInfiniteResults(discoverQuery);
 
   const sectionTitle = useMemo(() => {
     if (search.type === "new") {
@@ -211,14 +158,51 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
       if (name) return name;
     }
     return type === "movie" ? <Trans>Movies</Trans> : <Trans>TV Shows</Trans>;
-  }, [genreNameById, search.genre, search.type, type]);
+  }, [genreNameById, search, type]);
+
+  const results = flattenInfiniteResults(discoverQuery);
+
+  const revealNextGenre = useCallback(() => {
+    setGenreRevealCount((count) => Math.min(count + 1, genres.length));
+  }, [genres.length]);
+
+  const newItems = newQuery.data?.pages[0]?.results ?? [];
+  const topRatedItems = topRatedQuery.data?.pages[0]?.results ?? [];
+  const routePath = type === "movie" ? "/movies" : "/tv";
+  const canLoadGenres = topRatedQuery.isFetched;
 
   if (!isScoped) {
     return (
       <Container className="space-y-8">
         <MediaCarouselWatching type={type} />
         {isAdmin && <DiscoverAdminPendingRequests type={type} />}
-        <MediaDiscoverCarousels type={type} locale={locale} genres={genres} />
+        <div className="space-y-8">
+          {newQuery.isFetched && newItems.length > 0 && (
+            <MediaCarousel
+              title={<Trans>New</Trans>}
+              titleIcon={SparklesIcon}
+              data={newItems}
+              seeMoreTo={routePath}
+              seeMoreSearch={{ type: "new" }}
+            />
+          )}
+          {topRatedQuery.isFetched && topRatedItems.length > 0 && (
+            <MediaCarousel
+              title={<Trans>Top Rated</Trans>}
+              titleIcon={TrophyIcon}
+              data={topRatedItems}
+              seeMoreTo={routePath}
+              seeMoreSearch={{ type: "top_rated" }}
+            />
+          )}
+          {canLoadGenres &&
+            genres
+              .slice(0, genreRevealCount)
+              .map((genre) => <MediaCategoryCarousel key={genre.id} type={type} genre={genre} locale={locale} />)}
+          {canLoadGenres && genreRevealCount < genres.length && (
+            <CategorySentinel key={genreRevealCount} onReveal={revealNextGenre} />
+          )}
+        </div>
       </Container>
     );
   }
