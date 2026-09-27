@@ -36,5 +36,7 @@
   },
   "files.exclude": {
     "**/.turbo": true
-  }
+  },
+
+  "tailwindCSS.lint.suggestCanonicalClasses": false
 }

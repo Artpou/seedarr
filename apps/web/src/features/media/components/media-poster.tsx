@@ -43,10 +43,18 @@ export function MediaPoster({ data, download }: MediaPosterProps) {
   const locale = useTmdbLocale();
   const { media } = data;
 
+  const downloadReady = Boolean(download?.torrent?.done ?? download?.remoteLocation);
+  const playbackQuery = useQuery({
+    ...downloadQueries.playbackInfo(download?.id ?? ""),
+    enabled: Boolean(download?.id && downloadReady),
+    retry: false,
+  });
   const { data: videoFile } = useQuery({
     ...downloadQueries.videoFile(download?.id ?? ""),
-    enabled: !!download?.id,
+    enabled: Boolean(download?.id && downloadReady && playbackQuery.isSuccess),
+    retry: false,
   });
+  const canPlay = playbackQuery.isSuccess;
 
   const { data: trailer } = useQuery({
     ...trailerQueries.get(media, locale),
@@ -56,8 +64,7 @@ export function MediaPoster({ data, download }: MediaPosterProps) {
   const displayTitle = getDisplayTitle(data);
   const showWatchProgress = hasWatchProgress(media);
   const watchProgressPercent = getWatchProgressPercent(media);
-  const canPlay = Boolean(download);
-  const canDownload = Boolean(download && (!download.torrent || download.torrent.done) && videoFile);
+  const canDownload = Boolean(download && downloadReady && videoFile);
 
   if (isMobile) {
     if (download) {
@@ -70,12 +77,14 @@ export function MediaPoster({ data, download }: MediaPosterProps) {
               className="size-full object-cover"
               fallback={<ClapperboardIcon className="size-10 text-muted-foreground" />}
             />
-            <MediaButtonPlay
-              className="absolute inset-0 flex items-center justify-center bg-black/20"
-              media={media}
-              downloadId={download.id}
-              circular
-            />
+            {canPlay && (
+              <MediaButtonPlay
+                className="absolute inset-0 flex items-center justify-center bg-black/20"
+                media={media}
+                downloadId={download.id}
+                circular
+              />
+            )}
             {download.quality && (
               <Badge variant="glass" className="absolute top-2 left-2">
                 {download.quality}
@@ -150,7 +159,7 @@ export function MediaPoster({ data, download }: MediaPosterProps) {
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        <MediaButtonPlay media={media} downloadId={download?.id} className="w-full" />
+        {canPlay && <MediaButtonPlay media={media} downloadId={download?.id} className="w-full" />}
         {!download && role !== "viewer" && <MediaButtonTorrent media={media} className="w-full" size="lg" />}
         {!download && role === "viewer" && <MediaButtonRequest media={media} className="w-full" size="lg" />}
         {!download && (

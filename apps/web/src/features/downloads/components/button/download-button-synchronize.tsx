@@ -19,7 +19,7 @@ import { Button } from "@/shared/ui/button";
 
 import { useRole } from "@/features/auth/hooks/use-role";
 import { ManualSyncWizard } from "@/features/downloads/components/manual-sync-wizard";
-import { useModule, useStorageModule } from "@/features/module/hooks/use-module";
+import { useModule } from "@/features/module/hooks/use-module";
 import { useRemoteSync } from "@/features/settings/hooks/remote-sync.queries";
 
 interface SyncError {
@@ -40,14 +40,13 @@ export function DownloadButtonSynchronize({ topbar = false }: DownloadButtonSync
   const [wizardOpen, setWizardOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const { isEnabled: storageEnabled } = useStorageModule();
   const { isAvailable: tmdbAvailable } = useModule("tmdb");
   const syncMutation = useRemoteSync((files) => {
     setUnmatchedFiles(files);
     setWizardOpen(true);
   });
 
-  if (!isAdmin || !storageEnabled) return null;
+  if (!isAdmin) return null;
 
   const handleSync = () => {
     if (!tmdbAvailable) {
@@ -76,8 +75,9 @@ export function DownloadButtonSynchronize({ topbar = false }: DownloadButtonSync
             </AlertDialogTitle>
             <AlertDialogDescription>
               <Trans>
-                Seedarr will scan your movie and TV folders on the storage server, match titles with TMDB, and move
-                files into organized folders (Title (year) / Season XX). Existing library entries are skipped.
+                Seedarr will scan your movie and TV library folders (remote storage or local HARDLINK paths), match
+                titles with TMDB, and move files into organized folders (Title (year) / Season XX). Existing entries are
+                skipped.
               </Trans>
             </AlertDialogDescription>
           </AlertDialogHeader>

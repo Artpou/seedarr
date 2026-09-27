@@ -7,21 +7,20 @@ import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
 import { MediaCarouselCast } from "@/features/media/components/carousel/media-carousel-cast";
-import { type MediaDetailTab, MediaDetailView } from "@/features/media/components/view/media-detail-view";
-import { TvEpisodesSection } from "@/features/tv/components/tv-episodes-section";
-import { TvRelated } from "@/features/tv/components/tv-related";
-import { tvQueries } from "@/features/tv/hooks/tv.queries";
+import { type MediaDetailTab, MediaDetailView } from "@/features/media/media-detail-view";
+import { MovieRelated } from "@/features/movies/components/movie-related";
+import { movieQueries } from "@/features/movies/hooks/movie.queries";
 
-export interface TvDetailViewProps {
-  tvId: string;
+export interface MovieDetailViewProps {
+  movieId: string;
   urlTab?: MediaDetailTab;
 }
 
-export function TvDetailView({ tvId, urlTab }: TvDetailViewProps) {
+export function MovieDetailView({ movieId, urlTab }: MovieDetailViewProps) {
   const navigate = useNavigate();
   const locale = useTmdbLocale();
-  const { data } = useSuspenseQuery(tvQueries.details(tvId, locale));
-  const { tv, media, related } = data;
+  const { data } = useSuspenseQuery(movieQueries.details(movieId, locale));
+  const { media } = data;
 
   const { data: mediaDownloads = [] } = useQuery(downloadQueries.byMedia(media));
 
@@ -53,9 +52,12 @@ export function TvDetailView({ tvId, urlTab }: TvDetailViewProps) {
       tab={tab}
       onTabChange={(t) => navigate({ to: ".", search: { tab: t }, replace: true })}
     >
-      <TvEpisodesSection tv={tv} media={media} downloads={mediaDownloads} />
       <MediaCarouselCast data={data} />
-      <TvRelated recommendedTV={related.recommendations} />
+      <MovieRelated
+        collection={data.collection}
+        collectionMedia={data.related.collection}
+        recommendedMovies={data.related.recommendations}
+      />
     </MediaDetailView>
   );
 }

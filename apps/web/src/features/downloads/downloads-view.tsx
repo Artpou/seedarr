@@ -103,112 +103,110 @@ export function DownloadsView({ search }: DownloadsViewProps) {
   );
 
   return (
-    <Container>
-      <div className="space-y-4">
-        <LibraryStats />
+    <Container className="space-y-1 sm:space-y-3">
+      <LibraryStats />
 
-        <SentinelStuck setIsStuck={setIsStuck} marginTop={-30} />
+      <SentinelStuck setIsStuck={setIsStuck} marginTop={-30} />
 
-        {isMobile ? (
-          <DiscoverSectionLabel icon={LibraryIcon}>
-            <Trans>Library</Trans>
-          </DiscoverSectionLabel>
-        ) : (
-          !isStuck && (
+      {isMobile ? (
+        <DiscoverSectionLabel icon={LibraryIcon}>
+          <Trans>Library</Trans>
+        </DiscoverSectionLabel>
+      ) : (
+        !isStuck && (
+          <Input
+            type="search"
+            search
+            classNameWrapper="w-full"
+            h="lg"
+            placeholder={t`Search in your library...`}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        )
+      )}
+
+      <StickyFilterBar isStuck={isStuck}>
+        {isStuck && showPageSearch ? (
+          <div className="flex w-full items-center gap-2">
             <Input
               type="search"
               search
-              classNameWrapper="w-full"
+              classNameWrapper="w-full min-w-0 flex-1"
               h="lg"
               placeholder={t`Search in your library...`}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-          )
-        )}
-
-        <StickyFilterBar isStuck={isStuck}>
-          {isStuck && showPageSearch ? (
-            <div className="flex w-full items-center gap-2">
-              <Input
-                type="search"
-                search
-                classNameWrapper="w-full min-w-0 flex-1"
-                h="lg"
-                placeholder={t`Search in your library...`}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <LibraryFiltersSheet
-                genreScope={genreScope}
-                type={filterType}
-                value={libraryFilters}
-                onChange={(value) =>
-                  navigate({
-                    to: "/downloads",
-                    search: { ...search, ...value },
-                    resetScroll: false,
-                  })
-                }
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-2">
-              {showViewMode && (
-                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                  <MediaTabsViewMode scope="downloads" />
-                  {!isMobile && <MediaTypeTabs value={type} />}
-                </div>
-              )}
-              {showPageFilters && (
-                <div className="flex items-center gap-2">
-                  <LibraryFiltersSheet
-                    genreScope={genreScope}
-                    type={filterType}
-                    value={libraryFilters}
-                    onChange={(value) =>
-                      navigate({
-                        to: "/downloads",
-                        search: { ...search, ...value },
-                        resetScroll: false,
-                      })
-                    }
-                  />
-                  {showViewMode && <DownloadButtonSynchronize />}
-                </div>
-              )}
-            </div>
-          )}
-        </StickyFilterBar>
-
-        {results.length > 0 ? (
-          viewMode === "grid" ? (
-            <MediaGrid items={results} query={mediaQuery} showType downloadMode />
-          ) : (
-            <DownloadTable
-              media={results}
-              query={mediaQuery}
-              sorting={sorting}
-              onSortingChange={(updater) => {
-                const next = typeof updater === "function" ? updater(sorting) : updater;
-                handleSortingChange(next);
-              }}
+            <LibraryFiltersSheet
+              genreScope={genreScope}
+              type={filterType}
+              value={libraryFilters}
+              onChange={(value) =>
+                navigate({
+                  to: "/downloads",
+                  search: { ...search, ...value },
+                  resetScroll: false,
+                })
+              }
             />
-          )
+          </div>
         ) : (
-          <Card>
-            <div className="py-10 text-center">
-              <p className="text-muted-foreground">
-                {effectiveQuery ? (
-                  <Trans>No results found for "{effectiveQuery}"</Trans>
-                ) : (
-                  <Trans>No downloads yet</Trans>
-                )}
-              </p>
-            </div>
-          </Card>
+          <div className="flex items-center justify-between gap-2">
+            {showViewMode && (
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                <MediaTabsViewMode scope="downloads" />
+                {!isMobile && <MediaTypeTabs value={type} />}
+              </div>
+            )}
+            {showPageFilters && (
+              <div className="flex items-center gap-2">
+                <LibraryFiltersSheet
+                  genreScope={genreScope}
+                  type={filterType}
+                  value={libraryFilters}
+                  onChange={(value) =>
+                    navigate({
+                      to: "/downloads",
+                      search: { ...search, ...value },
+                      resetScroll: false,
+                    })
+                  }
+                />
+                {showViewMode && <DownloadButtonSynchronize />}
+              </div>
+            )}
+          </div>
         )}
-      </div>
+      </StickyFilterBar>
+
+      {results.length > 0 ? (
+        viewMode === "grid" ? (
+          <MediaGrid items={results} query={mediaQuery} showType downloadMode />
+        ) : (
+          <DownloadTable
+            media={results}
+            query={mediaQuery}
+            sorting={sorting}
+            onSortingChange={(updater) => {
+              const next = typeof updater === "function" ? updater(sorting) : updater;
+              handleSortingChange(next);
+            }}
+          />
+        )
+      ) : (
+        <Card>
+          <div className="py-10 text-center">
+            <p className="text-muted-foreground">
+              {effectiveQuery ? (
+                <Trans>No results found for "{effectiveQuery}"</Trans>
+              ) : (
+                <Trans>No downloads yet</Trans>
+              )}
+            </p>
+          </div>
+        </Card>
+      )}
     </Container>
   );
 }

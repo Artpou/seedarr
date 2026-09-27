@@ -9,6 +9,7 @@ import type { OnChangeFn, SortingState } from "@tanstack/react-table";
 import { useDebounce } from "@uidotdev/usehooks";
 import { BookmarkIcon, CalendarIcon, ClockIcon, HeartIcon } from "lucide-react";
 
+import { BadgeRole } from "@/shared/components/badge/badge-role";
 import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
 import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
@@ -31,11 +32,10 @@ import { mediaQueries } from "@/features/media/hooks/media.queries";
 import { RequestCarousel } from "@/features/request/components/request-carousel";
 import { requestQueries } from "@/features/request/hooks/request.queries";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
-import { RoleBadge } from "@/features/user/components/role-badge";
 import { UserAvatar } from "@/features/user/components/user-avatar";
 import { UserProfileStats } from "@/features/user/components/user-profile-stats";
 import { userQueries } from "@/features/user/hooks/user.queries";
-import { type ProfileRouteSearch, pickProfileLibraryFilters } from "@/routes/helpers/profile-route.helper";
+import { pickProfileLibraryFilters, type ProfileRouteSearch } from "@/routes/helpers/profile-route.helper";
 
 type ProfileTab = "calendar" | "watchlist" | "liked" | "history";
 
@@ -219,7 +219,7 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
               </div>
               <p className="text-sm text-muted-foreground">@{profileUser.username}</p>
               <div className="mt-1 flex flex-wrap items-center justify-center gap-2 md:justify-start">
-                <RoleBadge role={profileUser.role} />
+                <BadgeRole role={profileUser.role} />
                 {profileUser.createdAt && (
                   <Badge variant="outline">
                     <CalendarIcon className="size-3.5" />

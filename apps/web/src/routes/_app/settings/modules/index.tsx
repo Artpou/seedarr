@@ -4,7 +4,7 @@ import { redirectIfNotRole } from "@/shared/helpers/role.helper";
 
 import { parseModuleFilter } from "@/features/module/components/module-tabs-filter";
 import type { ModuleListFilter } from "@/features/module/helpers/module-list.helper";
-import { SettingsModulesView } from "@/features/settings/components/settings-modules-view";
+import { SettingsModulesView } from "@/features/settings/settings-modules-view";
 
 export type ModulesSearch = {
   tab?: Exclude<ModuleListFilter, "all">;

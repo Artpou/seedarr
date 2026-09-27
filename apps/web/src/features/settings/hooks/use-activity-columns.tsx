@@ -20,7 +20,7 @@ import { DataTableColumnHeader } from "@/shared/ui/data-table-column-header";
 import { Img } from "@/shared/ui/image";
 
 import { getPosterUrl } from "@/features/media/helpers/media.helper";
-import { SettingsActivityBadgeType } from "@/features/settings/components/badge/settings-activity-badge-type";
+import { SettingsActivityBadgeType } from "@/features/settings/components/settings-activity-badge-type";
 import {
   formatActivityAction,
   getActivityActionIcon,

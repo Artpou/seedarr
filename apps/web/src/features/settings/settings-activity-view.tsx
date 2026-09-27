@@ -21,7 +21,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/shared/ui/sheet";
 
-import { SettingsActivityBadgeType } from "@/features/settings/components/badge/settings-activity-badge-type";
+import { SettingsActivityBadgeType } from "@/features/settings/components/settings-activity-badge-type";
 import { formatActivityAction, parseActivityMetadata } from "@/features/settings/helpers/activity.helper";
 import { activityQueries } from "@/features/settings/hooks/activity.queries";
 import { activityTableFeatures, useActivityColumns } from "@/features/settings/hooks/use-activity-columns";

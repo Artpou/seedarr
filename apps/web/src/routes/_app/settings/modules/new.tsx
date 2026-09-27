@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { redirectIfNotRole } from "@/shared/helpers/role.helper";
 
-import { ModuleNewView } from "@/features/module/components/module-new-view";
+import { ModuleNewView } from "@/features/module/module-new-view";
 
 export const Route = createFileRoute("/_app/settings/modules/new")({
   beforeLoad: ({ context }) => redirectIfNotRole(context, "admin", { to: "/settings/general" }),

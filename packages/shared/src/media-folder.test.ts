@@ -7,6 +7,7 @@ import {
   extractYearFromDate,
   joinRemotePath,
   parseSeasonEpisode,
+  parseTvSeasonNumber,
 } from "./media-folder";
 
 describe("parseSeasonEpisode", () => {
@@ -26,6 +27,12 @@ describe("parseSeasonEpisode", () => {
 
   it("returns null when no episode marker is present", () => {
     expect(parseSeasonEpisode("Widow's Bay (2026)/Season 01")).toBeNull();
+  });
+});
+
+describe("parseTvSeasonNumber", () => {
+  it("reads season from a season pack title", () => {
+    expect(parseTvSeasonNumber("Chernobyl (2019) Season 1 S01 (1080p BluRay)")).toBe(1);
   });
 });
 

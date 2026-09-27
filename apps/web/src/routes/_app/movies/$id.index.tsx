@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
 
-import type { MediaDetailTab } from "@/features/media/components/view/media-detail-view";
-import { MediaDetailsViewSkeleton } from "@/features/media/components/view/media-details-view-skeleton";
-import { MovieDetailView } from "@/features/movies/components/movie-detail-view";
+import type { MediaDetailTab } from "@/features/media/media-detail-view";
+import { MediaDetailsViewSkeleton } from "@/features/media/media-details-view-skeleton";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
+import { MovieDetailView } from "@/features/movies/movie-detail-view";
 
 const VALID_TABS: MediaDetailTab[] = ["info", "downloads", "server"];
 

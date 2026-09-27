@@ -12,10 +12,10 @@ import {
 } from "@tanstack/react-table";
 import { PencilIcon, Trash2Icon } from "lucide-react";
 
+import { BadgeRole } from "@/shared/components/badge/badge-role";
 import { Button } from "@/shared/ui/button";
 import { DataTableColumnHeader } from "@/shared/ui/data-table-column-header";
 
-import { RoleBadge } from "@/features/user/components/role-badge";
 import { UserProfile } from "@/features/user/components/user-profile";
 
 export const usersTableFeatures = tableFeatures({
@@ -58,7 +58,7 @@ export function useUsersColumns({ canEditUser, canDeleteUser, onEdit, onDelete }
         columnHelper.accessor("role", {
           id: "role",
           header: ({ column }) => <DataTableColumnHeader column={column} title={<Trans>Role</Trans>} />,
-          cell: ({ row }) => <RoleBadge role={row.original.role} />,
+          cell: ({ row }) => <BadgeRole role={row.original.role} />,
           sortFn: "text",
         }),
         columnHelper.accessor((row) => new Date(row.createdAt).getTime(), {

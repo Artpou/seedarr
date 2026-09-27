@@ -4,7 +4,7 @@ import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
 
 import { buildMovieDiscoverOptions, buildTvDiscoverOptions } from "@/features/media/helpers/discover-search.helper";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
-import { SearchView } from "@/features/search/components/search-view";
+import { SearchView } from "@/features/search/search-view";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
 import {
   omitSearchQueryFromLoaderDeps,
