@@ -38,5 +38,5 @@
     "**/.turbo": true
   },
 
-  "tailwindCSS.lint.suggestCanonicalClasses": false
+  "tailwindCSS.lint.suggestCanonicalClasses": "ignore"
 }
