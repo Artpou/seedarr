@@ -1,7 +1,7 @@
 import { hasMinRole } from "@seedarr/shared";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { RequestsView } from "@/features/request/components/requests-view";
+import { RequestsView } from "@/features/request/requests-view";
 import { validateRequestsSearch } from "@/routes/helpers/requests-route.helper";
 
 export const Route = createFileRoute("/_app/requests")({

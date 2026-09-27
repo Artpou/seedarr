@@ -2,7 +2,7 @@ import { VIDEO_EXTENSIONS } from "@seedarr/shared";
 
 import { getDownloadsRoot } from "@/shared/helpers/path.helper";
 
-import { absoluteOrganizedPath, resolveLibraryBase } from "@/modules/download/local-library-hardlink";
+import { absoluteOrganizedPath, resolveLibraryBase } from "@/modules/download/local/local-library-hardlink";
 import { moduleRepository } from "@/modules/module/module.repository";
 import fs from "node:fs/promises";
 import path from "node:path";

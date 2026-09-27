@@ -18,7 +18,7 @@ vi.mock("./local-file.helper", async (importOriginal) => {
   };
 });
 
-const { localFileRoutes } = await import("./local-file.route");
+const { localFileRoutes } = await import("../download.route");
 
 describe("Local File Routes", () => {
   let tmpFile: string;

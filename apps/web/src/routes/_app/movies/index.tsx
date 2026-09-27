@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
 
-import { MediaDiscoverViewSkeleton } from "@/features/media/components/view/media-discover-view-skeleton";
 import { prefetchDiscoverRouteQueries } from "@/features/media/helpers/discover-query.helper";
 import { validateMovieDiscoverSearch } from "@/features/media/helpers/discover-search.helper";
-import { MoviesView } from "@/features/movies/components/movies-view";
+import { MediaDiscoverViewSkeleton } from "@/features/media/media-discover-view-skeleton";
+import { MoviesView } from "@/features/movies/movies-view";
 
 export const Route = createFileRoute("/_app/movies/")({
   pendingComponent: MediaDiscoverViewSkeleton,

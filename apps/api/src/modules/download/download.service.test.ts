@@ -27,10 +27,6 @@ vi.mock("@/modules/storage-config/remote/remote-storage.service", () => ({
   },
 }));
 
-vi.mock("./local/local-disk.helper", () => ({
-  getLocalDiskSpace: vi.fn().mockResolvedValue({ used: 100, total: 1000 }),
-}));
-
 vi.mock("./webtorrent/webtorrent.service", () => ({
   pauseTorrent,
   resumeTorrent: vi.fn().mockResolvedValue({ success: true }),
@@ -59,6 +55,7 @@ vi.mock("@/modules/activity/activity.service", () => ({
 
 vi.mock("@/modules/download/local/local-file.helper", () => ({
   getDownloadableFile: vi.fn().mockResolvedValue({ fileName: "a.mkv", size: 1, filePath: "/tmp/a.mkv" }),
+  getLocalDiskSpace: vi.fn().mockResolvedValue({ used: 100, total: 1000 }),
 }));
 
 describe("DownloadService", () => {

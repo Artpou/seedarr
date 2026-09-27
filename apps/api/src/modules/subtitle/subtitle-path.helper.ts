@@ -3,7 +3,7 @@ import { isSubtitleFile } from "@seedarr/shared";
 import { getDownloadFolderName, getDownloadsRoot, resolveWithinDownloads } from "@/shared/helpers/path.helper";
 
 import type { Download } from "@/modules/download/download.schema";
-import { listDownloadVideoSearchDirs } from "@/modules/download/download-local-video-path.helper";
+import { listDownloadVideoSearchDirs } from "@/modules/download/paths.helper";
 import fs from "node:fs/promises";
 import * as path from "node:path";
 

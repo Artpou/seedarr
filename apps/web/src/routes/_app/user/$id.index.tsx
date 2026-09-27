@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { mediaQueries } from "@/features/media/hooks/media.queries";
 import { requestQueries } from "@/features/request/hooks/request.queries";
-import { UserProfileView } from "@/features/user/components/user-profile-view";
 import { userQueries } from "@/features/user/hooks/user.queries";
+import { UserProfileView } from "@/features/user/user-profile-view";
 import { pickProfileLibraryFilters, validateProfileSearch } from "@/routes/helpers/profile-route.helper";
 
 export const Route = createFileRoute("/_app/user/$id/")({

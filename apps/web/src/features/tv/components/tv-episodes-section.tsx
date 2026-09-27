@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon, ChevronUpIcon, ClapperboardIcon, MagnetIcon } from "lucide-react";
 
+import { DialogDelete } from "@/shared/components/dialog/dialog-delete";
 import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
@@ -21,7 +22,6 @@ import { MediaBadgeDate } from "@/features/media/components/badge/media-badge-da
 import { MediaBadgeRuntime } from "@/features/media/components/badge/media-badge-runtime";
 import { MediaButtonPlay } from "@/features/media/components/button/media-button-play";
 import { getBackdropUrl } from "@/features/media/helpers/media.helper";
-import { type EpisodeDeleteLabel, TvEpisodeDeleteDialog } from "@/features/tv/components/tv-episode-delete-dialog";
 import { TvEpisodeDownloadControls } from "@/features/tv/components/tv-episode-download-controls";
 import { TvEpisodeDownloadPanel } from "@/features/tv/components/tv-episode-download-panel";
 import { formatSeasonEpisode } from "@/features/tv/helpers/episode.helper";
@@ -62,7 +62,7 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
   const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{
     downloadId: string;
-    episodes: EpisodeDeleteLabel[];
+    episodes: { season: number; episode: number; name?: string }[];
   } | null>(null);
 
   const seasonNumber = Number(selectedSeason);
@@ -258,12 +258,44 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
         )}
       </div>
 
-      <TvEpisodeDeleteDialog
+      <DialogDelete
         open={Boolean(deleteTarget)}
-        onOpenChange={(open) => {
+        setOpen={(open) => {
           if (!open) setDeleteTarget(null);
         }}
-        onConfirm={() => {
+        disabled={deleteTorrent.isPending}
+        title={
+          (deleteTarget?.episodes.length ?? 0) > 1 ? (
+            <Trans>Delete multiple episodes</Trans>
+          ) : (
+            <Trans>Delete download</Trans>
+          )
+        }
+        description={
+          (deleteTarget?.episodes.length ?? 0) > 1 ? (
+            <div className="space-y-3">
+              <p>
+                <Trans>
+                  This download contains a full season pack. Deleting it will remove all of the following episodes:
+                </Trans>
+              </p>
+              <ul className="max-h-48 overflow-y-auto rounded-md border bg-muted/40 p-3 text-sm space-y-1">
+                {(deleteTarget?.episodes ?? []).map((episode) => {
+                  const code = formatSeasonEpisode(episode.season, episode.episode);
+                  return (
+                    <li key={`${episode.season}-${episode.episode}`} className="text-foreground">
+                      <span className="text-muted-foreground mr-2">{code}</span>
+                      {episode.name ?? null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
+            <Trans>Are you sure you want to delete this download? This action cannot be undone.</Trans>
+          )
+        }
+        validate={() => {
           if (!deleteTarget) return;
           deleteTorrent.mutate(
             { id: deleteTarget.downloadId },
@@ -272,8 +304,6 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
             },
           );
         }}
-        episodes={deleteTarget?.episodes ?? []}
-        isPending={deleteTorrent.isPending}
       />
     </div>
   );

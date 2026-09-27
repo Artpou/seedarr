@@ -11,7 +11,7 @@ import { validatePendingRequestsForMedia } from "@/modules/request/request.helpe
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { runLocalLibraryHardlink } from "./local-library-hardlink";
+import { runLocalLibraryHardlink } from "./local/local-library-hardlink";
 import { markTransferStarting, runRemoteTransfer } from "./remote/remote-transfer.helper";
 
 /**

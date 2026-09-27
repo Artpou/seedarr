@@ -10,6 +10,7 @@ export {
   extractYearFromDate,
   joinRemotePath,
   parseSeasonEpisode,
+  parseTvSeasonNumber,
 } from "./media-folder";
 export {
   categoryForModuleType,

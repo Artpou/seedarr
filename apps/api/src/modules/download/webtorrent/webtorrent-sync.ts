@@ -5,14 +5,14 @@ import { logger } from "@/shared/helpers/logger.helper";
 import { getDownloadFolderName, resolveTorrentStorePath, resolveWithinDownloads } from "@/shared/helpers/path.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
-import type { TorrentLiveData } from "@/modules/download/download.schema";
+import type { TorrentLiveData, TvScope } from "@/modules/download/download.schema";
 import { invalidateStreamSource } from "@/modules/streaming/streaming-cache.helper";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { handleDownloadComplete } from "../download-complete.helper";
 import { applyTorrentFilePolicy } from "../download-tv-scope.helper";
-import { handleTorrentUnloaded } from "../local-library-hardlink";
-import { extractTorrentLiveData } from "./webtorrent.helper";
+import { handleTorrentUnloaded } from "../local/local-library-hardlink";
+import { extractTorrentLiveData } from "./webtorrent.service";
 import { torrentClient } from "./webtorrent-manager";
 
 const SYNC_THROTTLE_MS = 1_000;
@@ -22,28 +22,60 @@ const SEED_AFTER_COMPLETE_MINUTES = Number.parseInt(process.env.SEED_AFTER_COMPL
 
 const lastSyncTimestamps = new Map<string, number>();
 const handlersAttached = new Set<string>();
+/** Latest selective scope passed to setupTorrentHandlers (survives early-return re-entry). */
+const latestTvScopeByDownload = new Map<string, TvScope | null | undefined>();
 let healthCheckTimer: ReturnType<typeof setInterval> | null = null;
 
-function reapplyTorrentFilePolicy(torrent: WebTorrent.Torrent, downloadId: string): void {
-  if (torrentClient.isDestroying(downloadId)) return;
+function reapplyFilePolicyFromDb(torrent: WebTorrent.Torrent, downloadId: string): void {
+  if (torrentClient.isDestroying(downloadId) || !torrent.ready) return;
   void downloadRepository.find(downloadId).then((dl) => {
-    if (!dl?.torrent || torrentClient.isDestroying(downloadId)) return;
+    if (!dl?.torrent || torrentClient.isDestroying(downloadId) || !torrent.ready) return;
+    const tvScope = dl.torrent.tvScope;
+    // Never select-all from async DB reapply — a missing/null scope would undo selective TV downloads.
+    if (!tvScope?.wanted?.length) {
+      logger.debug("WEBTORRENT", `Skip DB file-policy reapply for ${downloadId}: no wanted tvScope`);
+      return;
+    }
     try {
-      applyTorrentFilePolicy(torrent, dl.torrent.tvScope);
+      applyTorrentFilePolicy(torrent, tvScope);
     } catch (err) {
-      logger.warn("WEBTORRENT", `File policy reapply failed for ${downloadId}: ${formatError(err)}`);
+      logger.warn("WEBTORRENT", `File selection reapply failed for ${downloadId}: ${formatError(err)}`);
     }
   });
 }
 
-export function setupTorrentHandlers(torrent: WebTorrent.Torrent, downloadId: string): void {
+export function setupTorrentHandlers(
+  torrent: WebTorrent.Torrent,
+  downloadId: string,
+  options?: { tvScope?: TvScope | null },
+): void {
+  if (options && "tvScope" in options) {
+    latestTvScopeByDownload.set(downloadId, options.tvScope);
+  }
+
+  const applyProvidedScope = (): void => {
+    // Prefer the latest scope (restore → start may re-enter with a better wanted list).
+    const tvScope = latestTvScopeByDownload.has(downloadId)
+      ? latestTvScopeByDownload.get(downloadId)
+      : options?.tvScope;
+    // Only re-apply when we have an explicit wanted list. Null/undefined must not select-all.
+    if (!tvScope?.wanted?.length) return;
+    try {
+      applyTorrentFilePolicy(torrent, tvScope);
+    } catch (err) {
+      logger.warn("WEBTORRENT", `File selection on ready failed for ${downloadId}: ${formatError(err)}`);
+    }
+  };
+
   if (torrent.ready) {
     torrentClient.setActiveTorrent(downloadId, torrent);
   }
 
-  reapplyTorrentFilePolicy(torrent, downloadId);
-
-  if (handlersAttached.has(downloadId)) return;
+  // Always (re)apply a selective scope even if handlers were already attached (e.g. restore then start).
+  if (handlersAttached.has(downloadId)) {
+    if (torrent.ready) applyProvidedScope();
+    return;
+  }
   handlersAttached.add(downloadId);
 
   const syncDb = async (force: boolean, extraFields?: Partial<TorrentLiveData>) => {
@@ -71,7 +103,9 @@ export function setupTorrentHandlers(torrent: WebTorrent.Torrent, downloadId: st
   torrent.on("ready", () => {
     logger.info("WEBTORRENT", `Ready: ${torrent.name}`);
     torrentClient.setActiveTorrent(downloadId, torrent);
-    reapplyTorrentFilePolicy(torrent, downloadId);
+    applyProvidedScope();
+    // Best-effort backup if tvScope was persisted after attach.
+    reapplyFilePolicyFromDb(torrent, downloadId);
     syncDb(true).catch((err) => logger.error("WEBTORRENT", `syncDb error on ready: ${err}`));
   });
 
@@ -122,6 +156,8 @@ export function setupTorrentHandlers(torrent: WebTorrent.Torrent, downloadId: st
 
   if (torrent.ready) {
     torrentClient.setActiveTorrent(downloadId, torrent);
+    applyProvidedScope();
+    reapplyFilePolicyFromDb(torrent, downloadId);
     syncDb(true);
   }
 }
@@ -221,14 +257,15 @@ export async function restoreActiveTorrents(): Promise<void> {
     activeDownloads.map(async (item) => {
       if (!item.torrent?.magnetURI) return;
       const storePath = resolveTorrentStorePath(item);
+      const tvScope = item.torrent.tvScope;
       const restored = await torrentClient.attachTorrent(
         item.id,
         item.torrent.magnetURI,
         item.torrent.infoHash,
         storePath,
+        (t) => applyTorrentFilePolicy(t, tvScope, { selectAllIfEmpty: true }),
       );
-      applyTorrentFilePolicy(restored, item.torrent.tvScope);
-      setupTorrentHandlers(restored, item.id);
+      setupTorrentHandlers(restored, item.id, { tvScope });
       reannounce(restored);
       logger.debug("WEBTORRENT", `Restored: ${restored.name}`);
     }),
@@ -296,4 +333,5 @@ export function stopHealthCheck(): void {
 export function clearHandlersForDownload(downloadId: string): void {
   handlersAttached.delete(downloadId);
   lastSyncTimestamps.delete(downloadId);
+  latestTvScopeByDownload.delete(downloadId);
 }

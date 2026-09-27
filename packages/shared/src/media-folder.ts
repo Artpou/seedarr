@@ -9,6 +9,20 @@ export function parseSeasonEpisode(text: string): { season: number; episode: num
   return { season: Number(match[1]), episode: Number(match[2]) };
 }
 
+/** Season from S01E03, `Season 1`, or standalone `S01` (season packs). */
+export function parseTvSeasonNumber(text: string): number | null {
+  const parsed = parseSeasonEpisode(text);
+  if (parsed) return parsed.season;
+
+  const seasonWord = text.match(/\bSeason\s*(\d{1,2})\b/i);
+  if (seasonWord) return Number.parseInt(seasonWord[1], 10);
+
+  const sOnly = text.match(/\bS(\d{1,2})\b(?!E\d)/i);
+  if (sOnly) return Number.parseInt(sOnly[1], 10);
+
+  return null;
+}
+
 export function extractYearFromDate(dateStr?: string | null): number | null {
   if (!dateStr) return null;
   const year = Number.parseInt(dateStr.substring(0, 4), 10);

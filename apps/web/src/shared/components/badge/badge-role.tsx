@@ -29,12 +29,12 @@ export const ROLE_LABELS: Record<UserRole, ReturnType<typeof msg>> = {
 
 export { roleConfig };
 
-interface RoleBadgeProps {
+interface BadgeRoleProps {
   role: UserRole;
   className?: string;
 }
 
-export function RoleBadge({ role, className }: RoleBadgeProps) {
+export function BadgeRole({ role, className }: BadgeRoleProps) {
   const { t } = useLingui();
   const config = roleConfig[role];
   const RoleIcon = config.icon;

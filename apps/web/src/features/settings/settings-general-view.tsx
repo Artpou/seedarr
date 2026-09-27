@@ -13,7 +13,7 @@ import { Label } from "@/shared/ui/label";
 import { useAuth } from "@/features/auth/auth-store";
 import { useLogout } from "@/features/auth/hooks/auth.queries";
 import { useUserPreferences } from "@/features/settings/stores/user-preference-store";
-import { PasswordChangeModal } from "@/features/user/components/password-change-modal";
+import { PasswordChangeModal } from "@/features/user/components/user-password-change-modal";
 import { useUpdateProfile } from "@/features/user/hooks/user.queries";
 
 export function SettingsGeneralView() {

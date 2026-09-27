@@ -3,8 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { countryToTmdbLocale } from "@/shared/helpers/i18n.helper";
 import { redirectIfNotRole } from "@/shared/helpers/role.helper";
 
-import { MediaTorrentsView } from "@/features/media/components/view/media-torrents-view";
-import { MediaTorrentsViewSkeleton } from "@/features/media/components/view/media-torrents-view-skeleton";
+import { MediaTorrentsView } from "@/features/media/media-torrents-view";
+import { MediaTorrentsViewSkeleton } from "@/features/media/media-torrents-view-skeleton";
 import { moduleQueries } from "@/features/module/hooks/module.queries";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
 

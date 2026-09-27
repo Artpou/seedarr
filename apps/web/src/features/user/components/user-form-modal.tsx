@@ -7,6 +7,7 @@ import type { User } from "@seedarr/sdk";
 import { useForm } from "react-hook-form";
 
 import { cn } from "@/lib/utils";
+import { ROLE_LABELS, roleConfig } from "@/shared/components/badge/badge-role";
 import { Select } from "@/shared/components/select/select";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
@@ -14,7 +15,6 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
 import { useRole } from "@/features/auth/hooks/use-role";
-import { ROLE_LABELS, roleConfig } from "@/features/user/components/role-badge";
 import { useCreateUser, useUpdateUser } from "@/features/user/hooks/user.queries";
 
 type UserFormData = CreateUserInput & { confirmPassword: string };

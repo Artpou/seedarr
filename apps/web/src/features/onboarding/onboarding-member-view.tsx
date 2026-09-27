@@ -3,12 +3,12 @@ import { Trans } from "@lingui/react/macro";
 import { Button } from "@/shared/ui/button";
 
 import { useAuth } from "@/features/auth/auth-store";
-import { OnboardingLanguage } from "@/features/onboarding/components/onboarding-language";
-import { OnboardingNav } from "@/features/onboarding/components/onboarding-nav";
 import { useCompleteOnboarding } from "@/features/onboarding/hooks/use-complete-onboarding";
+import { OnboardingLanguage } from "@/features/onboarding/onboarding-language";
+import { OnboardingNav } from "@/features/onboarding/onboarding-nav";
 import { UserButtonLetterboxd } from "@/features/user/components/user-button-letterboxd";
 
-export function OnboardingMember() {
+export function OnboardingMemberView() {
   const user = useAuth((s) => s.user);
   const complete = useCompleteOnboarding("member");
 

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { BookmarkIcon, CalendarIcon, ClockIcon, HeartIcon, LogOutIcon, SettingsIcon } from "lucide-react";
 
+import { BadgeRole } from "@/shared/components/badge/badge-role";
 import { TopbarSearchField } from "@/shared/components/topbar/topbar-search-field";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -16,7 +17,6 @@ import {
 
 import { useAuth } from "@/features/auth/auth-store";
 import { useLogout } from "@/features/auth/hooks/auth.queries";
-import { RoleBadge } from "@/features/user/components/role-badge";
 import { UserAvatar } from "@/features/user/components/user-avatar";
 import { userQueries } from "@/features/user/hooks/user.queries";
 import type { ProfileRouteSearch } from "@/routes/helpers/profile-route.helper";
@@ -74,7 +74,7 @@ export function TopbarProfile({ userId }: TopbarProfileProps) {
               </div>
               <p className="text-sm text-muted-foreground">@{user.username}</p>
               <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-                {profileUser ? <RoleBadge role={profileUser.role} /> : null}
+                {profileUser ? <BadgeRole role={profileUser.role} /> : null}
                 {profileUser?.createdAt ? (
                   <Badge variant="outline">
                     <CalendarIcon className="size-3.5" />

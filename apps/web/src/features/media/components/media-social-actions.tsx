@@ -7,7 +7,7 @@ import { ClockPlusIcon, HeartIcon, StarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
 
-import { MediaReviewModal } from "@/features/media/components/modal/media-review-modal";
+import { MediaReview } from "@/features/media/components/media-review";
 import { useToggleLike, useToggleWatchList } from "@/features/media/hooks/media.queries";
 
 interface MediaSocialActionsProps {
@@ -61,7 +61,7 @@ export function MediaSocialActions({ media, className, size = "xl" }: MediaSocia
       >
         <ClockPlusIcon className={cn(media.inWatchList && "text-white")} />
       </Button>
-      <MediaReviewModal media={media} open={open} onOpenChange={setOpen} />
+      <MediaReview media={media} open={open} onOpenChange={setOpen} />
     </div>
   );
 }

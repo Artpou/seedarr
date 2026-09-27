@@ -75,6 +75,9 @@
                 "allow": ["error", "warn", "info"]
               }
             }
+          },
+          "nursery": {
+            "useSortedClasses": "off"
           }
         }
       }

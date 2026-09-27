@@ -26,7 +26,7 @@ vi.mock("@/modules/download/webtorrent/webtorrent-manager", () => ({
   torrentClient: { getActiveTorrent },
 }));
 
-vi.mock("@/modules/download/webtorrent/webtorrent.helper", () => ({
+vi.mock("@/modules/download/webtorrent/webtorrent.service", () => ({
   findLargestVideoFile,
 }));
 

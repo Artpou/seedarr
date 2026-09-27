@@ -1,4 +1,4 @@
-import { formatError } from "@seedarr/shared";
+import { formatError, parseInfoHashFromMagnet } from "@seedarr/shared";
 import type WebTorrent from "webtorrent";
 
 import { ServiceUnavailableError } from "@/shared/errors/error";
@@ -7,7 +7,8 @@ import { getDownloadsRoot } from "@/shared/helpers/path.helper";
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { waitForTorrentMetadata } from "./webtorrent.helper";
+import { guardTorrentPieceRequests } from "../download-tv-scope.helper";
+import { waitForTorrentReady } from "./webtorrent.service";
 
 const DOWNLOAD_PATH = process.env.DOWNLOADS_PATH || "./downloads";
 
@@ -115,6 +116,13 @@ class WebTorrentManager {
   }
 
   /** Drop map entries for a torrent instance; returns the download IDs that were attached. */
+  isManagedClientTorrent(torrent: WebTorrent.Torrent): boolean {
+    for (const active of this.activeTorrents.values()) {
+      if (active === torrent) return true;
+    }
+    return false;
+  }
+
   detachTorrent(torrent: WebTorrent.Torrent): string[] {
     const ids: string[] = [];
     for (const [id, active] of this.activeTorrents) {
@@ -129,13 +137,30 @@ class WebTorrentManager {
   safeAdd(source: string | Buffer, opts: { path: string; deselect?: boolean }): WebTorrent.Torrent {
     const client = this.getClient();
     if (typeof source === "string") {
+      const infoHash = parseInfoHashFromMagnet(source);
       const existing = client.torrents.find(
-        (t) => t.magnetURI === source || (t.infoHash && source.includes(t.infoHash)),
+        (t) =>
+          t.magnetURI === source ||
+          (infoHash && t.infoHash === infoHash) ||
+          (t.infoHash && source.includes(t.infoHash)),
       );
-      if (existing) return existing;
+      if (existing) {
+        if (this.isManagedClientTorrent(existing)) {
+          guardTorrentPieceRequests(existing);
+          return existing;
+        }
+        try {
+          existing.destroy({ destroyStore: false });
+        } catch {
+          // Best-effort: re-add below with correct path / deselect flags.
+        }
+      }
     }
     const deselect = opts.deselect ?? true;
-    return client.add(source, { path: opts.path, deselect } as WebTorrent.TorrentOptions);
+    const torrent = client.add(source, { path: opts.path, deselect } as WebTorrent.TorrentOptions);
+    // Before ready/policy: block BEP6 Allowed Fast requests for unselected pieces.
+    guardTorrentPieceRequests(torrent);
+    return torrent;
   }
 
   async attachTorrent(
@@ -143,20 +168,21 @@ class WebTorrentManager {
     magnetURI: string,
     infoHash?: string,
     storePath?: string,
+    whenReady?: (torrent: WebTorrent.Torrent) => void,
   ): Promise<WebTorrent.Torrent> {
     const addPath = path.resolve(storePath ?? getDownloadsRoot());
     const existing = this.resolveTorrent(downloadId, infoHash);
     if (existing) {
-      if (!existing.ready) await waitForTorrentMetadata(existing, 15_000);
-      for (const file of existing.files) file.deselect();
+      guardTorrentPieceRequests(existing);
+      // Sync selection on ready (immediate if already ready) — before any further awaits.
+      await waitForTorrentReady(existing, 15_000, () => whenReady?.(existing));
       this.activeTorrents.set(downloadId, existing);
       return existing;
     }
 
     await fs.mkdir(addPath, { recursive: true });
-    const torrent = this.safeAdd(magnetURI, { path: addPath });
-    if (!torrent.ready) await waitForTorrentMetadata(torrent, 15_000);
-    for (const file of torrent.files) file.deselect();
+    const torrent = this.safeAdd(magnetURI, { path: addPath, deselect: true });
+    await waitForTorrentReady(torrent, 15_000, () => whenReady?.(torrent));
     this.activeTorrents.set(downloadId, torrent);
     return torrent;
   }

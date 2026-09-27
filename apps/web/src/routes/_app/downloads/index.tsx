@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { DownloadsView } from "@/features/downloads/components/downloads-view";
+import { DownloadsView } from "@/features/downloads/downloads-view";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
 import { mediaQueries } from "@/features/media/hooks/media.queries";
 import {

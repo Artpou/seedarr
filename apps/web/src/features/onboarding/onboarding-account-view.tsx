@@ -12,8 +12,8 @@ import { Input } from "@/shared/ui/input";
 
 import { useAuth } from "@/features/auth/auth-store";
 import { useRegister } from "@/features/auth/hooks/auth.queries";
-import { OnboardingLanguage } from "@/features/onboarding/components/onboarding-language";
-import { OnboardingNav } from "@/features/onboarding/components/onboarding-nav";
+import { OnboardingLanguage } from "@/features/onboarding/onboarding-language";
+import { OnboardingNav } from "@/features/onboarding/onboarding-nav";
 
 type SignupForm = RegisterInput & { confirmPassword: string };
 
@@ -21,7 +21,7 @@ interface OnboardingAccountProps {
   onContinue: () => void;
 }
 
-export function OnboardingAccount({ onContinue }: OnboardingAccountProps) {
+export function OnboardingAccountView({ onContinue }: OnboardingAccountProps) {
   const user = useAuth((s) => s.user);
   const { t } = useLingui();
   const queryClient = useQueryClient();

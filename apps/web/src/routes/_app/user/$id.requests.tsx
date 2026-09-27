@@ -3,8 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { redirectIfNotRole } from "@/shared/helpers/role.helper";
 
-import { UserRequestsView } from "@/features/user/components/user-requests-view";
 import { userQueries } from "@/features/user/hooks/user.queries";
+import { UserRequestsView } from "@/features/user/user-requests-view";
 
 function validateSearch(search: Record<string, unknown>): {
   type: "movie" | "tv" | undefined;

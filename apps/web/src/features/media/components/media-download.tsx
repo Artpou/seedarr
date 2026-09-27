@@ -61,7 +61,6 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
 
   const status = getDownloadStatus(download);
   const torrentFiles = getTorrentFiles(download);
-  const _hasTorrentFiles = torrentFiles.length > 0;
   const { downloadSpeed, uploadSpeed, numPeers } = download.torrent ?? {};
   const isPaused = status === "paused";
   const isCompleted = status === "completed";

@@ -13,22 +13,25 @@ import { Input } from "@/shared/ui/input";
 
 import { buildCreatePayload } from "@/features/module/helpers/module-list.helper";
 import { useCreateModule } from "@/features/module/hooks/module.queries";
-import { OnboardingNav } from "@/features/onboarding/components/onboarding-nav";
+import { useCompleteOnboarding } from "@/features/onboarding/hooks/use-complete-onboarding";
+import { OnboardingNav } from "@/features/onboarding/onboarding-nav";
 
 type Selection = "torrentio" | "prowlarr" | "jackett";
 
-interface OnboardingIndexersProps {
-  onContinue: () => void;
+interface OnboardingIndexersViewProps {
   onBack: () => void;
 }
 
-export function OnboardingIndexers({ onContinue, onBack }: OnboardingIndexersProps) {
+export function OnboardingIndexersView({ onBack }: OnboardingIndexersViewProps) {
   const { t } = useLingui();
   const [selection, setSelection] = useState<Selection | null>(null);
   const [indexerUrl, setIndexerUrl] = useState("");
   const [indexerApiKey, setIndexerApiKey] = useState("");
 
   const createMutation = useCreateModule();
+  const complete = useCompleteOnboarding("owner");
+
+  const finish = () => complete.mutate();
 
   const select = (type: Selection) => {
     setSelection(type);
@@ -47,12 +50,12 @@ export function OnboardingIndexers({ onContinue, onBack }: OnboardingIndexersPro
       const catalog = MODULE_CATALOG.find((c) => c.preset === "torrentio");
       const payload = catalog ? buildCreatePayload(catalog) : null;
       if (!payload) return;
-      createMutation.mutate(payload, { onSuccess: () => onContinue() });
+      createMutation.mutate(payload, { onSuccess: () => finish() });
       return;
     }
     createMutation.mutate(
       { type: selection, config: { url: indexerUrl, apiKey: indexerApiKey } },
-      { onSuccess: () => onContinue() },
+      { onSuccess: () => finish() },
     );
   };
 
@@ -143,10 +146,10 @@ export function OnboardingIndexers({ onContinue, onBack }: OnboardingIndexersPro
       <OnboardingNav
         onBack={onBack}
         onContinue={handleContinue}
-        continueLoading={createMutation.isPending}
+        continueLoading={createMutation.isPending || complete.isPending}
         continueDisabled={!canContinue}
         rightExtra={
-          <Button size="lg" variant="secondary" onClick={() => onContinue()}>
+          <Button size="lg" variant="secondary" onClick={() => finish()} loading={complete.isPending}>
             Skip
           </Button>
         }

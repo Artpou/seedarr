@@ -14,7 +14,7 @@ import { Textarea } from "@/shared/ui/textarea";
 import { MediaStarRating } from "@/features/media/components/rating/media-star-rating";
 import { useDeleteReview, useUpsertReview } from "@/features/media/hooks/media.queries";
 
-interface MediaReviewModalProps {
+interface MediaReviewProps {
   media: Media;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,7 +30,7 @@ function toIsoDate(value: string | Date | null | undefined): string | undefined 
   return `${year}-${month}-${day}`;
 }
 
-export function MediaReviewModal({ media, open, onOpenChange }: MediaReviewModalProps) {
+export function MediaReview({ media, open, onOpenChange }: MediaReviewProps) {
   const { t } = useLingui();
   const upsertReview = useUpsertReview();
   const deleteReview = useDeleteReview();

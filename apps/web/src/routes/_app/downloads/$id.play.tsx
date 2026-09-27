@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { DownloadPlayView } from "@/features/downloads/components/download-play-view";
+import { DownloadPlayView } from "@/features/downloads/download-play-view";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
 import { mediaQueries } from "@/features/media/hooks/media.queries";
 import { preloadMoviPlayer } from "@/features/player/helpers/movi-player.helper";

@@ -6,7 +6,7 @@ interface OnboardingLayoutProps {
   children: ReactNode;
 }
 
-export function OnboardingLayout({ children }: OnboardingLayoutProps) {
+export function OnboardingLayoutView({ children }: OnboardingLayoutProps) {
   return (
     <div className="bg-background relative min-h-svh overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_0%_0%,oklch(0.63_0.13_135_/_0.28),transparent_60%)]" />

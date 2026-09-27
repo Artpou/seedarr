@@ -26,7 +26,8 @@ export function getDownloadStatus(item: {
  * so this single helper narrows the type for all consumers.
  */
 export function getTorrentFiles(download: Download): TorrentInspectFile[] {
-  const files = download.torrent?.files;
+  const withFiles = download as Download & { files?: TorrentInspectFile[] };
+  const files = download.torrent?.files ?? withFiles.files;
   if (!Array.isArray(files)) return [];
   return files as TorrentInspectFile[];
 }

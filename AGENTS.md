@@ -241,6 +241,11 @@ Seedarr is designed for a **trusted household / self-hosted instance**:
 
 ## Frontend Patterns
 
+### Feature views
+
+- Route files stay thin: load data in the route `loader`, render a single `*-view.tsx` from the feature root (e.g. `features/downloads/downloads-view.tsx`, `features/user/user-profile-view.tsx`).
+- Put page-level layout and tabs in the view; keep `components/` for reusable pieces (buttons, tables, modals).
+
 ### Routing
 
 - File-based: `_app.*` (authenticated), `_auth.*` (public)
