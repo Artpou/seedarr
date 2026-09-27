@@ -252,6 +252,31 @@ class RemoteStorageService {
     return this.listDirectories(base);
   }
 
+  /** True when the sync path exists; on remote listing errors returns true (fail-safe). */
+  async syncPathExists(roots: SyncRoots, location: string): Promise<boolean> {
+    if (!location) return false;
+
+    if (roots.local) {
+      try {
+        await fs.access(path.resolve(location));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    try {
+      const normalized = location.replace(/\/+$/, "");
+      const parent = path.posix.dirname(normalized);
+      const baseName = path.posix.basename(normalized);
+      const parentKey = parent === "." ? "" : parent;
+      const children = await this.listDirectories(parentKey);
+      return children.some((entry) => entry.name === baseName || entry.path === normalized || entry.path === baseName);
+    } catch {
+      return true;
+    }
+  }
+
   async organizeSyncFile(roots: SyncRoots, from: string, targetDir: string, fileName: string): Promise<void> {
     const to = roots.local ? path.join(targetDir, fileName) : `${targetDir}/${fileName}`;
     if (roots.local) {

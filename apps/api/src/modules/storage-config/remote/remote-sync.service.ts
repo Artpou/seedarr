@@ -12,6 +12,7 @@ import { BadRequestError } from "@/shared/errors/error";
 import { logger } from "@/shared/helpers/logger.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
+import { isTransferInProgress } from "@/modules/download/remote/remote-transfer.helper";
 import { mediaRepository } from "@/modules/media/media.repository";
 import type { TMDBItem } from "@/modules/tmdb/tmdb.types";
 import { getTmdbApiKey } from "@/modules/tmdb/tmdb-key.query";
@@ -259,6 +260,33 @@ async function organizeFile(
   }
 }
 
+async function cleanupMissingRemoteLocations(
+  downloads: Array<{
+    id: string;
+    remoteLocation: string | null;
+    torrent: { done?: boolean; transferring?: boolean; paused?: boolean } | null;
+  }>,
+  roots: SyncRoots,
+): Promise<Set<string>> {
+  const removed = new Set<string>();
+
+  for (const dl of downloads) {
+    if (!dl.remoteLocation) continue;
+    // Leave active torrents and mid-transfer rows alone.
+    if (dl.torrent?.transferring || isTransferInProgress(dl.id)) continue;
+    if (dl.torrent && (!dl.torrent.done || dl.torrent.paused)) continue;
+
+    const exists = await remoteStorageService.syncPathExists(roots, dl.remoteLocation);
+    if (exists) continue;
+
+    logger.info("REMOTE_SYNC", `Removing orphan download ${dl.id} (missing path: ${dl.remoteLocation})`);
+    await downloadRepository.deleteWithProgress(dl.id);
+    removed.add(dl.id);
+  }
+
+  return removed;
+}
+
 export async function runRemoteSync(userId: string): Promise<RemoteSyncResponse> {
   const apiKey = await getTmdbApiKey();
   if (!apiKey) {
@@ -269,11 +297,20 @@ export async function runRemoteSync(userId: string): Promise<RemoteSyncResponse>
   logger.info("REMOTE_SYNC", `Scanning library (movies="${roots.moviePath}", tv="${roots.tvPath}")`);
 
   const existingDownloads = await downloadRepository.findManyWithMedia();
+  const removedOrphans = await cleanupMissingRemoteLocations(existingDownloads, roots);
+  if (removedOrphans.size > 0) {
+    logger.info("REMOTE_SYNC", `Removed ${removedOrphans.size} orphan download(s) with missing library paths`);
+  }
+
   const existingLocations = new Set<string>();
   const existingTitles = new Set<string>();
 
   for (const dl of existingDownloads) {
-    if (dl.remoteLocation) existingLocations.add(dl.remoteLocation.toLowerCase());
+    if (removedOrphans.has(dl.id)) continue;
+    if (!dl.remoteLocation) continue;
+    // Only treat titles as "already in library" when a remote/library path is already linked.
+    // Torrents hardlinked into Title (year) folders still need sync to attach remoteLocation.
+    existingLocations.add(dl.remoteLocation.toLowerCase());
     const m = dl.media;
     if (m) {
       existingTitles.add(m.title.toLowerCase());
