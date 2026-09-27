@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Download } from "@/modules/download/download.schema";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { listDownloadVideoSearchDirs, resolveDownloadLocalVideo } from "./download-local-video-path.helper";
+import { getTvDownloadsFolder, listDownloadVideoSearchDirs, resolveDownloadLocalVideo } from "./paths.helper";
 
 const { mediaRepository } = await import("@/modules/media/media.repository");
 
@@ -55,5 +55,21 @@ describe("download-local-video-path.helper", () => {
 
     const dirs = await listDownloadVideoSearchDirs(download);
     expect(dirs[0]).toBe(libDir);
+  });
+});
+
+describe("download-staging-path.helper", () => {
+  it("builds Show (year) without season folder", () => {
+    const folder = getTvDownloadsFolder(
+      { type: "tv", title: "The Simpsons", release_date: "1989-12-17" },
+      "Simpsons.S01E03.1989.1080p-Dual-Lat",
+    );
+    expect(folder).toBe("The Simpsons (1989)");
+  });
+
+  it("returns null for movies", () => {
+    expect(
+      getTvDownloadsFolder({ type: "movie", title: "Dune", release_date: "2021-01-01" }, "Dune.2021.1080p"),
+    ).toBeNull();
   });
 });

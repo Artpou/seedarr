@@ -100,8 +100,7 @@ vi.mock("@/modules/download/webtorrent-sync", () => ({
   clearHandlersForDownload: vi.fn(),
 }));
 
-const { downloadRoutes } = await import("./download.route");
-const { localFileRoutes } = await import("./local/local-file.route");
+const { downloadRoutes, localFileRoutes } = await import("./download.route");
 
 const testMedia = {
   id: 42,

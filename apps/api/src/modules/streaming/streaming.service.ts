@@ -8,8 +8,8 @@ import { AuthenticatedService } from "@/shared/services/authenticated.service";
 
 import { downloadRepository } from "@/modules/download/download.repository";
 import type { Download } from "@/modules/download/download.schema";
-import { resolveDownloadLocalVideo } from "@/modules/download/download-local-video-path.helper";
-import { findLargestVideoFile } from "@/modules/download/webtorrent/webtorrent.helper";
+import { resolveDownloadLocalVideo } from "@/modules/download/paths.helper";
+import { findLargestVideoFile } from "@/modules/download/webtorrent/webtorrent.service";
 import { torrentClient } from "@/modules/download/webtorrent/webtorrent-manager";
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
 import fsSync from "node:fs";

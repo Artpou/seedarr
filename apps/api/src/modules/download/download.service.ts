@@ -13,30 +13,36 @@ import { IdentifiableService } from "@/shared/services/authenticated.service";
 import { ROLE_LEVELS } from "@/modules/auth/role.guard";
 import { downloadRepository } from "@/modules/download/download.repository";
 import type { Download, DownloadStats, TvScope } from "@/modules/download/download.schema";
-import { enrichDownloadWithFiles } from "@/modules/download/download-files.helper";
-import { getPlannedRemoteDownloadFields } from "@/modules/download/download-planned-remote.helper";
-import { getTvDownloadsFolder } from "@/modules/download/download-staging-path.helper";
 import {
   applyTorrentFilePolicy,
   assertTvScopeForRequest,
   buildTvScopeFromRequest,
 } from "@/modules/download/download-tv-scope.helper";
-import { type DownloadableFile, getDownloadableFile } from "@/modules/download/local/local-file.helper";
+import {
+  type DownloadableFile,
+  getDownloadableFile,
+  getLocalDiskSpace,
+} from "@/modules/download/local/local-file.helper";
+import {
+  enrichDownloadWithFiles,
+  getPlannedRemoteDownloadFields,
+  getTvDownloadsFolder,
+} from "@/modules/download/paths.helper";
 import { mediaRepository } from "@/modules/media/media.repository";
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
 import { invalidateStreamSource } from "@/modules/streaming/streaming-cache.helper";
 import { resolveTorrentSource } from "@/modules/torrent/torrent-source.helper";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { getLocalDiskSpace } from "./local/local-disk.helper";
 import { isTransferInProgress, markTransferStarting, runRemoteTransfer } from "./remote/remote-transfer.helper";
-import { extractTorrentLiveData, waitForTorrentReady } from "./webtorrent/webtorrent.helper";
 import {
   destroyLocalTorrentFiles,
+  extractTorrentLiveData,
   pauseTorrent,
   reannounceTorrent,
   recheckTorrent,
   resumeTorrent,
+  waitForTorrentReady,
 } from "./webtorrent/webtorrent.service";
 import { torrentClient } from "./webtorrent/webtorrent-manager";
 import { setupTorrentHandlers } from "./webtorrent/webtorrent-sync";

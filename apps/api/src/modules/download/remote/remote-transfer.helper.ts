@@ -5,7 +5,7 @@ import { resolveWithinDownloads } from "@/shared/helpers/path.helper";
 
 import { activityFor } from "@/modules/activity/activity.service";
 import { downloadRepository } from "@/modules/download/download.repository";
-import { getOrganizedMediaRelativePath } from "@/modules/download/download-staging-path.helper";
+import { getOrganizedMediaRelativePath } from "@/modules/download/paths.helper";
 import { mediaRepository } from "@/modules/media/media.repository";
 import { moduleRepository } from "@/modules/module/module.repository";
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";

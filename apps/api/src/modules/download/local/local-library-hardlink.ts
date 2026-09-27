@@ -4,7 +4,7 @@ import { logger } from "@/shared/helpers/logger.helper";
 import { getDownloadFolderName, resolveDownloadStagingPath } from "@/shared/helpers/path.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
-import { getOrganizedMediaRelativePath } from "@/modules/download/download-staging-path.helper";
+import { getOrganizedMediaRelativePath } from "@/modules/download/paths.helper";
 import { mediaRepository } from "@/modules/media/media.repository";
 import { invalidateStreamSource } from "@/modules/streaming/streaming-cache.helper";
 import fs from "node:fs/promises";

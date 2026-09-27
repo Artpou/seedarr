@@ -8,7 +8,7 @@ import { getDownloadsRoot } from "@/shared/helpers/path.helper";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { guardTorrentPieceRequests } from "../download-tv-scope.helper";
-import { waitForTorrentReady } from "./webtorrent.helper";
+import { waitForTorrentReady } from "./webtorrent.service";
 
 const DOWNLOAD_PATH = process.env.DOWNLOADS_PATH || "./downloads";
 

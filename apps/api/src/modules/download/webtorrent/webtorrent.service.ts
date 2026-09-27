@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/correctness/noUnusedVariables: we want to exclude some properties */
+import { formatError } from "@seedarr/shared";
 import type WebTorrent from "webtorrent";
 
 import { BadRequestError } from "@/shared/errors/error";
@@ -8,15 +10,108 @@ import {
   resolveDownloadStagingPath,
   resolveTorrentStorePath,
 } from "@/shared/helpers/path.helper";
+import { pickLargestVideoFromEntries } from "@/shared/helpers/video-file.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
-import type { Download } from "@/modules/download/download.schema";
+import type { Download, TorrentLiveData, TvScope } from "@/modules/download/download.schema";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { applyTorrentFilePolicy } from "../download-tv-scope.helper";
-import { extractTorrentLiveData } from "./webtorrent.helper";
+import { aggregateTorrentLiveDataForTvScope, applyTorrentFilePolicy } from "../download-tv-scope.helper";
 import { torrentClient, UNMARK_DESTROYING_DELAY_MS } from "./webtorrent-manager";
 import { clearHandlersForDownload, setupTorrentHandlers } from "./webtorrent-sync";
+
+export const extractTorrentLiveData = (
+  torrent: WebTorrent.Torrent,
+  options?: { tvScope?: TvScope | null },
+): TorrentLiveData => {
+  const base: TorrentLiveData = {
+    infoHash: torrent.infoHash,
+    magnetURI: torrent.magnetURI,
+    torrentFileBlobURL: torrent.torrentFileBlobURL,
+    announce: torrent.announce,
+    "announce-list": torrent["announce-list"],
+    timeRemaining: torrent.timeRemaining,
+    received: torrent.received,
+    downloaded: torrent.downloaded,
+    uploaded: torrent.uploaded,
+    downloadSpeed: torrent.downloadSpeed,
+    uploadSpeed: torrent.uploadSpeed,
+    progress: torrent.progress,
+    ratio: torrent.ratio,
+    length: torrent.length,
+    pieceLength: torrent.pieceLength,
+    lastPieceLength: torrent.lastPieceLength,
+    numPeers: torrent.numPeers,
+    path: torrent.path,
+    ready: torrent.ready,
+    paused: torrent.paused,
+    done: torrent.done,
+    name: torrent.name,
+    created: torrent.created,
+    createdBy: torrent.createdBy,
+    comment: torrent.comment,
+    maxWebConns: torrent.maxWebConns,
+    files: torrent.files.map((file) => ({
+      name: file.name,
+      path: file.path,
+      length: file.length,
+      downloaded: file.downloaded,
+      progress: file.progress,
+    })),
+  };
+
+  return aggregateTorrentLiveDataForTvScope(base, torrent, options?.tvScope ?? undefined);
+};
+
+export function findLargestVideoFile(torrent: WebTorrent.Torrent): WebTorrent.TorrentFile | null {
+  return pickLargestVideoFromEntries(torrent.files) ?? null;
+}
+
+/**
+ * Wait for `ready`, then run `whenReady` synchronously (before any download ticks when `deselect: true`).
+ * Use this to apply file selection immediately on ready.
+ */
+export function waitForTorrentReady(
+  torrent: WebTorrent.Torrent,
+  timeoutMs: number,
+  whenReady: () => void,
+): Promise<void> {
+  if (torrent.ready) {
+    whenReady();
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(
+        new BadRequestError(
+          "Could not load torrent metadata — no reachable peers. Try another release or inspect first.",
+        ),
+      );
+    }, timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      torrent.off("ready", onReady);
+      torrent.off("error", onError);
+    };
+
+    const onReady = () => {
+      whenReady();
+      cleanup();
+      resolve();
+    };
+
+    const onError = (err: Error | string) => {
+      cleanup();
+      reject(new BadRequestError(formatError(err)));
+    };
+
+    torrent.once("ready", onReady);
+    torrent.once("error", onError);
+  });
+}
 
 function destroyTorrent(torrent: WebTorrent.Torrent, opts: { destroyStore: boolean }): Promise<void> {
   return new Promise<void>((resolve) => {

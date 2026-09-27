@@ -2,8 +2,8 @@ import { VIDEO_EXTENSIONS } from "@seedarr/shared";
 
 import { logger } from "@/shared/helpers/logger.helper";
 import { resolveWithinDownloads } from "@/shared/helpers/path.helper";
-import { probeVideoDuration } from "@/shared/helpers/video.helper";
 import { findLargestVideoInDirectory } from "@/shared/helpers/video-file.helper";
+import { probeVideoDuration } from "@/shared/helpers/video.helper";
 
 import { activityFor } from "@/modules/activity/activity.service";
 import { downloadRepository } from "@/modules/download/download.repository";
@@ -11,7 +11,7 @@ import { validatePendingRequestsForMedia } from "@/modules/request/request.helpe
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { runLocalLibraryHardlink } from "./local-library-hardlink";
+import { runLocalLibraryHardlink } from "./local/local-library-hardlink";
 import { markTransferStarting, runRemoteTransfer } from "./remote/remote-transfer.helper";
 
 /**
