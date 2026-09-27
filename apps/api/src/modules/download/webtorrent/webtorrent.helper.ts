@@ -5,50 +5,69 @@ import type WebTorrent from "webtorrent";
 import { BadRequestError } from "@/shared/errors/error";
 import { pickLargestVideoFromEntries } from "@/shared/helpers/video-file.helper";
 
-import type { TorrentLiveData } from "../download.schema";
+import type { TorrentLiveData, TvScope } from "../download.schema";
+import { aggregateTorrentLiveDataForTvScope } from "../download-tv-scope.helper";
 
-export const extractTorrentLiveData = (torrent: WebTorrent.Torrent): TorrentLiveData => ({
-  infoHash: torrent.infoHash,
-  magnetURI: torrent.magnetURI,
-  torrentFileBlobURL: torrent.torrentFileBlobURL,
-  announce: torrent.announce,
-  "announce-list": torrent["announce-list"],
-  timeRemaining: torrent.timeRemaining,
-  received: torrent.received,
-  downloaded: torrent.downloaded,
-  uploaded: torrent.uploaded,
-  downloadSpeed: torrent.downloadSpeed,
-  uploadSpeed: torrent.uploadSpeed,
-  progress: torrent.progress,
-  ratio: torrent.ratio,
-  length: torrent.length,
-  pieceLength: torrent.pieceLength,
-  lastPieceLength: torrent.lastPieceLength,
-  numPeers: torrent.numPeers,
-  path: torrent.path,
-  ready: torrent.ready,
-  paused: torrent.paused,
-  done: torrent.done,
-  name: torrent.name,
-  created: torrent.created,
-  createdBy: torrent.createdBy,
-  comment: torrent.comment,
-  maxWebConns: torrent.maxWebConns,
-  files: torrent.files.map((file) => ({
-    name: file.name,
-    path: file.path,
-    length: file.length,
-    downloaded: file.downloaded,
-    progress: file.progress,
-  })),
-});
+export const extractTorrentLiveData = (
+  torrent: WebTorrent.Torrent,
+  options?: { tvScope?: TvScope | null },
+): TorrentLiveData => {
+  const base: TorrentLiveData = {
+    infoHash: torrent.infoHash,
+    magnetURI: torrent.magnetURI,
+    torrentFileBlobURL: torrent.torrentFileBlobURL,
+    announce: torrent.announce,
+    "announce-list": torrent["announce-list"],
+    timeRemaining: torrent.timeRemaining,
+    received: torrent.received,
+    downloaded: torrent.downloaded,
+    uploaded: torrent.uploaded,
+    downloadSpeed: torrent.downloadSpeed,
+    uploadSpeed: torrent.uploadSpeed,
+    progress: torrent.progress,
+    ratio: torrent.ratio,
+    length: torrent.length,
+    pieceLength: torrent.pieceLength,
+    lastPieceLength: torrent.lastPieceLength,
+    numPeers: torrent.numPeers,
+    path: torrent.path,
+    ready: torrent.ready,
+    paused: torrent.paused,
+    done: torrent.done,
+    name: torrent.name,
+    created: torrent.created,
+    createdBy: torrent.createdBy,
+    comment: torrent.comment,
+    maxWebConns: torrent.maxWebConns,
+    files: torrent.files.map((file) => ({
+      name: file.name,
+      path: file.path,
+      length: file.length,
+      downloaded: file.downloaded,
+      progress: file.progress,
+    })),
+  };
+
+  return aggregateTorrentLiveDataForTvScope(base, torrent, options?.tvScope ?? undefined);
+};
 
 export function findLargestVideoFile(torrent: WebTorrent.Torrent): WebTorrent.TorrentFile | null {
   return pickLargestVideoFromEntries(torrent.files) ?? null;
 }
 
-export function waitForTorrentMetadata(torrent: WebTorrent.Torrent, timeoutMs: number): Promise<void> {
-  if (torrent.ready) return Promise.resolve();
+export function waitForTorrentMetadata(
+  torrent: WebTorrent.Torrent,
+  timeoutMs: number,
+  onMetadata?: () => void,
+): Promise<void> {
+  const runHook = () => {
+    onMetadata?.();
+  };
+
+  if (torrent.ready) {
+    runHook();
+    return Promise.resolve();
+  }
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -68,11 +87,13 @@ export function waitForTorrentMetadata(torrent: WebTorrent.Torrent, timeoutMs: n
     };
 
     const onMetadata = () => {
+      runHook();
       cleanup();
       resolve();
     };
 
     const onReady = () => {
+      runHook();
       cleanup();
       resolve();
     };

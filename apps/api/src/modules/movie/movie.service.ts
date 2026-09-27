@@ -27,7 +27,8 @@ export class MovieService extends TMDBService {
       collection = await this.request(`/collection/${movieData.belongs_to_collection.id}`);
     }
 
-    const collectionParts = (collection?.parts ?? []).filter((p) => p.id.toString() !== id);
+    const mediaId = String(movieData.id);
+    const collectionParts = (collection?.parts ?? []).filter((p) => p.id.toString() !== mediaId);
     const recommendations = movieData.recommendations?.results ?? [];
     const allRelated = [
       ...collectionParts.map((item) => tmdbMovieToMedia(item)),
@@ -35,17 +36,17 @@ export class MovieService extends TMDBService {
     ];
 
     const mediaMap = await listEnrichedMedia(this.user.id, {
-      ids: [id, ...allRelated.map((m) => m.id.toString())],
+      ids: [mediaId, ...allRelated.map((m) => m.id.toString())],
     });
     const collectionIds = new Set(collectionParts.map((p) => p.id));
 
     const fromTmdb = tmdbMovieToMedia(movieData);
-    const fromDb = mediaMap.find((m) => m.id.toString() === id);
+    const fromDb = mediaMap.find((m) => m.id.toString() === mediaId);
     const media = fromDb ? { ...fromDb, imdbId: fromDb.imdbId || fromTmdb.imdbId } : fromTmdb;
     const imdbRating = await fetchImdbRating(media.imdbId || movieData.external_ids?.imdb_id, "movie");
 
     return {
-      id,
+      id: mediaId,
       movie: movieData,
       media,
       imdbRating,

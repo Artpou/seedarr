@@ -1,13 +1,18 @@
 import { filenameParse } from "@ctrl/video-filename-parser";
 import type { ManualSyncInput } from "@seedarr/contracts";
-import { buildOrganizedRemotePath, extractYearFromDate, getVideoContainer, isVideoFile } from "@seedarr/shared";
+import {
+  buildOrganizedRemotePath,
+  extractYearFromDate,
+  getVideoContainer,
+  isVideoFile,
+  parseSeasonEpisode,
+} from "@seedarr/shared";
 
 import { BadRequestError } from "@/shared/errors/error";
 import { logger } from "@/shared/helpers/logger.helper";
 
 import { downloadRepository } from "@/modules/download/download.repository";
 import { mediaRepository } from "@/modules/media/media.repository";
-import { moduleRepository } from "@/modules/module/module.repository";
 import type { TMDBItem } from "@/modules/tmdb/tmdb.types";
 import { getTmdbApiKey } from "@/modules/tmdb/tmdb-key.query";
 import {
@@ -17,7 +22,8 @@ import {
   sleep,
   tmdbItemToMediaInsert,
 } from "@/modules/tmdb/tmdb-resolve.helper";
-import { remoteStorageService } from "./remote-storage.service";
+import path from "node:path";
+import { remoteStorageService, type SyncRoots } from "./remote-storage.service";
 
 interface RemoteSyncError {
   name: string;
@@ -62,16 +68,10 @@ interface TMDBMatch {
   resolvedType: "movie" | "tv";
 }
 
-// --- Helpers ---
-
 function isSyncableDir(name: string): boolean {
   if (!name || name === "." || name === "..") return false;
   if (name.startsWith(".")) return false;
   return !SKIP_DIRECTORY_NAMES.has(name.toLowerCase());
-}
-
-function isSyncableFile(name: string): boolean {
-  return isVideoFile(name);
 }
 
 function extractTmdbId(name: string): number | null {
@@ -140,80 +140,124 @@ async function resolveTmdbMatch(name: string, mediaType: "movie" | "tv"): Promis
   return null;
 }
 
-// --- Entry collection ---
-
-async function collectEntries(basePath: string, mediaType: "movie" | "tv"): Promise<SyncEntry[]> {
-  const results: SyncEntry[] = [];
-  try {
-    const items = await remoteStorageService.listDirectories(basePath);
-    const normalizedBase = basePath.replace(/\/+$/, "");
-    logger.info("REMOTE_SYNC", `${mediaType} path "${basePath}": ${items.length} entries`);
-
-    for (const item of items) {
-      if (item.type === "directory" && isSyncableDir(item.name)) {
-        results.push({
-          name: item.name,
-          remoteLocation: `${normalizedBase}/${item.name}`,
-          mediaType,
-          type: "directory",
-          basePath: normalizedBase,
-        });
-      } else if (item.type === "file" && isSyncableFile(item.name)) {
-        results.push({
-          name: item.name,
-          remoteLocation: `${normalizedBase}/${item.name}`,
-          mediaType,
-          type: "file",
-          basePath: normalizedBase,
-        });
-      }
-    }
-  } catch (err) {
-    logger.error("REMOTE_SYNC", `Failed to list ${mediaType} directory "${basePath}": ${err}`);
-  }
-  return results;
-}
-
-// --- File organization ---
-
-function buildDownloadLocation(entry: SyncEntry, tmdbItem: TMDBItem, resolvedType: "movie" | "tv"): string {
+function organizedPath(entry: SyncEntry, tmdbItem: TMDBItem, resolvedType: "movie" | "tv", roots: SyncRoots): string {
   const releaseDate = resolvedType === "movie" ? tmdbItem.release_date : tmdbItem.first_air_date;
-  return buildOrganizedRemotePath({
+  const organized = buildOrganizedRemotePath({
     basePath: entry.basePath,
     title: getTmdbTitle(tmdbItem, resolvedType),
     year: extractYearFromDate(releaseDate),
     type: resolvedType,
+    season: null,
   });
+  return remoteStorageService.resolveOrganizedPath(roots, entry.basePath, organized);
+}
+
+async function countVideosUnder(roots: SyncRoots, dir: string, depth = 0): Promise<number> {
+  if (depth > 2) return 0;
+  const items = await remoteStorageService.listSyncChildren(roots, dir);
+  let count = 0;
+  for (const item of items) {
+    if (item.type === "file" && isVideoFile(item.name)) count++;
+    if (item.type === "directory") {
+      count += await countVideosUnder(roots, remoteStorageService.joinSyncPath(roots, dir, item.name), depth + 1);
+    }
+  }
+  return count;
+}
+
+async function inferSyncMediaType(
+  roots: SyncRoots,
+  entry: { name: string; remoteLocation: string; type: "file" | "directory" },
+): Promise<"movie" | "tv"> {
+  if (parseSeasonEpisode(entry.name)) return "tv";
+  if (entry.type === "directory") {
+    const videoCount = await countVideosUnder(roots, entry.remoteLocation);
+    if (videoCount > 1) return "tv";
+    const children = await remoteStorageService.listSyncChildren(roots, entry.remoteLocation);
+    for (const child of children) {
+      if (parseSeasonEpisode(child.name)) return "tv";
+    }
+  }
+  return "movie";
+}
+
+async function collectEntriesWithInferredType(basePath: string, roots: SyncRoots): Promise<SyncEntry[]> {
+  const base = remoteStorageService.normalizeSyncRoot(roots, basePath);
+  if (!base) return [];
+
+  const results: SyncEntry[] = [];
+  try {
+    const items = await remoteStorageService.listSyncChildren(roots, base);
+    logger.info("REMOTE_SYNC", `shared path "${base}": ${items.length} entries (type inferred)`);
+
+    for (const item of items) {
+      const syncable =
+        (item.type === "directory" && isSyncableDir(item.name)) || (item.type === "file" && isVideoFile(item.name));
+      if (!syncable) continue;
+
+      const remoteLocation = remoteStorageService.joinSyncPath(roots, base, item.name);
+      const mediaType = await inferSyncMediaType(roots, {
+        name: item.name,
+        remoteLocation,
+        type: item.type === "directory" ? "directory" : "file",
+      });
+
+      results.push({
+        name: item.name,
+        remoteLocation,
+        mediaType,
+        type: item.type === "directory" ? "directory" : "file",
+        basePath: base,
+      });
+    }
+  } catch (err) {
+    logger.error("REMOTE_SYNC", `Failed to list shared directory "${base}": ${err}`);
+  }
+  return results;
+}
+
+async function collectEntries(basePath: string, mediaType: "movie" | "tv", roots: SyncRoots): Promise<SyncEntry[]> {
+  const base = remoteStorageService.normalizeSyncRoot(roots, basePath);
+  if (!base) return [];
+
+  const results: SyncEntry[] = [];
+  try {
+    const items = await remoteStorageService.listSyncChildren(roots, base);
+    logger.info("REMOTE_SYNC", `${mediaType} path "${base}": ${items.length} entries`);
+
+    for (const item of items) {
+      const syncable =
+        (item.type === "directory" && isSyncableDir(item.name)) || (item.type === "file" && isVideoFile(item.name));
+      if (!syncable) continue;
+
+      results.push({
+        name: item.name,
+        remoteLocation: remoteStorageService.joinSyncPath(roots, base, item.name),
+        mediaType,
+        type: item.type === "directory" ? "directory" : "file",
+        basePath: base,
+      });
+    }
+  } catch (err) {
+    logger.error("REMOTE_SYNC", `Failed to list ${mediaType} directory "${base}": ${err}`);
+  }
+  return results;
 }
 
 async function organizeFile(
   entry: SyncEntry,
   tmdbItem: TMDBItem,
   resolvedType: "movie" | "tv",
-  seasons: number[],
+  roots: SyncRoots,
 ): Promise<void> {
-  const releaseDate = resolvedType === "movie" ? tmdbItem.release_date : tmdbItem.first_air_date;
-  const targetDir = buildOrganizedRemotePath({
-    basePath: entry.basePath,
-    title: getTmdbTitle(tmdbItem, resolvedType),
-    year: extractYearFromDate(releaseDate),
-    type: resolvedType,
-    season: resolvedType === "tv" ? (seasons[0] ?? 1) : null,
-  });
-
-  const from = entry.remoteLocation;
-  const to = `${targetDir}/${entry.name}`;
-
+  const targetDir = organizedPath(entry, tmdbItem, resolvedType, roots);
   try {
-    await remoteStorageService.ensureDirectory(targetDir);
-    await remoteStorageService.moveFile(from, to);
-    logger.info("REMOTE_SYNC", `Moved "${entry.name}" → "${to}"`);
+    await remoteStorageService.organizeSyncFile(roots, entry.remoteLocation, targetDir, entry.name);
+    logger.info("REMOTE_SYNC", `Moved "${entry.name}" → "${targetDir}"`);
   } catch (err) {
     logger.error("REMOTE_SYNC", `Failed to organize file "${entry.name}": ${err}`);
   }
 }
-
-// --- Main ---
 
 export async function runRemoteSync(userId: string): Promise<RemoteSyncResponse> {
   const apiKey = await getTmdbApiKey();
@@ -221,12 +265,8 @@ export async function runRemoteSync(userId: string): Promise<RemoteSyncResponse>
     throw new BadRequestError("TMDB API key is required for synchronization. Configure it in Settings > Modules.");
   }
 
-  const { remoteStorageService } = await import("./remote-storage.service");
-  if (!(await remoteStorageService.isEnabled())) {
-    throw new BadRequestError("Remote storage is not configured or disabled");
-  }
-
-  const config = await remoteStorageService.getMediaPaths();
+  const roots = await remoteStorageService.getSyncRoots();
+  logger.info("REMOTE_SYNC", `Scanning library (movies="${roots.moviePath}", tv="${roots.tvPath}")`);
 
   const existingDownloads = await downloadRepository.findManyWithMedia();
   const existingLocations = new Set<string>();
@@ -242,12 +282,14 @@ export async function runRemoteSync(userId: string): Promise<RemoteSyncResponse>
   }
 
   const entries: SyncEntry[] = [];
+  const sharedLibraryRoot =
+    roots.moviePath && roots.tvPath && roots.moviePath === roots.tvPath ? roots.moviePath : null;
 
-  if (config.moviePath) {
-    entries.push(...(await collectEntries(config.moviePath, "movie")));
-  }
-  if (config.tvPath) {
-    entries.push(...(await collectEntries(config.tvPath, "tv")));
+  if (sharedLibraryRoot) {
+    entries.push(...(await collectEntriesWithInferredType(sharedLibraryRoot, roots)));
+  } else {
+    if (roots.moviePath) entries.push(...(await collectEntries(roots.moviePath, "movie", roots)));
+    if (roots.tvPath) entries.push(...(await collectEntries(roots.tvPath, "tv", roots)));
   }
 
   const uniqueEntries: SyncEntry[] = [];
@@ -274,7 +316,7 @@ export async function runRemoteSync(userId: string): Promise<RemoteSyncResponse>
     const batch = uniqueEntries.slice(i, i + BATCH_SIZE);
 
     const results = await Promise.allSettled(
-      batch.map((entry) => processEntry(entry, userId, existingLocations, existingTitles, syncedMediaIds)),
+      batch.map((entry) => processEntry(entry, userId, existingLocations, existingTitles, syncedMediaIds, roots)),
     );
 
     for (let j = 0; j < results.length; j++) {
@@ -296,20 +338,19 @@ export async function runRemoteSync(userId: string): Promise<RemoteSyncResponse>
   return { synced, skipped, errors };
 }
 
-// --- Per-entry processing ---
-
 async function processEntry(
   entry: SyncEntry,
   userId: string,
   existingLocations: Set<string>,
   existingTitles: Set<string>,
   syncedMediaIds: Set<number>,
+  roots: SyncRoots,
 ): Promise<"synced" | "skipped" | "not_found"> {
   const { name, remoteLocation, mediaType, type } = entry;
 
   if (existingLocations.has(remoteLocation.toLowerCase())) return "skipped";
 
-  const { title, seasons, quality, language, container } = parseEntry(name, mediaType === "tv");
+  const { title, quality, language, container } = parseEntry(name, mediaType === "tv");
   if (title && existingTitles.has(title.toLowerCase())) return "skipped";
 
   const match = await resolveTmdbMatch(name, mediaType);
@@ -319,7 +360,7 @@ async function processEntry(
   const mediaInsert = tmdbItemToMediaInsert(tmdbItem, resolvedType);
 
   if (syncedMediaIds.has(tmdbItem.id)) {
-    if (type === "file") await organizeFile(entry, tmdbItem, resolvedType, seasons);
+    if (type === "file") await organizeFile(entry, tmdbItem, resolvedType, roots);
     return "skipped";
   }
 
@@ -328,19 +369,19 @@ async function processEntry(
   if (existingDls.length > 0) {
     const needsUpdate = existingDls.some((dl) => !dl.remoteLocation);
     if (needsUpdate) {
-      const targetLocation = type === "file" ? buildDownloadLocation(entry, tmdbItem, resolvedType) : remoteLocation;
+      const targetLocation = type === "file" ? organizedPath(entry, tmdbItem, resolvedType, roots) : remoteLocation;
       for (const dl of existingDls) {
         if (!dl.remoteLocation) {
           await downloadRepository.update(dl.id, {
             remoteLocation: targetLocation,
-            moduleStorageId: await moduleRepository.getEnabledStorageModuleId(),
+            moduleStorageId: roots.storageModuleId,
           });
         }
       }
       await mediaRepository.upsert(mediaInsert);
     }
 
-    if (type === "file") await organizeFile(entry, tmdbItem, resolvedType, seasons);
+    if (type === "file") await organizeFile(entry, tmdbItem, resolvedType, roots);
 
     syncedMediaIds.add(tmdbItem.id);
     existingTitles.add(mediaInsert.title.toLowerCase());
@@ -348,19 +389,11 @@ async function processEntry(
     return needsUpdate ? "synced" : "skipped";
   }
 
-  if (type === "file") await organizeFile(entry, tmdbItem, resolvedType, seasons);
+  if (type === "file") await organizeFile(entry, tmdbItem, resolvedType, roots);
 
-  const downloadLocation = type === "file" ? buildDownloadLocation(entry, tmdbItem, resolvedType) : remoteLocation;
+  const downloadLocation = type === "file" ? organizedPath(entry, tmdbItem, resolvedType, roots) : remoteLocation;
 
   await mediaRepository.upsert(mediaInsert);
-
-  let remoteSize: number | null = null;
-  try {
-    const files = await remoteStorageService.listFiles(downloadLocation);
-    remoteSize = files.reduce((sum, f) => sum + f.length, 0) || null;
-  } catch {
-    /* size remains null */
-  }
 
   await downloadRepository.insert({
     userId,
@@ -370,8 +403,8 @@ async function processEntry(
     language,
     container,
     remoteLocation: downloadLocation,
-    moduleStorageId: await moduleRepository.getEnabledStorageModuleId(),
-    size: remoteSize,
+    moduleStorageId: roots.storageModuleId,
+    size: await remoteStorageService.sumSyncVideoBytes(roots, downloadLocation),
     torrent: null,
   });
 
@@ -390,13 +423,14 @@ export async function runManualSync(userId: string, input: ManualSyncInput): Pro
   const tmdbItem = await fetchTmdbById(input.mediaId, input.type);
   if (!tmdbItem) throw new BadRequestError("Could not find media on TMDB");
 
+  const roots = await remoteStorageService.getSyncRoots();
   const mediaInsert = tmdbItemToMediaInsert(tmdbItem, input.type);
   await mediaRepository.upsert(mediaInsert);
 
-  const paths = await remoteStorageService.getMediaPaths();
-  const basePath = input.type === "tv" ? paths.tvPath : paths.moviePath;
-  const fileName = input.remotePath.split("/").pop() ?? input.remotePath;
-  const { seasons, quality, language, container } = parseEntry(fileName, input.type === "tv");
+  const configuredBase = input.type === "tv" ? roots.tvPath : roots.moviePath;
+  const basePath = remoteStorageService.normalizeSyncRoot(roots, configuredBase);
+  const fileName = path.basename(input.remotePath.replace(/\\/g, "/"));
+  const { quality, language, container } = parseEntry(fileName, input.type === "tv");
   const entry: SyncEntry = {
     name: fileName,
     remoteLocation: input.remotePath,
@@ -405,28 +439,18 @@ export async function runManualSync(userId: string, input: ManualSyncInput): Pro
     basePath,
   };
 
-  const downloadLocation =
-    entry.type === "file" ? buildDownloadLocation(entry, tmdbItem, input.type) : input.remotePath;
+  const downloadLocation = entry.type === "file" ? organizedPath(entry, tmdbItem, input.type, roots) : input.remotePath;
 
   const existing = await downloadRepository.findByMediaIdAndRemoteLocations(input.mediaId, [
     downloadLocation,
     input.remotePath,
   ]);
-  const alreadyLinked = Boolean(existing);
 
   if (entry.type === "file") {
-    await organizeFile(entry, tmdbItem, input.type, seasons);
+    await organizeFile(entry, tmdbItem, input.type, roots);
   }
 
-  if (!alreadyLinked) {
-    let remoteSize: number | null = null;
-    try {
-      const files = await remoteStorageService.listFiles(downloadLocation);
-      remoteSize = files.reduce((sum, f) => sum + f.length, 0) || null;
-    } catch {
-      /* size remains null */
-    }
-
+  if (!existing) {
     await downloadRepository.insert({
       userId,
       mediaId: input.mediaId,
@@ -435,8 +459,8 @@ export async function runManualSync(userId: string, input: ManualSyncInput): Pro
       language,
       container,
       remoteLocation: downloadLocation,
-      moduleStorageId: await moduleRepository.getEnabledStorageModuleId(),
-      size: remoteSize,
+      moduleStorageId: roots.storageModuleId,
+      size: await remoteStorageService.sumSyncVideoBytes(roots, downloadLocation),
       torrent: null,
     });
   }

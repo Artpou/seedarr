@@ -43,10 +43,16 @@ export function MediaPoster({ data, download }: MediaPosterProps) {
   const locale = useTmdbLocale();
   const { media } = data;
 
+  const playbackQuery = useQuery({
+    ...downloadQueries.playbackInfo(download?.id ?? ""),
+    enabled: Boolean(download?.id),
+    retry: false,
+  });
   const { data: videoFile } = useQuery({
     ...downloadQueries.videoFile(download?.id ?? ""),
     enabled: !!download?.id,
   });
+  const canPlay = Boolean(download?.id) && playbackQuery.isSuccess;
 
   const { data: trailer } = useQuery({
     ...trailerQueries.get(media, locale),
@@ -56,7 +62,6 @@ export function MediaPoster({ data, download }: MediaPosterProps) {
   const displayTitle = getDisplayTitle(data);
   const showWatchProgress = hasWatchProgress(media);
   const watchProgressPercent = getWatchProgressPercent(media);
-  const canPlay = Boolean(download);
   const canDownload = Boolean(download && (!download.torrent || download.torrent.done) && videoFile);
 
   if (isMobile) {

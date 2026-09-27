@@ -139,10 +139,12 @@ export const startupLogger = ({
   startTime,
   port,
   downloadsPath,
+  libraryPaths,
 }: {
   startTime: number;
   port: number;
   downloadsPath: string;
+  libraryPaths?: string | null;
 }) => {
   const publicUrl = process.env.WEB_URL?.replace(/\/$/, "") || `http://localhost:${port}`;
 
@@ -159,6 +161,9 @@ export const startupLogger = ({
   );
 
   console.log(`\n  ${colors.bold}Downloads:${colors.reset} ${colors.cyan}${downloadsPath}${colors.reset}`);
+  if (libraryPaths) {
+    console.log(`  ${colors.bold}Library:${colors.reset}   ${colors.cyan}${libraryPaths}${colors.reset}`);
+  }
   console.log(`  ${colors.bold}Log level:${colors.reset} ${getLogLevel()}\n`);
 
   writeToFile(`[STARTUP] Server ready in ${Date.now() - startTime}ms on port ${port} (level: ${getLogLevel()})`);

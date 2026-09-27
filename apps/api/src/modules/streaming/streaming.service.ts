@@ -1,31 +1,27 @@
-import { VIDEO_EXTENSIONS } from "@seedarr/shared";
 import type { StreamingApi } from "hono/utils/stream";
 
 import { BadRequestError, NotFoundError } from "@/shared/errors/error";
 import { logger } from "@/shared/helpers/logger.helper";
-import { getDownloadFolderName, resolveWithinDownloads } from "@/shared/helpers/path.helper";
 import { pipeNodeStream } from "@/shared/helpers/stream.helper";
 import { convertToFragmentedMp4Stream, getVideoInputFormat, type RemuxInput } from "@/shared/helpers/video.helper";
-import { findLargestVideoInDirectory } from "@/shared/helpers/video-file.helper";
 import { AuthenticatedService } from "@/shared/services/authenticated.service";
 
 import { downloadRepository } from "@/modules/download/download.repository";
 import type { Download } from "@/modules/download/download.schema";
+import { resolveDownloadLocalVideo } from "@/modules/download/download-local-video-path.helper";
 import { findLargestVideoFile } from "@/modules/download/webtorrent/webtorrent.helper";
 import { torrentClient } from "@/modules/download/webtorrent/webtorrent-manager";
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
-import * as path from "node:path";
 import { acquireStreamLease } from "./lease/streaming-lease";
+import { type ByteRange, buildStreamHeaders, parseRangeHeader, resolveRemoteVideoInfo } from "./streaming.helper";
 import {
-  type ByteRange,
-  buildStreamHeaders,
-  isFsNotFoundError,
-  parseRangeHeader,
-  resolveRemoteVideoInfo,
-} from "./streaming.helper";
-import { getCachedStreamSource, type StreamSourceInfo, setCachedStreamSource } from "./streaming-cache.helper";
+  getCachedStreamSource,
+  invalidateStreamSource,
+  type StreamSourceInfo,
+  setCachedStreamSource,
+} from "./streaming-cache.helper";
 import { StreamingSubtitleService } from "./subtitle/streaming-subtitle.service";
 
 export type { StreamSourceInfo } from "./streaming-cache.helper";
@@ -59,7 +55,10 @@ export class StreamingService extends AuthenticatedService {
 
   async resolveSourceInfo(download: Download): Promise<StreamSourceInfo | undefined> {
     const cached = getCachedStreamSource(download.id);
-    if (cached) return cached;
+    if (cached) {
+      if (await this.isSourceStillValid(download, cached)) return cached;
+      invalidateStreamSource(download.id);
+    }
 
     const info = await this.computeSourceInfo(download);
     if (info) setCachedStreamSource(download.id, info);
@@ -121,7 +120,7 @@ export class StreamingService extends AuthenticatedService {
   // --- Private: source resolution ---
 
   private async computeSourceInfo(download: Download): Promise<StreamSourceInfo | undefined> {
-    if (download.remoteLocation) {
+    if (download.remoteLocation && download.moduleStorageId) {
       const remote = await this.tryRemoteSource(download);
       if (remote) return remote;
     }
@@ -154,23 +153,29 @@ export class StreamingService extends AuthenticatedService {
   }
 
   private async resolveFromDisk(download: Download): Promise<StreamSourceInfo | undefined> {
-    const folderName = getDownloadFolderName(download);
-    if (!folderName) return undefined;
+    const local = await resolveDownloadLocalVideo(download);
+    if (!local) return undefined;
+    return { size: local.size, fileName: local.fileName, filePath: local.filePath };
+  }
 
-    const fullPath = resolveWithinDownloads(folderName);
-    try {
-      const stats = await fs.stat(fullPath);
-      if (stats.isFile()) {
-        const fileName = path.basename(fullPath);
-        return VIDEO_EXTENSIONS.test(fileName) ? { size: stats.size, fileName, filePath: fullPath } : undefined;
+  /** Staging may be removed after hardlink (HARDLINK_REMOVE_SOURCE); torrent session may be unloaded. */
+  private async isSourceStillValid(download: Download, source: StreamSourceInfo): Promise<boolean> {
+    if (source.isRemote || source.remotePath) return true;
+
+    if (source.filePath) {
+      try {
+        await fs.access(source.filePath);
+        return true;
+      } catch {
+        return false;
       }
-      const largest = await findLargestVideoInDirectory(fullPath);
-      return largest ? { size: largest.size, fileName: largest.fileName, filePath: largest.filePath } : undefined;
-    } catch (error) {
-      if (error instanceof BadRequestError) throw error;
-      if (isFsNotFoundError(error)) return undefined;
-      throw error;
     }
+
+    if (source.hasTorrentFile) {
+      return Boolean(torrentClient.getActiveTorrent(download.id));
+    }
+
+    return true;
   }
 
   // --- Private: streaming ---
@@ -265,7 +270,7 @@ export class StreamingService extends AuthenticatedService {
     if (source.filePath) {
       return range ? fsSync.createReadStream(source.filePath, range) : fsSync.createReadStream(source.filePath);
     }
-    throw new Error("No local stream source available");
+    throw new NotFoundError("Video file");
   }
 
   // --- Private: duration (read-only — probed on download complete, not on GET /info) ---

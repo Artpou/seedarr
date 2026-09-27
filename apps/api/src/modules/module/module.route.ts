@@ -61,22 +61,17 @@ export const moduleRoutes = ModuleService.createRouter()
     const { id } = c.req.valid("param");
     return c.json(await trackRoute(c, { action: "ADDON_DISABLE" }, () => c.var.service.delete(id)));
   })
-  .post("/storage/sync", async (c) => {
-    const storage = (await c.var.service.listByCategory("storage")).find((row) => row.enabled);
-    return c.json(
-      await trackRoute(c, { action: "REMOTE_SYNC", moduleId: storage?.id }, () => c.var.service.runStorageSync()),
-    );
-  })
+  .post("/storage/sync", async (c) =>
+    c.json(await trackRoute(c, { action: "REMOTE_SYNC" }, () => c.var.service.runStorageSync())),
+  )
   .post("/storage/sync-manual", zValidator("json", manualSyncDto), async (c) => {
     const body = c.req.valid("json");
-    const storage = (await c.var.service.listByCategory("storage")).find((row) => row.enabled);
     return c.json(
       await trackRoute(
         c,
         {
           action: "REMOTE_SYNC",
           mediaId: body.mediaId,
-          moduleId: storage?.id,
         },
         () => c.var.service.runStorageManualSync(body),
       ),

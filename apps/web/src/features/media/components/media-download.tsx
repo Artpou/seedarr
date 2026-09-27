@@ -5,7 +5,6 @@ import type { Download } from "@seedarr/sdk";
 import {
   AlertCircleIcon,
   ArrowRightLeftIcon,
-  ChevronDownIcon,
   MegaphoneIcon,
   RefreshCwIcon,
   ServerIcon,
@@ -15,13 +14,6 @@ import {
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
-import {
-  DropDrawer,
-  DropDrawerContent,
-  DropDrawerGroup,
-  DropDrawerItem,
-  DropDrawerTrigger,
-} from "@/shared/ui/dropdrawer";
 
 import { DownloadFilesList } from "@/features/downloads/components/download-files-list";
 import { DownloadMetadata } from "@/features/downloads/components/download-metadata";
@@ -69,7 +61,7 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
 
   const status = getDownloadStatus(download);
   const torrentFiles = getTorrentFiles(download);
-  const hasTorrentFiles = torrentFiles.length > 0;
+  const _hasTorrentFiles = torrentFiles.length > 0;
   const { downloadSpeed, uploadSpeed, numPeers } = download.torrent ?? {};
   const isPaused = status === "paused";
   const isCompleted = status === "completed";
@@ -96,58 +88,53 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
           </div>
         </div>
 
-        <DropDrawer>
-          <DropDrawerTrigger asChild>
-            <Button variant="secondary" icon={ChevronDownIcon}>
-              <Trans>Actions</Trans>
-            </Button>
-          </DropDrawerTrigger>
-          <DropDrawerContent className="min-w-48 w-auto">
-            <DropDrawerGroup>
-              {hasActiveTorrentSession && !isCompleted && (
-                <DropDrawerItem
-                  icon={<RefreshCwIcon className="size-4" />}
-                  disabled={recheckTorrent.isPending}
-                  onSelect={() => recheckTorrent.mutate(download.id)}
-                >
-                  <Trans>Recheck</Trans>
-                </DropDrawerItem>
-              )}
-              {hasActiveTorrentSession && !isPaused && (
-                <DropDrawerItem
-                  icon={<MegaphoneIcon className="size-4" />}
-                  disabled={reannounce.isPending}
-                  onSelect={() => reannounce.mutate(download.id)}
-                >
-                  <Trans>Reannounce</Trans>
-                </DropDrawerItem>
-              )}
-              {canTransfer && (
-                <DropDrawerItem
-                  icon={<ServerIcon className="size-4" />}
-                  disabled={transfer.isPending}
-                  onSelect={() => transfer.mutate(download.id)}
-                >
-                  <Trans>Transfer</Trans>
-                </DropDrawerItem>
-              )}
-              <DropDrawerItem
-                icon={<ArrowRightLeftIcon className="size-4" />}
-                onSelect={() => setShowChangeMedia(true)}
-              >
-                <Trans>Change media</Trans>
-              </DropDrawerItem>
-              <DropDrawerItem
-                variant="destructive"
-                icon={<Trash2Icon className="size-4" />}
-                disabled={deleteTorrent.isPending}
-                onSelect={() => setShowDeleteConfirm(true)}
-              >
-                <Trans>Delete</Trans>
-              </DropDrawerItem>
-            </DropDrawerGroup>
-          </DropDrawerContent>
-        </DropDrawer>
+        <div className="flex items-center gap-1">
+          {hasActiveTorrentSession && !isCompleted && (
+            <Button
+              size="icon"
+              variant="secondary"
+              icon={RefreshCwIcon}
+              disabled={recheckTorrent.isPending}
+              onClick={() => recheckTorrent.mutate(download.id)}
+              tooltip={<Trans>Recheck torrent</Trans>}
+            />
+          )}
+          {hasActiveTorrentSession && !isPaused && (
+            <Button
+              size="icon"
+              variant="secondary"
+              icon={MegaphoneIcon}
+              disabled={reannounce.isPending}
+              onClick={() => reannounce.mutate(download.id)}
+              tooltip={<Trans>Reannounce torrent</Trans>}
+            />
+          )}
+          {canTransfer && (
+            <Button
+              size="icon"
+              variant="secondary"
+              icon={ServerIcon}
+              disabled={transfer.isPending}
+              onClick={() => transfer.mutate(download.id)}
+              tooltip={<Trans>Transfer torrent</Trans>}
+            />
+          )}
+          <Button
+            size="icon"
+            variant="secondary"
+            icon={ArrowRightLeftIcon}
+            onClick={() => setShowChangeMedia(true)}
+            tooltip={<Trans>Change media</Trans>}
+          />
+          <Button
+            size="icon"
+            variant="destructive"
+            icon={Trash2Icon}
+            disabled={deleteTorrent.isPending}
+            onClick={() => setShowDeleteConfirm(true)}
+            tooltip={<Trans>Delete torrent</Trans>}
+          />
+        </div>
       </div>
 
       {download.error && (
@@ -163,21 +150,39 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="space-y-3">
-          <DownloadNetworkChart download={download} />
-          <div className="grid sm:grid-cols-2 gap-2">
-            {!isCompleted && <DownloadNetworkCard type="download" value={downloadSpeed} />}
-            <DownloadNetworkCard type="upload" value={uploadSpeed} />
-            <DownloadNetworkCard type="peers" value={numPeers} />
+      {isCompleted ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="w-full sm:w-auto sm:min-w-[140px]">
+              <DownloadNetworkCard type="upload" value={uploadSpeed} />
+            </div>
+            <div className="w-full sm:w-auto sm:min-w-[140px]">
+              <DownloadNetworkCard type="peers" value={numPeers} />
+            </div>
           </div>
+          {torrentFiles.length > 0 && (
+            <Card className="p-4 gap-0 w-full">
+              <DownloadFilesList files={torrentFiles} />
+            </Card>
+          )}
         </div>
-        {hasTorrentFiles && (
-          <Card className="p-4 gap-0">
-            <DownloadFilesList files={torrentFiles} />
-          </Card>
-        )}
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <DownloadNetworkChart download={download} />
+            <div className="grid sm:grid-cols-2 gap-2">
+              <DownloadNetworkCard type="download" value={downloadSpeed} />
+              <DownloadNetworkCard type="upload" value={uploadSpeed} />
+              <DownloadNetworkCard type="peers" value={numPeers} />
+            </div>
+          </div>
+          {torrentFiles.length > 0 && (
+            <Card className="p-4 gap-0">
+              <DownloadFilesList files={torrentFiles} />
+            </Card>
+          )}
+        </div>
+      )}
 
       <div className="border-b border-border/50" />
 

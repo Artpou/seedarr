@@ -18,6 +18,10 @@ export const downloadTorrentDto = z.object({
   container: z.string().max(16).optional(),
   preferLocal: z.boolean().optional(),
   moduleIndexerId: z.string().uuid().optional(),
+  season: z.number().int().positive().optional(),
+  episode: z.number().int().positive().optional(),
+  /** When true with `season` and no `episode`, select every episode file in that season (season pack). */
+  fullSeason: z.boolean().optional(),
 });
 export type DownloadTorrentInput = z.infer<typeof downloadTorrentDto>;
 

@@ -57,12 +57,24 @@ vi.mock("@/modules/download/webtorrent/webtorrent-manager", () => {
     ready: true,
     paused: false,
     done: false,
+    pause: vi.fn(),
+    resume: vi.fn(),
     name: "FakeTorrent",
     created: new Date(),
     createdBy: undefined,
     comment: undefined,
     maxWebConns: 4,
-    files: [],
+    files: [
+      {
+        name: "Show S01E01.mkv",
+        path: "Show S01E01.mkv",
+        length: 500,
+        downloaded: 0,
+        progress: 0,
+        deselect: vi.fn(),
+        select: vi.fn(),
+      },
+    ],
   });
 
   return {
@@ -109,8 +121,8 @@ const testMedia = {
   categories: null,
 };
 
-function startDownloadPayload(magnetUri: string, name: string) {
-  return { magnetUri, name, media: testMedia };
+function startDownloadPayload(magnetUri: string, name: string, extra: Record<string, unknown> = {}) {
+  return { magnetUri, name, media: testMedia, ...extra };
 }
 
 describe("Download Routes", () => {
@@ -212,7 +224,7 @@ describe("Download Routes", () => {
       });
     });
 
-    it("rejects a download when the infoHash already exists", async () => {
+    it("reuses a download when the same media and infoHash already exist", async () => {
       testDbRef.current.insert(media).values(testMedia).run();
       testDbRef.current
         .insert(download)
@@ -220,12 +232,15 @@ describe("Download Routes", () => {
           id: "existing",
           userId: fakeUser.id,
           mediaId: testMedia.id,
-          // Matches the default mocked safeAdd infoHash ("fakehash")
           torrent: sampleTorrent({
             infoHash: "fakehash",
             magnetURI: "magnet:?xt=urn:btih:fakehash",
             name: "Dup",
-            done: true,
+            done: false,
+            tvScope: {
+              available: [{ season: 1, episode: 1 }],
+              wanted: [{ season: 1, episode: 1 }],
+            },
           }),
           createdAt: new Date(),
         })
@@ -233,9 +248,18 @@ describe("Download Routes", () => {
 
       const res = await downloadRoutes.request(
         "/",
-        json("POST", startDownloadPayload("magnet:?xt=urn:btih:other", "Dup")),
+        json(
+          "POST",
+          startDownloadPayload("magnet:?xt=urn:btih:fakehash", "Dup", {
+            media: { ...testMedia, type: "tv" },
+            season: 1,
+            episode: 1,
+          }),
+        ),
       );
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { id: string };
+      expect(body.id).toBe("existing");
     });
   });
 

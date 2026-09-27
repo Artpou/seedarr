@@ -81,12 +81,25 @@ describe("remoteStorageService", () => {
     await expect(remoteStorageService.getConnectionOptions()).resolves.toBeNull();
   });
 
+  it("getSyncRoots falls back to DOWNLOADS_PATH when nothing else is set", async () => {
+    const roots = await remoteStorageService.getSyncRoots();
+    expect(roots.local).toBe(true);
+    expect(roots.moviePath).toBe(roots.tvPath);
+    expect(roots.moviePath).toContain("downloads");
+  });
+
   it("loads connection options and path helpers", async () => {
     seedConfig({ deleteLocalAfterTransfer: true });
     await expect(remoteStorageService.isEnabled()).resolves.toBe(true);
     await expect(remoteStorageService.shouldDeleteLocalAfterTransfer()).resolves.toBe(true);
     await expect(remoteStorageService.resolveTransferPath("Dune", "movie")).resolves.toBe("movies/Dune");
     await expect(remoteStorageService.resolveTransferPath("Show", "tv")).resolves.toBe("tv/Show");
+  });
+
+  it("getSyncRoots prefers enabled remote storage", async () => {
+    seedConfig();
+    const roots = await remoteStorageService.getSyncRoots();
+    expect(roots).toMatchObject({ moviePath: "movies", tvPath: "tv", local: false, storageModuleId: "cfg-1" });
   });
 
   it("isAvailable uses adapter testConnection", async () => {

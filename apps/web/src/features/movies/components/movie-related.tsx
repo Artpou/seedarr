@@ -20,25 +20,13 @@ export function MovieRelated({ collection, collectionMedia, recommendedMovies }:
     <>
       {hasCollection && (
         <MediaCarousel
-          title={
-            <span className="flex items-center gap-2">
-              <LibraryIcon className="size-5" />
-              {typeof collection?.name === "string" ? collection.name : <Trans>Collection</Trans>}
-            </span>
-          }
+          titleIcon={LibraryIcon}
+          title={typeof collection?.name === "string" ? collection.name : <Trans>Collection</Trans>}
           data={collectionMedia}
         />
       )}
       {hasRecommendations && (
-        <MediaCarousel
-          title={
-            <span className="flex items-center gap-2">
-              <SparklesIcon className="size-5" />
-              <Trans>Recommended</Trans>
-            </span>
-          }
-          data={recommendedMovies}
-        />
+        <MediaCarousel titleIcon={SparklesIcon} title={<Trans>Recommended</Trans>} data={recommendedMovies} />
       )}
     </>
   );

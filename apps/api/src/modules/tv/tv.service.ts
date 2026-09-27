@@ -12,19 +12,20 @@ export class TVService extends TMDBService {
       appendToResponse: "watch/providers,videos,credits,recommendations,external_ids",
     });
 
+    const mediaId = String(tvData.id);
     const recommendations = tvData.recommendations?.results ?? [];
     const related = recommendations.map((item) => tmdbTVToMedia(item));
     const mediaMap = await listEnrichedMedia(this.user.id, {
-      ids: [id, ...related.map((m) => m.id.toString())],
+      ids: [mediaId, ...related.map((m) => m.id.toString())],
     });
 
     const fromTmdb = tmdbTVToMedia(tvData);
-    const fromDb = mediaMap.find((m) => m.id.toString() === id);
+    const fromDb = mediaMap.find((m) => m.id.toString() === mediaId);
     const media = fromDb ? { ...fromDb, imdbId: fromDb.imdbId || fromTmdb.imdbId } : fromTmdb;
     const imdbRating = await fetchImdbRating(media.imdbId || tvData.external_ids?.imdb_id, "tv");
 
     return {
-      id,
+      id: mediaId,
       tv: tvData,
       media,
       imdbRating,

@@ -6,9 +6,12 @@ import type { Media } from "@seedarr/sdk";
 import { api, unwrap } from "@seedarr/sdk";
 import { formatError } from "@seedarr/shared";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeftIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
+import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Container } from "@/shared/ui/container";
 import { Label } from "@/shared/ui/label";
@@ -209,12 +212,18 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
 
         <div className="flex justify-center">
           <div className="w-full md:w-[70%] space-y-3">
-            {media.type === "tv" && season != null && episode != null && (
-              <Label variant="secondary" size="lg" className="ml-2">
-                {formatSeasonEpisode(season, episode)}
-                {episodeName ? ` · ${episodeName}` : ""}
-              </Label>
-            )}
+            <div className="flex items-center gap-2">
+              <Button size="icon-sm" variant="ghost" asChild aria-label={t`Back to media`} icon={ArrowLeftIcon}>
+                <Link to={media.type === "tv" ? "/tv/$id" : "/movies/$id"} params={{ id: String(media.id) }} />
+              </Button>
+              <span className="font-semibold text-base truncate">{media.title}</span>
+              {media.type === "tv" && season != null && episode != null && (
+                <Label variant="secondary" size="lg" className="shrink-0">
+                  {formatSeasonEpisode(season, episode)}
+                  {episodeName ? ` · ${episodeName}` : ""}
+                </Label>
+              )}
+            </div>
             <Card className="pb-0 pt-0 overflow-hidden">
               <Player
                 src={streamUrl}
