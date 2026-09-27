@@ -11,6 +11,7 @@ import { tvQueries } from "@/features/tv/hooks/tv.queries";
 export interface TvTorrentsSearch {
   season?: number;
   episode?: number;
+  fullSeason?: boolean;
 }
 
 const optionalPositiveInt = (v: unknown): number | undefined => {
@@ -37,12 +38,13 @@ export const Route = createFileRoute("/_app/tv/$id/torrents")({
     return {
       season: optionalPositiveInt(search.season),
       episode: optionalPositiveInt(search.episode),
+      fullSeason: search.fullSeason === true || search.fullSeason === "true",
     };
   },
 });
 
 function TvTorrentsRoute() {
   const { id } = Route.useParams();
-  const { season, episode } = Route.useSearch();
-  return <MediaTorrentsView mediaId={id} mediaType="tv" season={season} episode={episode} />;
+  const { season, episode, fullSeason } = Route.useSearch();
+  return <MediaTorrentsView mediaId={id} mediaType="tv" season={season} episode={episode} fullSeason={fullSeason} />;
 }

@@ -1,4 +1,10 @@
+import { VIDEO_EXTENSIONS } from "@seedarr/shared";
+
+import { getDownloadsRoot } from "@/shared/helpers/path.helper";
+
+import { absoluteOrganizedPath, resolveLibraryBase } from "@/modules/download/local-library-hardlink";
 import { moduleRepository } from "@/modules/module/module.repository";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { decrypt } from "../../../shared/helpers/crypto.helper";
 import { FtpAdapter } from "../adapters/ftp.adapter";
@@ -44,6 +50,23 @@ interface StorageConfigFull {
 
 /** Kept for ModuleService / tests — config is always loaded fresh (no TTL cache). */
 export function invalidateStorageConfigCache(): void {}
+
+/** Roots scanned by library sync: remote module paths or local HARDLINK_* dirs. */
+export type SyncRoots = {
+  moviePath: string;
+  tvPath: string;
+  storageModuleId: string | null;
+  local: boolean;
+};
+
+export function formatSyncRootsForLog(roots: SyncRoots | null): string | null {
+  if (!roots) return null;
+  const label = roots.local ? "local" : "remote";
+  const parts = [roots.moviePath && `movies: ${roots.moviePath}`, roots.tvPath && `tv: ${roots.tvPath}`].filter(
+    Boolean,
+  );
+  return parts.length > 0 ? `${label} (${parts.join(", ")})` : label;
+}
 
 async function loadConfig(): Promise<StorageConfigFull> {
   const storageModule = await moduleRepository.findFirstByCategory("storage");
@@ -167,6 +190,100 @@ class RemoteStorageService {
   async getMediaPaths(): Promise<{ moviePath: string; tvPath: string }> {
     const config = await loadConfig();
     return { moviePath: config.moviePath, tvPath: config.tvPath };
+  }
+
+  /** Remote module paths → HARDLINK_* → DOWNLOADS_PATH (staging). */
+  async getSyncRoots(): Promise<SyncRoots> {
+    const config = await loadConfig();
+    if (config.enabled && config.connectionOptions) {
+      return {
+        moviePath: config.moviePath,
+        tvPath: config.tvPath,
+        storageModuleId: await moduleRepository.getEnabledStorageModuleId(),
+        local: false,
+      };
+    }
+
+    const moviePath = resolveLibraryBase("movie");
+    const tvPath = resolveLibraryBase("tv");
+    if (moviePath || tvPath) {
+      return {
+        moviePath: moviePath ?? "",
+        tvPath: tvPath ?? "",
+        storageModuleId: null,
+        local: true,
+      };
+    }
+
+    const staging = getDownloadsRoot();
+    return { moviePath: staging, tvPath: staging, storageModuleId: null, local: true };
+  }
+
+  normalizeSyncRoot(roots: SyncRoots, basePath: string): string {
+    if (!basePath) return "";
+    return roots.local ? path.resolve(basePath) : basePath.replace(/\/+$/, "");
+  }
+
+  joinSyncPath(roots: SyncRoots, base: string, name: string): string {
+    return roots.local ? path.join(base, name) : `${base}/${name}`;
+  }
+
+  resolveOrganizedPath(roots: SyncRoots, basePath: string, organized: string): string {
+    return roots.local ? absoluteOrganizedPath(basePath, organized) : organized;
+  }
+
+  async listSyncChildren(roots: SyncRoots, dir: string): Promise<RemoteDirectoryEntry[]> {
+    const base = this.normalizeSyncRoot(roots, dir);
+    if (!base) return [];
+
+    if (roots.local) {
+      try {
+        const entries = await fs.readdir(base, { withFileTypes: true });
+        return entries.map((entry) => ({
+          name: entry.name,
+          path: path.join(base, entry.name),
+          type: entry.isDirectory() ? "directory" : "file",
+        }));
+      } catch {
+        return [];
+      }
+    }
+
+    return this.listDirectories(base);
+  }
+
+  async organizeSyncFile(roots: SyncRoots, from: string, targetDir: string, fileName: string): Promise<void> {
+    const to = roots.local ? path.join(targetDir, fileName) : `${targetDir}/${fileName}`;
+    if (roots.local) {
+      await fs.mkdir(path.resolve(targetDir), { recursive: true });
+      await fs.rename(path.resolve(from), path.resolve(to));
+      return;
+    }
+    await this.ensureDirectory(targetDir);
+    await this.moveFile(from, to);
+  }
+
+  async sumSyncVideoBytes(roots: SyncRoots, location: string): Promise<number | null> {
+    try {
+      const files = roots.local ? await this.listLocalVideos(location) : await this.listFiles(location);
+      const total = files.reduce((sum, f) => sum + f.length, 0);
+      return total > 0 ? total : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async listLocalVideos(dirPath: string): Promise<RemoteFileEntry[]> {
+    const root = path.resolve(dirPath);
+    const entries = await fs.readdir(root, { recursive: true, withFileTypes: true });
+    const files: RemoteFileEntry[] = [];
+    for (const entry of entries) {
+      if (!entry.isFile() || !VIDEO_EXTENSIONS.test(entry.name)) continue;
+      const filePath = path.join(entry.parentPath || root, entry.name);
+      const stat = await fs.stat(filePath);
+      files.push({ name: entry.name, path: filePath, length: stat.size });
+    }
+    return files;
   }
 
   async testConnection(opts: StorageConnectionOptions): Promise<{ success: boolean; error?: string }> {

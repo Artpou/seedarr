@@ -117,7 +117,11 @@ const start = async () => {
     hostname: "0.0.0.0",
   });
 
-  startupLogger({ startTime, port, downloadsPath });
+  const { formatSyncRootsForLog, remoteStorageService } = await import(
+    "./modules/storage-config/remote/remote-storage.service"
+  );
+  const syncRoots = await remoteStorageService.getSyncRoots();
+  startupLogger({ startTime, port, downloadsPath, libraryPaths: formatSyncRootsForLog(syncRoots) });
 };
 
 start().catch((err) => {

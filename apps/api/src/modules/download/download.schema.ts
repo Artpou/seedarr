@@ -19,6 +19,18 @@ const torrentFileSchema = z.object({
   progress: z.number(),
 });
 
+const tvEpisodeRefSchema = z.object({
+  season: z.number().int(),
+  episode: z.number().int(),
+});
+
+export const tvScopeSchema = z.object({
+  available: z.array(tvEpisodeRefSchema),
+  wanted: z.array(tvEpisodeRefSchema),
+});
+
+export type TvScope = z.infer<typeof tvScopeSchema>;
+
 /** Runtime shape for download.torrent JSON — used on write to catch corrupt merges. */
 export const torrentLiveDataSchema = z.object({
   infoHash: z.string(),
@@ -56,6 +68,7 @@ export const torrentLiveDataSchema = z.object({
   audioCodec: z.string().optional(),
   moovAtStart: z.boolean().optional(),
   files: z.array(torrentFileSchema),
+  tvScope: tvScopeSchema.optional(),
 });
 
 export type TorrentLiveData = z.infer<typeof torrentLiveDataSchema>;

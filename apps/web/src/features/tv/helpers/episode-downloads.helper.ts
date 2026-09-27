@@ -15,12 +15,16 @@ export type CoveredEpisode = {
   episode: number;
 };
 
+function addEpisodeRef(map: Map<string, Download>, download: Download, season: number, episode: number): void {
+  const key = episodeKey(season, episode);
+  if (!map.has(key)) map.set(key, download);
+}
+
 function addParsed(map: Map<string, Download>, download: Download, text?: string | null): void {
   if (!text) return;
   const parsed = parseSeasonEpisode(text);
   if (!parsed) return;
-  const key = episodeKey(parsed.season, parsed.episode);
-  if (!map.has(key)) map.set(key, download);
+  addEpisodeRef(map, download, parsed.season, parsed.episode);
 }
 
 export function buildEpisodeDownloadMap(
@@ -30,6 +34,18 @@ export function buildEpisodeDownloadMap(
   const map = new Map<string, Download>();
 
   for (const download of downloads) {
+    const tvScope = download.torrent?.tvScope;
+    if (tvScope?.wanted?.length) {
+      for (const ep of tvScope.wanted) {
+        addEpisodeRef(map, download, ep.season, ep.episode);
+      }
+      for (const file of remoteFilesByDownloadId.get(download.id) ?? []) {
+        addParsed(map, download, file.name);
+        addParsed(map, download, file.path);
+      }
+      continue;
+    }
+
     addParsed(map, download, download.torrent?.name);
     addParsed(map, download, download.remoteLocation);
 
@@ -62,6 +78,14 @@ export function getEpisodesCoveredByDownload(
   }
 
   return episodes.sort((a, b) => a.season - b.season || a.episode - b.episode);
+}
+
+export function isEpisodeWantedByDownload(download: Download, season: number, episode: number): boolean {
+  const wanted = download.torrent?.tvScope?.wanted;
+  if (wanted?.length) {
+    return wanted.some((ep) => ep.season === season && ep.episode === episode);
+  }
+  return true;
 }
 
 export function inferEpisodeFromDownload(

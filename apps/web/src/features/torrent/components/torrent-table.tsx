@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { DownloadTorrentInput, Resolution } from "@seedarr/contracts";
 import type { Media, Torrent } from "@seedarr/sdk";
 import { ApiError } from "@seedarr/sdk";
-import { formatError, getVideoContainer } from "@seedarr/shared";
+import { formatError, getVideoContainer, parseInfoHashFromMagnet } from "@seedarr/shared";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type SortingState, useTable } from "@tanstack/react-table";
 import { ArrowDownIcon, ArrowUpIcon, DownloadIcon, InfoIcon } from "lucide-react";
@@ -24,6 +24,7 @@ import { DataTable } from "@/shared/ui/data-table";
 import { useStartDownload } from "@/features/downloads/hooks/download.queries";
 import { useUserPreferences } from "@/features/settings/stores/user-preference-store";
 import { indexerModuleImages } from "@/features/torrent/helpers/indexer-images";
+import { getTorrentInfoHash, getTorrentUri } from "@/features/torrent/helpers/torrent-uri.helper";
 import {
   type TorrentWithMeta,
   torrentTableFeatures,
@@ -37,6 +38,10 @@ interface TorrentTableProps {
   media: Media;
   isLoading?: boolean;
   hasIndexers?: boolean;
+  season?: number;
+  episode?: number;
+  fullSeason?: boolean;
+  existingInfoHashes?: ReadonlySet<string>;
 }
 
 function TorrentEmptyState({ hasIndexers }: { hasIndexers: boolean }) {
@@ -59,16 +64,6 @@ function TorrentEmptyState({ hasIndexers }: { hasIndexers: boolean }) {
   return (
     <EmptyState title={<Trans>No torrents found</Trans>} subtitle={<Trans>Try adjusting your search query</Trans>} />
   );
-}
-
-function getTorrentUri(torrent: Torrent): string {
-  if (torrent.downloadUrl) return torrent.downloadUrl;
-  if (torrent.link?.startsWith("http://") || torrent.link?.startsWith("https://")) return torrent.link;
-  if (torrent.magnetUrl?.includes("tr=")) return torrent.magnetUrl;
-  if (torrent.guid?.startsWith("magnet:") && torrent.guid.includes("tr=")) return torrent.guid;
-  if (torrent.magnetUrl) return torrent.magnetUrl;
-  if (torrent.guid?.startsWith("magnet:")) return torrent.guid;
-  return torrent.link ?? torrent.magnetUrl ?? torrent.guid ?? "";
 }
 
 function TorrentMobileCard({
@@ -134,7 +129,16 @@ function TorrentMobileCard({
   );
 }
 
-export function TorrentTable({ torrents, media, isLoading = false, hasIndexers = true }: TorrentTableProps) {
+export function TorrentTable({
+  torrents,
+  media,
+  isLoading = false,
+  hasIndexers = true,
+  season,
+  episode,
+  fullSeason,
+  existingInfoHashes,
+}: TorrentTableProps) {
   const { t } = useLingui();
   const isMobile = useIsMobile();
   const startDownload = useStartDownload();
@@ -195,11 +199,17 @@ export function TorrentTable({ torrents, media, isLoading = false, hasIndexers =
 
   const executeDownload = useCallback(
     async (input: DownloadTorrentInput, toastId?: string | number) => {
-      const id = toastId ?? toast.loading(t`Starting download…`, { description: input.name });
+      const hash = parseInfoHashFromMagnet(input.magnetUri)?.toLowerCase();
+      const willReuse = hash ? existingInfoHashes?.has(hash) : false;
+      const id =
+        toastId ?? toast.loading(willReuse ? t`Adding episode…` : t`Starting download…`, { description: input.name });
 
       try {
         await startDownload.mutateAsync(input);
-        toast.info(t`Download started`, { id, description: input.name });
+        toast.info(willReuse ? t`Using existing download` : t`Download started`, {
+          id,
+          description: input.name,
+        });
         navigate({
           to: media.type === "tv" ? "/tv/$id" : "/movies/$id",
           params: { id: String(media.id) },
@@ -215,11 +225,22 @@ export function TorrentTable({ torrents, media, isLoading = false, hasIndexers =
         toast.error(t`Download failed`, { id, description: message });
       }
     },
-    [startDownload, navigate, t, media.id, media.type],
+    [startDownload, navigate, t, media.id, media.type, existingInfoHashes],
   );
 
   const handleAddDownload = useCallback(
     async (torrent: TorrentWithMeta) => {
+      if (media.type === "tv") {
+        if (season === undefined) {
+          toast.error(t`Select a season first.`);
+          return;
+        }
+        if (episode === undefined && !fullSeason) {
+          toast.error(t`Pick an episode to download, or choose "All episodes (full season)".`);
+          return;
+        }
+      }
+
       await executeDownload({
         magnetUri: getTorrentUri(torrent),
         name: torrent.title,
@@ -229,9 +250,24 @@ export function TorrentTable({ torrents, media, isLoading = false, hasIndexers =
         language: torrent.mediaInfos?.languages?.[0],
         container: getVideoContainer(torrent.title) ?? undefined,
         moduleIndexerId: torrent.moduleId,
+        ...(media.type === "tv" && season !== undefined
+          ? {
+              season,
+              ...(episode !== undefined ? { episode } : { fullSeason: true }),
+            }
+          : {}),
       });
     },
-    [executeDownload, media],
+    [executeDownload, media, season, episode, fullSeason, t],
+  );
+
+  const isTorrentInLibrary = useCallback(
+    (torrent: TorrentWithMeta): boolean => {
+      const hash = getTorrentInfoHash(torrent);
+      if (!hash || !existingInfoHashes) return false;
+      return existingInfoHashes.has(hash);
+    },
+    [existingInfoHashes],
   );
 
   const handleUnavailableRetry = async () => {
@@ -263,6 +299,7 @@ export function TorrentTable({ torrents, media, isLoading = false, hasIndexers =
     count: filteredTorrents.length,
     onInspect: handleOpenInspectModal,
     onDownload: handleAddDownload,
+    isInLibrary: isTorrentInLibrary,
   });
 
   const table = useTable({

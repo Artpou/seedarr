@@ -9,11 +9,13 @@ import { Select } from "@/shared/components/select/select";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 import { Container } from "@/shared/ui/container";
 
+import { downloadQueries } from "@/features/downloads/hooks/download.queries";
 import { MediaCardHorizontal } from "@/features/media/components/card/media-card-horizontal";
 import { useIndexerModules } from "@/features/module/hooks/use-module";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
 import { TorrentIndexersTable } from "@/features/torrent/components/torrent-indexers-table";
 import { TorrentTable } from "@/features/torrent/components/torrent-table";
+import { buildExistingInfoHashSet } from "@/features/torrent/helpers/torrent-uri.helper";
 import { useTorrents } from "@/features/torrent/hooks/torrent.queries";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
 
@@ -24,13 +26,14 @@ export interface MediaTorrentsViewProps {
   mediaType: "movie" | "tv";
   season?: number;
   episode?: number;
+  fullSeason?: boolean;
 }
 
-export function MediaTorrentsView({ mediaId, mediaType, season, episode }: MediaTorrentsViewProps) {
+export function MediaTorrentsView({ mediaId, mediaType, season, episode, fullSeason }: MediaTorrentsViewProps) {
   if (mediaType === "movie") {
     return <MovieTorrentsView mediaId={mediaId} />;
   }
-  return <TvTorrentsView mediaId={mediaId} season={season} episode={episode} />;
+  return <TvTorrentsView mediaId={mediaId} season={season} episode={episode} fullSeason={fullSeason} />;
 }
 
 function MovieTorrentsView({ mediaId }: { mediaId: string }) {
@@ -39,7 +42,17 @@ function MovieTorrentsView({ mediaId }: { mediaId: string }) {
   return <TorrentsBody media={movie.media} />;
 }
 
-function TvTorrentsView({ mediaId, season, episode }: { mediaId: string; season?: number; episode?: number }) {
+function TvTorrentsView({
+  mediaId,
+  season,
+  episode,
+  fullSeason,
+}: {
+  mediaId: string;
+  season?: number;
+  episode?: number;
+  fullSeason?: boolean;
+}) {
   const navigate = useNavigate();
   const locale = useTmdbLocale();
   const { data: tvData } = useSuspenseQuery(tvQueries.details(mediaId, locale));
@@ -57,7 +70,7 @@ function TvTorrentsView({ mediaId, season, episode }: { mediaId: string; season?
     navigate({
       to: "/tv/$id/torrents",
       params: { id: mediaId },
-      search: { season: Number(value), episode: undefined },
+      search: { season: Number(value), episode: undefined, fullSeason: undefined },
       resetScroll: false,
     });
   };
@@ -69,6 +82,7 @@ function TvTorrentsView({ mediaId, season, episode }: { mediaId: string; season?
       search: {
         season: selectedSeason,
         episode: value === ALL_EPISODES ? undefined : Number(value),
+        fullSeason: value === ALL_EPISODES ? true : undefined,
       },
       resetScroll: false,
     });
@@ -77,8 +91,9 @@ function TvTorrentsView({ mediaId, season, episode }: { mediaId: string; season?
   return (
     <TorrentsBody
       media={media}
-      season={season}
+      season={selectedSeason}
       episode={episode}
+      fullSeason={fullSeason}
       episodeSelectors={
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end mb-4">
           <div className="w-full sm:w-48">
@@ -96,7 +111,7 @@ function TvTorrentsView({ mediaId, season, episode }: { mediaId: string; season?
 
           <div className="w-full sm:w-64">
             <Select
-              value={episode?.toString() ?? ALL_EPISODES}
+              value={fullSeason ? ALL_EPISODES : (episode?.toString() ?? "")}
               onValueChange={handleEpisodeChange}
               triggerClassName="w-full"
               label={<Trans>Episode</Trans>}
@@ -122,15 +137,26 @@ function TorrentsBody({
   media,
   season,
   episode,
+  fullSeason,
   episodeSelectors,
 }: {
   media: Media;
   season?: number;
   episode?: number;
+  fullSeason?: boolean;
   episodeSelectors?: ReactNode;
 }) {
   const { indexers: managers, hasIndexers } = useIndexerModules();
-  const { torrents, sources, indexerStats, isLoading } = useTorrents(media, managers, { season, episode });
+  const { data: mediaDownloads = [] } = useQuery({
+    ...downloadQueries.byMedia(media),
+    enabled: true,
+  });
+  const existingInfoHashes = useMemo(() => buildExistingInfoHashSet(mediaDownloads), [mediaDownloads]);
+  const { torrents, sources, indexerStats, isLoading } = useTorrents(media, managers, {
+    season,
+    episode,
+    existingInfoHashes,
+  });
   const [visibleSources, setVisibleSources] = useState<Set<string>>(new Set());
 
   const filteredTorrents = useMemo(() => {
@@ -139,7 +165,16 @@ function TorrentsBody({
   }, [torrents, visibleSources]);
 
   const torrentTable = (
-    <TorrentTable torrents={filteredTorrents} media={media} isLoading={isLoading} hasIndexers={hasIndexers} />
+    <TorrentTable
+      torrents={filteredTorrents}
+      media={media}
+      isLoading={isLoading}
+      hasIndexers={hasIndexers}
+      season={season}
+      episode={episode}
+      fullSeason={fullSeason}
+      existingInfoHashes={existingInfoHashes}
+    />
   );
 
   return (

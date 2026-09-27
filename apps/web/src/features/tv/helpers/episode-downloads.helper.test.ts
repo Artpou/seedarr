@@ -49,6 +49,58 @@ describe("buildEpisodeDownloadMap", () => {
     expect(map.get("2-5")?.id).toBe("download-1");
   });
 
+  it("prefers tvScope.wanted over file name inference", () => {
+    const baseTorrent = makeDownload().torrent;
+    if (!baseTorrent) throw new Error("Expected torrent data");
+
+    const map = buildEpisodeDownloadMap([
+      makeDownload({
+        torrent: {
+          ...baseTorrent,
+          name: "Season pack",
+          tvScope: {
+            available: [
+              { season: 1, episode: 1 },
+              { season: 1, episode: 2 },
+            ],
+            wanted: [{ season: 1, episode: 1 }],
+          },
+        },
+      }),
+    ]);
+
+    expect(map.get("1-1")?.id).toBe("download-1");
+    expect(map.has("1-2")).toBe(false);
+    expect(map.has("2-5")).toBe(false);
+  });
+
+  it("does not map pack file names when tvScope.wanted is set", () => {
+    const baseTorrent = makeDownload().torrent;
+    if (!baseTorrent) throw new Error("Expected torrent data");
+
+    const map = buildEpisodeDownloadMap([
+      makeDownload({
+        torrent: {
+          ...baseTorrent,
+          tvScope: {
+            available: [
+              { season: 1, episode: 1 },
+              { season: 1, episode: 2 },
+            ],
+            wanted: [{ season: 1, episode: 1 }],
+          },
+          files: [
+            { name: "Show.S01E01.mkv", path: "Show.S01E01.mkv", length: 100, downloaded: 50, progress: 0.5 },
+            { name: "Show.S01E02.mkv", path: "Show.S01E02.mkv", length: 100, downloaded: 0, progress: 0 },
+          ],
+        },
+      }),
+    ]);
+
+    expect(map.get("1-1")?.id).toBe("download-1");
+    expect(map.has("1-2")).toBe(false);
+  });
+
   it("maps season pack files to multiple episodes", () => {
     const baseTorrent = makeDownload().torrent;
     if (!baseTorrent) throw new Error("Expected torrent data");

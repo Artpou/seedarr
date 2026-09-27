@@ -1,10 +1,11 @@
-import { buildOrganizedRemotePath, extractYearFromDate, formatError, parseSeasonEpisode } from "@seedarr/shared";
+import { formatError } from "@seedarr/shared";
 
 import { logger } from "@/shared/helpers/logger.helper";
 import { resolveWithinDownloads } from "@/shared/helpers/path.helper";
 
 import { activityFor } from "@/modules/activity/activity.service";
 import { downloadRepository } from "@/modules/download/download.repository";
+import { getOrganizedMediaRelativePath } from "@/modules/download/download-staging-path.helper";
 import { mediaRepository } from "@/modules/media/media.repository";
 import { moduleRepository } from "@/modules/module/module.repository";
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
@@ -38,14 +39,7 @@ async function resolveOrganizedTransferPath(dl: {
   }
 
   const basePath = mediaRow.type === "tv" ? paths.tvPath : paths.moviePath;
-  const parsed = parseSeasonEpisode(torrentName);
-  return buildOrganizedRemotePath({
-    basePath,
-    title: mediaRow.title,
-    year: extractYearFromDate(mediaRow.release_date),
-    type: mediaRow.type,
-    season: mediaRow.type === "tv" ? (parsed?.season ?? null) : null,
-  });
+  return getOrganizedMediaRelativePath(mediaRow, torrentName, basePath);
 }
 
 /** Tear down any in-memory WebTorrent session for this download (files may already be gone). */

@@ -84,6 +84,16 @@ export const downloadRepository = {
     );
   },
 
+  findByMediaIdAndInfoHash: async (mediaId: number, infoHash: string): Promise<Download | undefined> => {
+    if (!infoHash) return undefined;
+    const normalized = infoHash.toLowerCase();
+    return (
+      (await db.query.download.findFirst({
+        where: sql`${download.mediaId} = ${mediaId} AND lower(json_extract(${download.torrent}, '$.infoHash')) = ${normalized}`,
+      })) ?? undefined
+    );
+  },
+
   findManyWithMedia: async () => {
     return db.query.download.findMany({
       with: { media: { columns: { type: true, title: true, original_title: true } } },

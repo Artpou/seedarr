@@ -32,14 +32,31 @@ vi.mock("@/modules/tmdb/tmdb-key.query", () => ({
   getTmdbApiKey,
 }));
 
+const syncRoots = {
+  moviePath: "movies",
+  tvPath: "tv",
+  storageModuleId: null,
+  local: false,
+};
+
+const getSyncRoots = vi.fn().mockResolvedValue(syncRoots);
+
 vi.mock("./remote-storage.service", () => ({
   remoteStorageService: {
+    getSyncRoots,
+    normalizeSyncRoot: (_roots: unknown, basePath: string) => basePath.replace(/\/+$/, ""),
+    joinSyncPath: (_roots: unknown, base: string, name: string) => `${base}/${name}`,
+    resolveOrganizedPath: (_roots: unknown, _base: string, organized: string) => organized,
+    listSyncChildren: (_roots: unknown, base: string) => listDirectories(base),
+    organizeSyncFile: async (_roots: unknown, from: string, targetDir: string, fileName: string) => {
+      await ensureDirectory(targetDir);
+      await moveFile(from, `${targetDir}/${fileName}`);
+    },
+    sumSyncVideoBytes: vi.fn().mockResolvedValue(12),
     listDirectories,
     listFiles,
     ensureDirectory,
     moveFile,
-    isEnabled: vi.fn().mockResolvedValue(true),
-    getMediaPaths: vi.fn().mockResolvedValue({ moviePath: "movies", tvPath: "tv" }),
   },
 }));
 
@@ -73,6 +90,7 @@ describe("remote-sync.service", () => {
       title: item.title ?? "Title",
       imdbId: "tt0000001",
     }));
+    getSyncRoots.mockReset().mockResolvedValue(syncRoots);
   });
 
   function seedStorage(enabled = true) {
@@ -97,14 +115,9 @@ describe("remote-sync.service", () => {
       .run();
   }
 
-  it("runRemoteSync requires TMDB key and enabled storage", async () => {
+  it("runRemoteSync requires TMDB key", async () => {
     getTmdbApiKey.mockResolvedValue(null);
     await expect(runRemoteSync(user.id)).rejects.toThrow(/TMDB API key/);
-
-    getTmdbApiKey.mockResolvedValue("key");
-    const { remoteStorageService } = await import("./remote-storage.service");
-    vi.mocked(remoteStorageService.isEnabled).mockResolvedValueOnce(false);
-    await expect(runRemoteSync(user.id)).rejects.toThrow(/not configured or disabled/);
   });
 
   it("runRemoteSync syncs directories matched by {tmdb-id}", async () => {

@@ -40,7 +40,7 @@ export class StreamingSubtitleService {
       throw new BadRequestError("Only .srt, .vtt, .ass and .ssa files are supported");
     }
 
-    const candidates = resolveSubtitleFileCandidates(download, filePath);
+    const candidates = await resolveSubtitleFileCandidates(download, filePath);
     let fullPath: string | null = null;
     for (const candidate of candidates) {
       try {

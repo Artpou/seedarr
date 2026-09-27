@@ -25,7 +25,10 @@ import { type EpisodeDeleteLabel, TvEpisodeDeleteDialog } from "@/features/tv/co
 import { TvEpisodeDownloadControls } from "@/features/tv/components/tv-episode-download-controls";
 import { TvEpisodeDownloadPanel } from "@/features/tv/components/tv-episode-download-panel";
 import { formatSeasonEpisode } from "@/features/tv/helpers/episode.helper";
-import { getEpisodesCoveredByDownload } from "@/features/tv/helpers/episode-downloads.helper";
+import {
+  getEpisodesCoveredByDownload,
+  isEpisodeWantedByDownload,
+} from "@/features/tv/helpers/episode-downloads.helper";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
 import { useEpisodeDownloadMap } from "@/features/tv/hooks/use-episode-download-map";
 
@@ -130,10 +133,14 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
             const episodeDownload = episodeDownloadMap.get(`${seasonNumber}-${episode.episode_number}`);
             const episodeDownloadId = episodeDownload?.id;
             const episodeStatus = episodeDownload ? getDownloadStatus(episodeDownload) : null;
-            const isDownloaded = episodeStatus === "completed";
+            const episodeWanted = episodeDownload
+              ? isEpisodeWantedByDownload(episodeDownload, seasonNumber, episode.episode_number)
+              : false;
+            const isDownloaded = episodeWanted && episodeStatus === "completed";
             const isDownloading =
-              episodeStatus === "downloading" || episodeStatus === "queued" || episodeStatus === "paused";
-            const hasDownload = !!episodeDownloadId;
+              episodeWanted &&
+              (episodeStatus === "downloading" || episodeStatus === "queued" || episodeStatus === "paused");
+            const hasDownload = !!episodeDownloadId && episodeWanted;
             const canPlay = Boolean(episodeDownload);
 
             const isProgressCompleted =
