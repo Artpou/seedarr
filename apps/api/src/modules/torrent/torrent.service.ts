@@ -1,11 +1,13 @@
 import type { TorrentInspectQuery, TorrentListQuery } from "@seedarr/contracts";
-import { formatError } from "@seedarr/shared";
+import { formatError, parseInfoHashFromMagnet } from "@seedarr/shared";
 import type WebTorrent from "webtorrent";
 
 import { BadRequestError, NotFoundError, ServiceUnavailableError } from "@/shared/errors/error";
 import { logger } from "@/shared/helpers/logger.helper";
 import { AuthenticatedService } from "@/shared/services/authenticated.service";
 
+import { downloadRepository } from "@/modules/download/download.repository";
+import { applyTorrentFilePolicy } from "@/modules/download/download-tv-scope.helper";
 import { torrentClient } from "@/modules/download/webtorrent/webtorrent-manager";
 import { createIndexerAdapter, loadIndexerModule } from "@/modules/module/indexer/module-indexer.adapter";
 import type { Torrent, TorrentInspectResult } from "./torrent.types";
@@ -51,7 +53,8 @@ export class TorrentService extends AuthenticatedService {
           settled = true;
           clearTimeout(timeoutId);
 
-          for (const file of activeTorrent.files) file.deselect();
+          // Must use the managed map — findByInfoHash also matches the inspect torrent itself.
+          const isLiveDownload = torrentClient.isManagedClientTorrent(activeTorrent);
 
           const peersFound = await probeTorrentPeers(activeTorrent);
 
@@ -69,12 +72,20 @@ export class TorrentService extends AuthenticatedService {
             indexerSeeders: query.indexerSeeders,
           };
 
-          activeTorrent.destroy();
+          if (isLiveDownload) {
+            const download = await downloadRepository.findByInfoHash(activeTorrent.infoHash);
+            if (download?.torrent?.tvScope?.wanted?.length) {
+              applyTorrentFilePolicy(activeTorrent, download.torrent.tvScope);
+            }
+          } else {
+            activeTorrent.destroy({ destroyStore: false });
+          }
+
           resolve(result);
         };
 
-        try {
-          torrent = client.add(source, { path: "/tmp" });
+        const attachExisting = (activeTorrent: WebTorrent.Torrent) => {
+          torrent = activeTorrent;
           if (torrent.ready) {
             void finish(torrent);
           } else {
@@ -87,6 +98,30 @@ export class TorrentService extends AuthenticatedService {
               clearTimeout(timeoutId);
               reject(err instanceof Error ? err : new Error(formatError(err)));
             });
+          }
+        };
+
+        try {
+          const infoHash = typeof source === "string" ? parseInfoHashFromMagnet(source) : null;
+          const existing = infoHash ? torrentClient.findByInfoHash(infoHash) : undefined;
+
+          if (existing) {
+            attachExisting(existing);
+          } else {
+            torrent = client.add(source, { path: "/tmp", deselect: true } as WebTorrent.TorrentOptions);
+            if (torrent.ready) {
+              void finish(torrent);
+            } else {
+              torrent.once("ready", () => {
+                void finish(torrent as WebTorrent.Torrent);
+              });
+              torrent.once("error", (err) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeoutId);
+                reject(err instanceof Error ? err : new Error(formatError(err)));
+              });
+            }
           }
         } catch (err) {
           clearTimeout(timeoutId);

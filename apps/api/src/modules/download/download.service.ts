@@ -1,4 +1,6 @@
 import type { DownloadTorrentInput, PaginationQuery } from "@seedarr/contracts";
+import { parseInfoHashFromMagnet } from "@seedarr/shared";
+import type WebTorrent from "webtorrent";
 
 import { BadRequestError, ForbiddenError, NotFoundError } from "@/shared/errors/error";
 import { signToken } from "@/shared/helpers/crypto.helper";
@@ -10,11 +12,15 @@ import { IdentifiableService } from "@/shared/services/authenticated.service";
 
 import { ROLE_LEVELS } from "@/modules/auth/role.guard";
 import { downloadRepository } from "@/modules/download/download.repository";
-import type { Download, DownloadStats } from "@/modules/download/download.schema";
+import type { Download, DownloadStats, TvScope } from "@/modules/download/download.schema";
 import { enrichDownloadWithFiles } from "@/modules/download/download-files.helper";
 import { getPlannedRemoteDownloadFields } from "@/modules/download/download-planned-remote.helper";
 import { getTvDownloadsFolder } from "@/modules/download/download-staging-path.helper";
-import { applyTorrentFilePolicy, buildTvScopeFromRequest } from "@/modules/download/download-tv-scope.helper";
+import {
+  applyTorrentFilePolicy,
+  assertTvScopeForRequest,
+  buildTvScopeFromRequest,
+} from "@/modules/download/download-tv-scope.helper";
 import { type DownloadableFile, getDownloadableFile } from "@/modules/download/local/local-file.helper";
 import { mediaRepository } from "@/modules/media/media.repository";
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
@@ -24,7 +30,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { getLocalDiskSpace } from "./local/local-disk.helper";
 import { isTransferInProgress, markTransferStarting, runRemoteTransfer } from "./remote/remote-transfer.helper";
-import { extractTorrentLiveData, waitForTorrentMetadata } from "./webtorrent/webtorrent.helper";
+import { extractTorrentLiveData, waitForTorrentReady } from "./webtorrent/webtorrent.helper";
 import {
   destroyLocalTorrentFiles,
   pauseTorrent,
@@ -175,6 +181,20 @@ export class DownloadService extends IdentifiableService<Download> {
 
     const newMedia = await mediaRepository.upsert(input.media);
 
+    const resolvedMediaType = newMedia.type ?? input.media.type;
+    const tvScopeRequest = {
+      season,
+      episode,
+      fullSeason,
+      mediaType: (resolvedMediaType === "tv" ? "tv" : "movie") as "movie" | "tv",
+    };
+
+    const infoHashHint = typeof torrentSource === "string" ? parseInfoHashFromMagnet(torrentSource) : null;
+    const existingByHash =
+      infoHashHint && newMedia.id
+        ? await downloadRepository.findByMediaIdAndInfoHash(newMedia.id, infoHashHint)
+        : undefined;
+
     let stagingFolder = getTvDownloadsFolder(newMedia, input.name);
     let addPath = torrentClient.downloadPath;
     if (stagingFolder) {
@@ -182,54 +202,64 @@ export class DownloadService extends IdentifiableService<Download> {
       await fs.mkdir(addPath, { recursive: true });
     }
 
-    const torrent = torrentClient.safeAdd(torrentSource, { path: addPath });
+    const metadataTimeout = typeof torrentSource === "string" ? METADATA_TIMEOUT_MAGNET_MS : METADATA_TIMEOUT_FILE_MS;
+    const existingScopeHint = existingByHash?.torrent?.tvScope;
+
+    let torrent: WebTorrent.Torrent;
+    let startedViaAttach = false;
+    let effectiveScope: TvScope | null = null;
+
+    const applyFileSelectionOnReady = (t: WebTorrent.Torrent): void => {
+      const builtScope = buildTvScopeFromRequest(t, tvScopeRequest, existingScopeHint);
+      effectiveScope = assertTvScopeForRequest(tvScopeRequest, builtScope ?? existingScopeHint ?? null);
+      logger.info(
+        "DOWNLOAD",
+        `File selection on ready: mediaType=${tvScopeRequest.mediaType} season=${tvScopeRequest.season ?? "-"} episode=${tvScopeRequest.episode ?? "-"} fullSeason=${Boolean(tvScopeRequest.fullSeason)} wanted=${effectiveScope?.wanted?.map((e) => `${e.season}-${e.episode}`).join(",") || "(none)"} files=${t.files.length}`,
+      );
+      // Movies / no TV scope must opt into select-all. Missing scope must never expand a selective TV download.
+      applyTorrentFilePolicy(t, effectiveScope, { selectAllIfEmpty: true });
+    };
+
+    if (existingByHash?.torrent?.magnetURI) {
+      const reuseStorePath = existingByHash.torrent.path
+        ? resolveTorrentStorePath(existingByHash)
+        : path.resolve(addPath);
+      torrent = await torrentClient.attachTorrent(
+        existingByHash.id,
+        existingByHash.torrent.magnetURI,
+        existingByHash.torrent.infoHash ?? infoHashHint,
+        reuseStorePath,
+        applyFileSelectionOnReady,
+      );
+      startedViaAttach = true;
+    } else {
+      torrent = torrentClient.safeAdd(torrentSource, { path: addPath, deselect: true });
+      await waitForTorrentReady(torrent, metadataTimeout, () => applyFileSelectionOnReady(torrent));
+    }
 
     try {
-      const metadataTimeout = typeof torrentSource === "string" ? METADATA_TIMEOUT_MAGNET_MS : METADATA_TIMEOUT_FILE_MS;
-      await waitForTorrentMetadata(torrent, metadataTimeout, () => {
-        for (const file of torrent.files) file.deselect();
-      });
-
-      const resolvedMediaType = newMedia.type ?? input.media.type;
-      const tvScopeRequest = {
-        season,
-        episode,
-        fullSeason,
-        mediaType: (resolvedMediaType === "tv" ? "tv" : "movie") as "movie" | "tv",
-      };
-
-      const existing =
-        torrent.infoHash && newMedia.id
-          ? await downloadRepository.findByMediaIdAndInfoHash(newMedia.id, torrent.infoHash)
-          : undefined;
-
       const plannedRemote = preferLocal ? null : await getPlannedRemoteDownloadFields(newMedia, input.name);
 
-      if (existing) {
-        const reuseStorePath = existing.torrent?.path ? resolveTorrentStorePath(existing) : path.resolve(addPath);
-        const activeTorrent = await torrentClient.attachTorrent(
-          existing.id,
-          torrent.magnetURI,
-          torrent.infoHash,
-          reuseStorePath,
-        );
+      const existingDownload =
+        existingByHash ??
+        (torrent.infoHash && newMedia.id
+          ? await downloadRepository.findByMediaIdAndInfoHash(newMedia.id, torrent.infoHash)
+          : undefined);
 
-        const tvScope = buildTvScopeFromRequest(activeTorrent, tvScopeRequest, existing.torrent?.tvScope);
-        applyTorrentFilePolicy(activeTorrent, tvScope ?? existing.torrent?.tvScope);
-
-        const liveData = extractTorrentLiveData(activeTorrent, { tvScope });
+      if (existingDownload) {
+        const liveData = extractTorrentLiveData(torrent, { tvScope: effectiveScope });
         if (stagingFolder) liveData.name = stagingFolder;
         if (preferLocal) liveData.skipAutoTransfer = true;
 
-        await downloadRepository.updateTorrent(existing.id, liveData, {
+        await downloadRepository.updateTorrent(existingDownload.id, liveData, {
           size: liveData.length || null,
-          ...(plannedRemote && !existing.remoteLocation ? plannedRemote : {}),
+          ...(plannedRemote && !existingDownload.remoteLocation ? plannedRemote : {}),
         });
 
-        setupTorrentHandlers(activeTorrent, existing.id);
-        logger.info("DOWNLOAD", `Reused download ${existing.id} for ${torrent.infoHash}`);
+        setupTorrentHandlers(torrent, existingDownload.id, { tvScope: effectiveScope });
+        logger.info("DOWNLOAD", `Reused download ${existingDownload.id} for ${torrent.infoHash}`);
 
-        const updated = await downloadRepository.find(existing.id);
+        const updated = await downloadRepository.find(existingDownload.id);
         if (!updated) throw new NotFoundError("Download");
         return updated;
       }
@@ -237,10 +267,7 @@ export class DownloadService extends IdentifiableService<Download> {
       const refinedFolder = getTvDownloadsFolder(newMedia, torrent.name);
       if (refinedFolder) stagingFolder = refinedFolder;
 
-      const tvScope = buildTvScopeFromRequest(torrent, tvScopeRequest);
-      applyTorrentFilePolicy(torrent, tvScope);
-
-      const liveData = extractTorrentLiveData(torrent, { tvScope });
+      const liveData = extractTorrentLiveData(torrent, { tvScope: effectiveScope });
       if (stagingFolder) liveData.name = stagingFolder;
       if (preferLocal) liveData.skipAutoTransfer = true;
 
@@ -254,7 +281,7 @@ export class DownloadService extends IdentifiableService<Download> {
         ...(plannedRemote ?? {}),
       });
 
-      setupTorrentHandlers(torrent, newDownload.id);
+      setupTorrentHandlers(torrent, newDownload.id, { tvScope: effectiveScope });
 
       logger.info("DOWNLOAD", `Started in background: ${input.name || torrent.infoHash}`);
 
@@ -262,7 +289,8 @@ export class DownloadService extends IdentifiableService<Download> {
     } catch (error) {
       try {
         const boundId = torrent.infoHash ? (await downloadRepository.findByInfoHash(torrent.infoHash))?.id : undefined;
-        if (!boundId || torrentClient.getActiveTorrent(boundId) !== torrent) {
+        const isBound = boundId && torrentClient.getActiveTorrent(boundId) === torrent;
+        if (!isBound && !startedViaAttach) {
           torrent.destroy();
         }
       } catch {

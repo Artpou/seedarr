@@ -55,17 +55,17 @@ export function findLargestVideoFile(torrent: WebTorrent.Torrent): WebTorrent.To
   return pickLargestVideoFromEntries(torrent.files) ?? null;
 }
 
-export function waitForTorrentMetadata(
+/**
+ * Wait for `ready`, then run `whenReady` synchronously (before any download ticks when `deselect: true`).
+ * Use this to apply file selection immediately on ready.
+ */
+export function waitForTorrentReady(
   torrent: WebTorrent.Torrent,
   timeoutMs: number,
-  onMetadata?: () => void,
+  whenReady: () => void,
 ): Promise<void> {
-  const runHook = () => {
-    onMetadata?.();
-  };
-
   if (torrent.ready) {
-    runHook();
+    whenReady();
     return Promise.resolve();
   }
 
@@ -81,30 +81,21 @@ export function waitForTorrentMetadata(
 
     const cleanup = () => {
       clearTimeout(timer);
-      torrent.off("metadata", onMetadata);
       torrent.off("ready", onReady);
       torrent.off("error", onError);
     };
 
-    const onMetadata = () => {
-      runHook();
-      cleanup();
-      resolve();
-    };
-
     const onReady = () => {
-      runHook();
+      whenReady();
       cleanup();
       resolve();
     };
 
     const onError = (err: Error | string) => {
       cleanup();
-      const message = formatError(err);
-      reject(new BadRequestError(message));
+      reject(new BadRequestError(formatError(err)));
     };
 
-    torrent.once("metadata", onMetadata);
     torrent.once("ready", onReady);
     torrent.once("error", onError);
   });

@@ -41,7 +41,12 @@ export async function pauseTorrent(id: string, item: Download): Promise<{ succes
   torrentClient.markDestroying(id);
   clearHandlersForDownload(id);
 
-  const pausedData = { ...extractTorrentLiveData(activeTorrent), paused: true, downloadSpeed: 0, uploadSpeed: 0 };
+  const pausedData = {
+    ...extractTorrentLiveData(activeTorrent, { tvScope: item.torrent?.tvScope }),
+    paused: true,
+    downloadSpeed: 0,
+    uploadSpeed: 0,
+  };
   await downloadRepository.updateTorrent(id, pausedData);
 
   await destroyTorrent(activeTorrent, { destroyStore: false });
@@ -57,9 +62,11 @@ export async function resumeTorrent(id: string, item: Download): Promise<{ succe
   if (!item.torrent.magnetURI) throw new BadRequestError("No magnet URI found");
 
   const storePath = resolveTorrentStorePath(item);
-  const resumed = await torrentClient.attachTorrent(id, item.torrent.magnetURI, item.torrent.infoHash, storePath);
-  applyTorrentFilePolicy(resumed, item.torrent.tvScope);
-  setupTorrentHandlers(resumed, id);
+  const tvScope = item.torrent.tvScope;
+  const resumed = await torrentClient.attachTorrent(id, item.torrent.magnetURI, item.torrent.infoHash, storePath, (t) =>
+    applyTorrentFilePolicy(t, tvScope, { selectAllIfEmpty: true }),
+  );
+  setupTorrentHandlers(resumed, id, { tvScope });
 
   await downloadRepository.updateTorrent(id, { paused: false });
 
@@ -82,9 +89,11 @@ export async function recheckTorrent(id: string, item: Download): Promise<{ succ
   }
 
   const storePath = resolveTorrentStorePath(item);
-  const resumed = await torrentClient.attachTorrent(id, item.torrent.magnetURI, item.torrent.infoHash, storePath);
-  applyTorrentFilePolicy(resumed, item.torrent.tvScope);
-  setupTorrentHandlers(resumed, id);
+  const tvScope = item.torrent.tvScope;
+  const resumed = await torrentClient.attachTorrent(id, item.torrent.magnetURI, item.torrent.infoHash, storePath, (t) =>
+    applyTorrentFilePolicy(t, tvScope, { selectAllIfEmpty: true }),
+  );
+  setupTorrentHandlers(resumed, id, { tvScope });
 
   await downloadRepository.updateTorrent(id, { paused: false }, { error: null });
 
