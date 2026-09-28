@@ -7,12 +7,19 @@ import { moduleRepository } from "@/modules/module/module.repository";
 export async function visibleDownloadSql(): Promise<SQL | undefined> {
   const disabledIds = await moduleRepository.listDisabledStorageModuleIds();
   const storageEnabled = (await moduleRepository.getEnabledStorageModuleId()) != null;
+  // Local HARDLINK library sync stores paths in remoteLocation with null moduleStorageId.
+  const hardlinkConfigured = Boolean(
+    process.env.HARDLINK_PATH?.trim() ||
+      process.env.HARDLINK_MOVIE_PATH?.trim() ||
+      process.env.HARDLINK_TV_PATH?.trim(),
+  );
 
   const hideDisabled = disabledIds.length > 0 ? inArray(download.moduleStorageId, disabledIds) : sql`0`;
 
-  const hideLegacyRemote = storageEnabled
-    ? sql`0`
-    : sql`${download.moduleStorageId} IS NULL AND ${download.remoteLocation} IS NOT NULL`;
+  const hideLegacyRemote =
+    storageEnabled || hardlinkConfigured
+      ? sql`0`
+      : sql`${download.moduleStorageId} IS NULL AND ${download.remoteLocation} IS NOT NULL`;
 
   return sql`NOT (
       ${download.torrent} IS NULL AND (${hideDisabled} OR ${hideLegacyRemote})
