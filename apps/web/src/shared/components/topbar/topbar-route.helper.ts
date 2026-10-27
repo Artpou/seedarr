@@ -17,7 +17,7 @@ export type MobileTopbarMode =
   | "search"
   | "default";
 
-export function getMobileTopbarMode(
+export function getTopbarMode(
   pathname: string,
   currentUserId: string | undefined,
   search: Record<string, unknown> = {},

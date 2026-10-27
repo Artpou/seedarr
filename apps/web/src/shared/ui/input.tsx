@@ -1,10 +1,16 @@
 import type * as React from "react";
 import { useState } from "react";
 
-import { EyeIcon, EyeOffIcon, SearchIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, SearchIcon, XIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
+import {
+  controlFillClass,
+  controlSurfaceFocusClass,
+  controlSurfaceHoverClass,
+  topbarControlHeightClass,
+} from "@/shared/ui/control-surface";
 import { LabelWrapper } from "@/shared/ui/label";
 
 interface InputProps extends React.ComponentProps<"input"> {
@@ -16,6 +22,15 @@ interface InputProps extends React.ComponentProps<"input"> {
   password?: boolean;
   variant?: "default" | "ghost";
 }
+
+const inputChromeClass = cn(controlFillClass, "rounded-full", controlSurfaceHoverClass, controlSurfaceFocusClass);
+
+const inputTopbarChromeClass = cn(
+  topbarControlHeightClass,
+  "rounded-full border border-border bg-transparent py-1 shadow-none",
+  "hover:bg-muted/25",
+  controlSurfaceFocusClass,
+);
 
 function Input({
   className,
@@ -30,21 +45,27 @@ function Input({
 }: InputProps) {
   const [revealed, setRevealed] = useState(false);
   const inputType = password ? (revealed ? "text" : "password") : type;
+  const stringValue = typeof props.value === "string" ? props.value : undefined;
+  const showSearchClear = Boolean(search && stringValue && stringValue.length > 0 && !props.readOnly);
+
+  const clearSearch = () => {
+    props.onChange?.({ target: { value: "" }, currentTarget: { value: "" } } as React.ChangeEvent<HTMLInputElement>);
+  };
 
   const input = (
     <input
       type={inputType}
       data-slot="input"
       className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground h-9 w-full min-w-0 rounded-md px-3 py-5.5 sm:py-1 text-base transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "file:text-foreground placeholder:text-muted-foreground/80 selection:bg-primary selection:text-primary-foreground w-full min-w-0 px-3 text-base transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
         variant === "ghost"
-          ? "bg-transparent shadow-none hover:bg-transparent focus-visible:ring-0"
-          : "bg-input shadow-xs hover:border-ring/30 hover:ring-ring/20 hover:ring-[3px] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+          ? inputTopbarChromeClass
+          : cn(inputChromeClass, h === "lg" ? "h-10 min-h-10 py-2" : "h-9 py-5.5 sm:py-1"),
         "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
         !!label && "rounded-tl-none",
         search && "pl-12",
-        password && "pr-10",
-        h === "lg" && "py-5!",
+        password && (h === "lg" ? "pr-12" : "pr-10"),
+        showSearchClear && "pr-10",
         className,
       )}
       {...props}
@@ -57,8 +78,12 @@ function Input({
       <Button
         type="button"
         variant="ghost"
-        size="icon"
-        className="absolute right-0 top-0 h-full w-9 text-muted-foreground hover:text-foreground"
+        size="icon-sm"
+        rounded
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:bg-card hover:text-foreground",
+          h === "lg" ? "right-1.5" : "right-1",
+        )}
         onClick={() => setRevealed((v) => !v)}
         aria-label={revealed ? "Hide" : "Show"}
         icon={revealed ? EyeOffIcon : EyeIcon}
@@ -70,8 +95,18 @@ function Input({
 
   const content = search ? (
     <div className="relative w-full">
-      <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+      <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground/80" />
       {field}
+      {showSearchClear && (
+        <button
+          type="button"
+          className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+          onClick={clearSearch}
+          aria-label="Clear search"
+        >
+          <XIcon className="size-4 shrink-0" aria-hidden />
+        </button>
+      )}
     </div>
   ) : (
     field

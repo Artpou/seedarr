@@ -1,24 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import type { ListMediaQuery } from "@seedarr/contracts";
 import type { Media } from "@seedarr/sdk";
 import { useNavigate } from "@tanstack/react-router";
 import { type OnChangeFn, type RowSelectionState, type SortingState, useTable } from "@tanstack/react-table";
-import { useDebounce } from "@uidotdev/usehooks";
 import { LibraryIcon, Trash2Icon } from "lucide-react";
 
 import { DiscoverSectionLabel } from "@/shared/components/discover-section-label";
 import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
 import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
-import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { flattenInfiniteResults, type InfiniteResultsQuery } from "@/shared/hooks/use-infinite-list";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Container } from "@/shared/ui/container";
 import { DataTable } from "@/shared/ui/data-table";
-import { Input } from "@/shared/ui/input";
 
 import { useAuth } from "@/features/auth/auth-store";
 import { useRole } from "@/features/auth/hooks/use-role";
@@ -38,6 +35,7 @@ import { MediaTabsViewMode } from "@/features/media/components/tabs/media-tabs-v
 import { listQueryToSorting, sortingToListQuery } from "@/features/media/helpers/media-sort.helper";
 import { useMediaList } from "@/features/media/hooks/use-media";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import { buildDownloadsListQuery } from "@/routes/helpers/downloads-route.helper";
 
 export interface DownloadsViewProps {
@@ -58,27 +56,11 @@ export function DownloadsView({ search }: DownloadsViewProps) {
     sortOrder,
   } = search;
   const navigate = useNavigate();
-  const { t } = useLingui();
   const isMobile = useIsMobile();
-  const [query, setQuery] = useState(searchQ ?? "");
+  const tvMode = useTvMode();
+  const compactLibraryChrome = isMobile || tvMode;
   const [isStuck, setIsStuck] = useState(false);
-  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
   const viewMode = useEffectiveViewMode("downloads");
-
-  useEffect(() => {
-    setQuery(searchQ ?? "");
-  }, [searchQ]);
-
-  useEffect(() => {
-    if (isMobile) return;
-    const next = debouncedQuery.trim() || undefined;
-    if ((searchQ ?? undefined) === next) return;
-    navigate({
-      to: "/downloads",
-      search: { ...search, q: next },
-      resetScroll: false,
-    });
-  }, [debouncedQuery, isMobile, navigate, search, searchQ]);
 
   const effectiveQuery = (searchQ ?? "").trim();
   const listQuery = buildDownloadsListQuery(search);
@@ -99,9 +81,8 @@ export function DownloadsView({ search }: DownloadsViewProps) {
 
   const genreScope = type ?? "both";
   const filterType = type ?? "movie";
-  const showViewMode = !isMobile || !isStuck;
-  const showPageSearch = !isMobile;
-  const showPageFilters = !isMobile;
+  const showViewMode = !tvMode && (!compactLibraryChrome || !isStuck);
+  const showPageFilters = !compactLibraryChrome;
 
   const libraryFilters = useMemo(
     () => ({
@@ -121,36 +102,15 @@ export function DownloadsView({ search }: DownloadsViewProps) {
 
       <SentinelStuck setIsStuck={setIsStuck} marginTop={-30} />
 
-      {isMobile ? (
+      {isMobile && !tvMode ? (
         <DiscoverSectionLabel icon={LibraryIcon}>
           <Trans>Library</Trans>
         </DiscoverSectionLabel>
-      ) : (
-        !isStuck && (
-          <Input
-            type="search"
-            search
-            classNameWrapper="w-full"
-            h="lg"
-            placeholder={t`Search in your library...`}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        )
-      )}
+      ) : null}
 
       <StickyFilterBar isStuck={isStuck}>
-        {isStuck && showPageSearch ? (
-          <div className="flex w-full items-center gap-2">
-            <Input
-              type="search"
-              search
-              classNameWrapper="w-full min-w-0 flex-1"
-              h="lg"
-              placeholder={t`Search in your library...`}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+        {isStuck ? (
+          <div className="flex w-full items-center justify-end gap-2">
             <LibraryFiltersSheet
               genreScope={genreScope}
               type={filterType}
@@ -169,7 +129,7 @@ export function DownloadsView({ search }: DownloadsViewProps) {
             {showViewMode && (
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                 <MediaTabsViewMode scope="downloads" />
-                {!isMobile && <MediaTypeTabs value={type} />}
+                {!compactLibraryChrome && <MediaTypeTabs value={type} />}
               </div>
             )}
             {showPageFilters && (
@@ -186,7 +146,7 @@ export function DownloadsView({ search }: DownloadsViewProps) {
                     })
                   }
                 />
-                {showViewMode && <DownloadButtonSynchronize />}
+                {showViewMode && !tvMode && <DownloadButtonSynchronize />}
               </div>
             )}
           </div>
@@ -293,6 +253,7 @@ function DownloadsLibraryTable({
 
       <DataTable
         table={table}
+        className="table-fixed"
         empty={<Trans>No downloads</Trans>}
         onRowClick={(row) => navigate({ to: "/downloads/$id", params: { id: row.original.download.id } })}
       />

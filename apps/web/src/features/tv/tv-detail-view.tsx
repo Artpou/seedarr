@@ -5,12 +5,15 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 
+import { useRole } from "@/features/auth/hooks/use-role";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
 import { MediaCarouselCast } from "@/features/media/components/carousel/media-carousel-cast";
 import { type MediaDetailTab, MediaDetailView } from "@/features/media/media-detail-view";
 import { TvEpisodesSection } from "@/features/tv/components/tv-episodes-section";
 import { TvRelated } from "@/features/tv/components/tv-related";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
+import { tvDetailInitialFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvInitialFocus } from "@/features/tv-mode/use-tv-initial-focus";
 
 export interface TvDetailViewProps {
   tvId: string;
@@ -18,6 +21,7 @@ export interface TvDetailViewProps {
 }
 
 export function TvDetailView({ tvId, urlTab }: TvDetailViewProps) {
+  const { role } = useRole();
   const navigate = useNavigate();
   const locale = useTmdbLocale();
   const { data } = useSuspenseQuery(tvQueries.details(tvId, locale));
@@ -43,6 +47,15 @@ export function TvDetailView({ tvId, urlTab }: TvDetailViewProps) {
     if (urlTab) return urlTab;
     return hasActiveDownload ? "downloads" : "info";
   }, [urlTab, torrentDownloads.length, remoteDownloads.length, hasActiveDownload]);
+
+  useTvInitialFocus(
+    tvDetailInitialFocusKey({
+      mediaType: "tv",
+      mediaId: tvId,
+      downloadId: liveDownload?.id,
+      isViewer: role === "viewer",
+    }),
+  );
 
   return (
     <MediaDetailView

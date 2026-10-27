@@ -20,6 +20,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { DataTable } from "@/shared/ui/data-table";
+import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
 
 import { useStartDownload } from "@/features/downloads/hooks/download.queries";
 import { useUserPreferences } from "@/features/settings/stores/user-preference-store";
@@ -30,6 +31,9 @@ import {
   torrentTableFeatures,
   useTorrentColumns,
 } from "@/features/torrent/hooks/use-torrent-columns";
+import { tvTorrentRowFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { useTvInitialFocus } from "@/features/tv-mode/use-tv-initial-focus";
 import { TorrentInspectModal } from "./torrent-inspect-modal";
 import { TorrentUnavailableDialog } from "./torrent-unavailable-dialog";
 
@@ -66,20 +70,26 @@ function TorrentEmptyState({ hasIndexers }: { hasIndexers: boolean }) {
   );
 }
 
+function torrentRowId(torrent: TorrentWithMeta): string {
+  return torrent.guid || torrent.link || torrent.title;
+}
+
 function TorrentMobileCard({
   torrent,
   media,
   onInspect,
   onDownload,
+  tvMode,
 }: {
   torrent: TorrentWithMeta;
   media: Media;
   onInspect: (torrent: TorrentWithMeta) => void;
   onDownload: (torrent: TorrentWithMeta) => void;
+  tvMode?: boolean;
 }) {
   const container = getVideoContainer(torrent.title);
 
-  return (
+  const body = (
     <Card className="gap-3 p-3 py-3">
       <div className="flex justify-between items-center">
         <span className="font-bold text-muted-foreground">{(torrent.size / 1e9).toFixed(2)} GB</span>
@@ -111,21 +121,39 @@ function TorrentMobileCard({
         )}
       </div>
 
-      <div className="flex w-full gap-2 mt-2">
-        <Button
-          variant="secondary"
-          size="default"
-          className="flex-1"
-          icon={InfoIcon}
-          onClick={() => onInspect(torrent)}
-        >
-          <Trans>Info</Trans>
-        </Button>
-        <Button size="default" className="flex-1" icon={DownloadIcon} onClick={() => onDownload(torrent)}>
-          <Trans>Download</Trans>
-        </Button>
-      </div>
+      {!tvMode && (
+        <div className="flex w-full gap-2 mt-2">
+          <Button
+            variant="secondary"
+            size="default"
+            className="flex-1"
+            icon={InfoIcon}
+            onClick={() => onInspect(torrent)}
+          >
+            <Trans>Info</Trans>
+          </Button>
+          <Button size="default" className="flex-1" icon={DownloadIcon} onClick={() => onDownload(torrent)}>
+            <Trans>Download</Trans>
+          </Button>
+        </div>
+      )}
     </Card>
+  );
+
+  if (!tvMode) return body;
+
+  return (
+    <TvFocusable
+      focusRoot
+      className="rounded-xl"
+      tv={{
+        focusKey: tvTorrentRowFocusKey(media.id, torrentRowId(torrent)),
+        onPress: () => onDownload(torrent),
+        accessibilityLabel: torrent.title,
+      }}
+    >
+      {body}
+    </TvFocusable>
   );
 }
 
@@ -141,6 +169,7 @@ export function TorrentTable({
 }: TorrentTableProps) {
   const { t } = useLingui();
   const isMobile = useIsMobile();
+  const tvMode = useTvMode();
   const startDownload = useStartDownload();
   const navigate = useNavigate();
   const preferenceQuality = useUserPreferences((s) => s.quality);
@@ -300,6 +329,7 @@ export function TorrentTable({
     onInspect: handleOpenInspectModal,
     onDownload: handleAddDownload,
     isInLibrary: isTorrentInLibrary,
+    tvMode,
   });
 
   const table = useTable({
@@ -312,6 +342,26 @@ export function TorrentTable({
   });
 
   const showLoader = isLoading && filteredTorrents.length === 0;
+
+  const firstTorrentRowFocusKey = useMemo(() => {
+    const first = filteredTorrents[0];
+    if (!first || showLoader) return undefined;
+    return tvTorrentRowFocusKey(media.id, torrentRowId(first));
+  }, [filteredTorrents, showLoader, media.id]);
+
+  useTvInitialFocus(tvMode ? firstTorrentRowFocusKey : undefined);
+
+  const tvRow = useMemo(
+    () =>
+      tvMode
+        ? {
+            getFocusKey: (row: { id: string }) => tvTorrentRowFocusKey(media.id, row.id),
+            onPress: (row: { original: TorrentWithMeta }) => handleAddDownload(row.original),
+            getAccessibilityLabel: (row: { original: TorrentWithMeta }) => row.original.title,
+          }
+        : undefined,
+    [tvMode, media.id, handleAddDownload],
+  );
 
   return (
     <div className="w-full overflow-hidden">
@@ -332,7 +382,7 @@ export function TorrentTable({
         )}
       </div>
 
-      {isMobile ? (
+      {isMobile && !tvMode ? (
         showLoader ? (
           <SeedarrLoader />
         ) : filteredTorrents.length === 0 ? (
@@ -355,6 +405,7 @@ export function TorrentTable({
           table={table}
           classNameContainer="rounded-tl-none"
           empty={showLoader ? <SeedarrLoader /> : <TorrentEmptyState hasIndexers={hasIndexers} />}
+          tvRow={tvRow}
         />
       )}
 

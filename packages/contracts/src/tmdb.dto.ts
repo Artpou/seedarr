@@ -14,6 +14,8 @@ export const tmdbDiscoverDto = tmdbListDto.extend({
   with_watch_providers: z.string().optional(),
   "primary_release_date.gte": z.string().optional(),
   "primary_release_date.lte": z.string().optional(),
+  "release_date.gte": z.string().optional(),
+  "release_date.lte": z.string().optional(),
   "first_air_date.gte": z.string().optional(),
   "first_air_date.lte": z.string().optional(),
   with_original_language: z.string().optional(),

@@ -8,6 +8,7 @@ import { Button, type ButtonProps } from "@/shared/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/ui/tooltip";
 
 import { useDownloadFile } from "@/features/downloads/hooks/download.queries";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface MediaDownloadButtonProps extends Omit<ButtonProps, "onClick"> {
   media: Media;
@@ -16,8 +17,9 @@ interface MediaDownloadButtonProps extends Omit<ButtonProps, "onClick"> {
 
 export const MediaDownloadButton = ({ media, videoFile, className, ...props }: MediaDownloadButtonProps) => {
   const downloadFile = useDownloadFile();
+  const tvMode = useTvMode();
 
-  if (!videoFile || !media.download) return null;
+  if (tvMode || !videoFile || !media.download) return null;
 
   return (
     <TooltipProvider>

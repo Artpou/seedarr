@@ -5,6 +5,7 @@ import type { MediaRequest } from "@seedarr/sdk";
 import { BellRingIcon, type LucideIcon } from "lucide-react";
 
 import { CarouselItem } from "@/shared/ui/carousel";
+import { CarouselSeeMoreSlide } from "@/shared/ui/carousel-see-more-slide";
 import { CarouselWrapper } from "@/shared/ui/carousel-wrapper";
 
 import { RequestCard } from "./request-card";
@@ -15,9 +16,17 @@ interface RequestCarouselProps {
   titleIcon?: LucideIcon;
   seeMoreTo?: string;
   seeMoreSearch?: Record<string, unknown>;
+  tvBarUpFocusKey?: string;
 }
 
-export function RequestCarousel({ requests, title, titleIcon, seeMoreTo, seeMoreSearch }: RequestCarouselProps) {
+export function RequestCarousel({
+  requests,
+  title,
+  titleIcon,
+  seeMoreTo,
+  seeMoreSearch,
+  tvBarUpFocusKey,
+}: RequestCarouselProps) {
   if (requests.length === 0) return null;
 
   const defaultTitle = <Trans>Pending Requests</Trans>;
@@ -28,17 +37,29 @@ export function RequestCarousel({ requests, title, titleIcon, seeMoreTo, seeMore
       titleIcon={titleIcon ?? (title ? undefined : BellRingIcon)}
       seeMoreTo={seeMoreTo}
       seeMoreSearch={seeMoreSearch}
+      tvBarUpFocusKey={tvBarUpFocusKey}
     >
-      {requests.map((request) => (
+      {requests.map((request, index) => (
         <CarouselItem
           key={request.id}
-          className="basis-[85%] sm:basis-[55%] md:basis-[42%] lg:basis-[34%] xl:basis-[28%]"
+          slideIndex={index}
+          layout="wide"
+          className="w-auto basis-[85%] sm:basis-[55%] md:basis-[42%] lg:basis-[34%] xl:basis-[28%]"
         >
           <div className="h-full">
             <RequestCard request={request} />
           </div>
         </CarouselItem>
       ))}
+      {seeMoreTo && (
+        <CarouselSeeMoreSlide
+          seeMoreTo={seeMoreTo}
+          seeMoreSearch={seeMoreSearch}
+          slideIndex={requests.length}
+          layout="wide"
+          className="w-auto basis-[85%] sm:basis-[55%] md:basis-[42%] lg:basis-[34%] xl:basis-[28%]"
+        />
+      )}
     </CarouselWrapper>
   );
 }

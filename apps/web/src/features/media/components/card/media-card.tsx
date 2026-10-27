@@ -11,12 +11,16 @@ import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Badge } from "@/shared/ui/badge";
 import { Card } from "@/shared/ui/card";
 import { Progress } from "@/shared/ui/progress";
+import { useTvMediaFocusKey } from "@/shared/ui/tv/tv-carousel-context";
+import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
+import { useTvCarouselEmblaScroll } from "@/shared/ui/tv/use-tv-carousel-embla-scroll";
 
 import { DownloadProgress } from "@/features/downloads/components/download-progress";
 import { MediaBadgeRating } from "@/features/media/components/badge/media-badge-rating";
 import { MediaBadgeType } from "@/features/media/components/badge/media-badge-type";
 import { MediaButtonPlay } from "@/features/media/components/button/media-button-play";
 import { MediaImg } from "@/features/media/components/media-image";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import { MediaCardPreview } from "./media-card-preview";
 
 type MediaCardProps = {
@@ -44,17 +48,65 @@ export function MediaCard({
 }: MediaCardProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const tvMode = useTvMode();
+  const tvFocusKey = useTvMediaFocusKey(media);
+  const onCarouselFocused = useTvCarouselEmblaScroll();
 
   const detailLinkProps =
     media.type === "tv"
       ? ({ to: "/tv/$id", params: { id: media.id.toString() } } as const)
       : ({ to: "/movies/$id", params: { id: media.id.toString() } } as const);
 
+  const openDetail = () => navigate({ to: detailLinkProps.to, params: detailLinkProps.params });
+
   const showDownloadProgress =
     showDownload &&
     media.download &&
     (!media.download.torrent?.done || media.download.torrent?.transferring) &&
     !(!media.download.torrent && media.download.remoteLocation);
+
+  const cardBody = (
+    <>
+      <div className="relative aspect-2/3 w-full overflow-hidden">
+        <MediaImg media={media} type="poster" className="size-full object-cover" />
+
+        {media.download && showDownloadProgress && (
+          <div className="absolute top-2 right-2">
+            <DownloadProgress download={media.download} variant="circular" />
+          </div>
+        )}
+
+        <div className="absolute top-2 left-2 flex items-center gap-0.5">
+          {showType && <MediaBadgeType type={media.type} iconOnly />}
+          {showSocial && <MediaBadgeRating media={media} onlyOne />}
+          {showQuality && media.download?.quality && <Badge variant="glass">{media.download.quality}</Badge>}
+        </div>
+
+        {showSocial && media.liked && !showDownloadProgress && (
+          <Badge className="absolute top-2 right-2" variant="glass">
+            <HeartIcon className="fill-primary text-primary shrink-0" />
+          </Badge>
+        )}
+
+        {showSocial && media.inWatchList && !media.liked && !showDownloadProgress && (
+          <Badge className="absolute top-2 right-2" variant="glass">
+            <ClockPlusIcon className="text-primary shrink-0" />
+          </Badge>
+        )}
+
+        {showPlay && !isMobile && !tvMode && (
+          <div className="absolute bottom-2 left-2 right-2 flex gap-1 transition-all duration-200 ease-out md:-bottom-6.5 md:group-hover:bottom-2">
+            <MediaButtonPlay media={media} size="sm" className="w-full" />
+          </div>
+        )}
+        {showPlay && isMobile && !!media.download && (
+          <Progress value={media.progress?.position ?? 0} max={100} className="absolute bottom-0 left-0 h-1 w-full" />
+        )}
+      </div>
+
+      {children}
+    </>
+  );
 
   const card = (
     <Card
@@ -64,51 +116,33 @@ export function MediaCard({
         className,
       )}
     >
-      <Link {...detailLinkProps} className="flex w-full flex-col">
-        <div className="relative aspect-2/3 w-full overflow-hidden">
-          <MediaImg media={media} type="poster" className="size-full object-cover" />
-
-          {media.download && showDownloadProgress && (
-            <div className="absolute top-2 right-2">
-              <DownloadProgress download={media.download} variant="circular" />
-            </div>
-          )}
-
-          <div className="absolute top-2 left-2 flex items-center gap-0.5">
-            {showType && <MediaBadgeType type={media.type} iconOnly />}
-            {showSocial && <MediaBadgeRating media={media} onlyOne />}
-            {showQuality && media.download?.quality && <Badge variant="glass">{media.download.quality}</Badge>}
-          </div>
-
-          {showSocial && media.liked && !showDownloadProgress && (
-            <Badge className="absolute top-2 right-2" variant="glass">
-              <HeartIcon className="fill-primary text-primary shrink-0" />
-            </Badge>
-          )}
-
-          {showSocial && media.inWatchList && !media.liked && !showDownloadProgress && (
-            <Badge className="absolute top-2 right-2" variant="glass">
-              <ClockPlusIcon className="text-primary shrink-0" />
-            </Badge>
-          )}
-
-          {showPlay && !isMobile && (
-            <div className="absolute bottom-2 left-2 right-2 flex gap-1 transition-all duration-200 ease-out md:-bottom-6.5 md:group-hover:bottom-2">
-              <MediaButtonPlay media={media} size="sm" className="w-full" />
-            </div>
-          )}
-          {showPlay && isMobile && !!media.download && (
-            <Progress value={media.progress?.position ?? 0} max={100} className="absolute bottom-0 left-0 h-1 w-full" />
-          )}
-        </div>
-
-        {children}
-      </Link>
+      {tvMode ? (
+        <div className="flex w-full flex-col">{cardBody}</div>
+      ) : (
+        <Link {...detailLinkProps} className="flex w-full flex-col">
+          {cardBody}
+        </Link>
+      )}
     </Card>
   );
 
-  if (!showPreview || isMobile) {
-    return <div className="relative group">{card}</div>;
+  const focusableCard = (
+    <TvFocusable
+      focusRoot
+      tv={{
+        focusKey: tvFocusKey,
+        onPress: openDetail,
+        accessibilityLabel: media.title,
+        onFocused: onCarouselFocused,
+      }}
+      className="rounded-xl"
+    >
+      {card}
+    </TvFocusable>
+  );
+
+  if (tvMode || !showPreview || isMobile) {
+    return <div className="relative group">{focusableCard}</div>;
   }
 
   return (

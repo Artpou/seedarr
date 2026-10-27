@@ -7,6 +7,8 @@ import {
   buildTvDiscoverOptions,
   isScopedDiscoverSearch,
   type MovieDiscoverSearch,
+  newDiscoverQueryOptions,
+  popularDiscoverQueryOptions,
   type TvDiscoverSearch,
 } from "@/features/media/helpers/discover-search.helper";
 import { genreQueries } from "@/features/media/hooks/genre.queries";
@@ -55,18 +57,25 @@ export function prefetchDiscoverRouteQueries(
       );
     }
   } else {
-    // Carousels default discover page: prefetch New, Top Rated, and Genres
-    if (type === "movie") {
-      prefetch.push(
-        context.queryClient.ensureInfiniteQueryData(movieQueries.discover({}, locale)),
-        context.queryClient.ensureInfiniteQueryData(movieQueries.discover({ sort_by: "vote_average.desc" }, locale)),
-      );
-    } else {
-      prefetch.push(
-        context.queryClient.ensureInfiniteQueryData(tvQueries.discover({}, locale)),
-        context.queryClient.ensureInfiniteQueryData(tvQueries.discover({ sort_by: "vote_average.desc" }, locale)),
-      );
+    // Carousels default discover page: prefetch Popular, New (movies), Top Rated, and Genres
+    prefetch.push(
+      context.queryClient.ensureInfiniteQueryData(
+        type === "movie"
+          ? movieQueries.discover(popularDiscoverQueryOptions("movie"), locale)
+          : tvQueries.discover(popularDiscoverQueryOptions("tv"), locale),
+      ),
+    );
+    const newOptions = newDiscoverQueryOptions(type);
+    if (newOptions) {
+      prefetch.push(context.queryClient.ensureInfiniteQueryData(movieQueries.discover(newOptions, locale)));
     }
+    prefetch.push(
+      context.queryClient.ensureInfiniteQueryData(
+        type === "movie"
+          ? movieQueries.discover({ sort_by: "vote_average.desc" }, locale)
+          : tvQueries.discover({ sort_by: "vote_average.desc" }, locale),
+      ),
+    );
     prefetch.push(context.queryClient.ensureQueryData(genreQueries.list(type, locale)));
   }
 

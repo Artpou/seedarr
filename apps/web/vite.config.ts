@@ -2,7 +2,7 @@ import { lingui } from "@lingui/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import tanstackRouter from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react-swc";
-import { codeInspectorPlugin } from 'code-inspector-plugin';
+import { codeInspectorPlugin } from "code-inspector-plugin";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import viteTsConfigPaths from "vite-tsconfig-paths";
@@ -20,7 +20,10 @@ const config = defineConfig({
   },
   plugins: [
     codeInspectorPlugin({
-      bundler: 'vite',
+      bundler: "vite",
+      // Mac: ⌥ Option + ⇧ Shift + click. "code" = VS Code; use "cursor" for Cursor.
+      editor: "code",
+      launchType: "open",
     }),
     tanstackRouter({
       autoCodeSplitting: true,

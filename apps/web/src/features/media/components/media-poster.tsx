@@ -1,13 +1,17 @@
+import { plural } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
 import type { Download, Movie, TV } from "@seedarr/sdk";
 import { useQuery } from "@tanstack/react-query";
-import { ClapperboardIcon } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ClapperboardIcon, PlayIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { usePosterStackLayout } from "@/shared/hooks/use-poster-stack-layout";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 import { Badge } from "@/shared/ui/badge";
 import { Img } from "@/shared/ui/image";
 import { Progress } from "@/shared/ui/progress";
+import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
 
 import { useRole } from "@/features/auth/hooks/use-role";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
@@ -23,6 +27,9 @@ import {
   hasWatchProgress,
 } from "@/features/media/helpers/media.helper";
 import { trailerQueries } from "@/features/media/hooks/trailer.queries";
+import { preloadMoviPlayer } from "@/features/player/helpers/movi-player.helper";
+import { tvPlayFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface MediaPosterProps {
   data: Movie | TV;
@@ -39,7 +46,8 @@ function getDisplayTitle(data: Movie | TV): string {
 /** Poster + coherent full-width action stack (trailer / torrents / play / delete). */
 export function MediaPoster({ data, download }: MediaPosterProps) {
   const { role } = useRole();
-  const isMobile = useIsMobile();
+  const tvMode = useTvMode();
+  const stackLayout = usePosterStackLayout();
   const locale = useTmdbLocale();
   const { media } = data;
 
@@ -57,15 +65,28 @@ export function MediaPoster({ data, download }: MediaPosterProps) {
 
   const { data: trailer } = useQuery({
     ...trailerQueries.get(media, locale),
-    enabled: isMobile,
+    enabled: stackLayout,
   });
 
   const displayTitle = getDisplayTitle(data);
+  const playDownloadId = download?.id;
   const showWatchProgress = hasWatchProgress(media);
+  const tvShowWatchProgress =
+    tvMode && playDownloadId != null && hasWatchProgress(media) && media.progress?.downloadId === playDownloadId;
   const watchProgressPercent = getWatchProgressPercent(media);
+  const remainingMinutes =
+    tvShowWatchProgress && media.progress
+      ? Math.max(1, Math.ceil((media.progress.duration - media.progress.position) / 60))
+      : null;
   const canDownload = Boolean(download && (!download.torrent || download.torrent.done) && videoFile);
+  const navigate = useNavigate();
 
-  if (isMobile) {
+  const goPlay = () => {
+    if (!playDownloadId) return;
+    navigate({ to: "/downloads/$id/play", params: { id: playDownloadId } });
+  };
+
+  if (stackLayout) {
     if (download) {
       return (
         <div className="flex w-full flex-col gap-2">
@@ -120,6 +141,75 @@ export function MediaPoster({ data, download }: MediaPosterProps) {
         {role !== "viewer" && <MediaButtonTorrent media={media} className="w-full" size="lg" />}
         {role === "viewer" && <MediaButtonRequest media={media} className="w-full" size="lg" />}
         <MediaButtonTrailer title={displayTitle} data={data} variant="secondary" className="w-full" size="lg" />
+      </div>
+    );
+  }
+
+  if (tvMode && canPlay && playDownloadId) {
+    const posterImage = (
+      <Img
+        fallback={<ClapperboardIcon className="size-10 text-muted-foreground" />}
+        src={getPosterUrl(media.poster_path, "w500")}
+        alt={displayTitle}
+        className="size-full object-cover"
+      />
+    );
+
+    const qualityBadge = download?.quality ? (
+      <Badge variant="glass" className="absolute top-2 left-2 z-10">
+        {download.quality}
+      </Badge>
+    ) : null;
+
+    return (
+      <div className="mx-auto flex w-full max-w-[300px] shrink-0 flex-col gap-3 lg:mx-0">
+        <TvFocusable
+          focusRoot
+          className="tv-media-poster-target block w-full rounded-md"
+          tv={{
+            focusKey: tvPlayFocusKey(playDownloadId),
+            onPress: goPlay,
+            accessibilityLabel: displayTitle,
+          }}
+        >
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: hover preload on poster shell inside TV focus target */}
+          <div
+            data-slot="media-poster-play"
+            className="group/poster relative aspect-2/3 w-full overflow-hidden rounded-md border-2 border-secondary shadow-2xl transition-[border-color,box-shadow]"
+            onMouseEnter={preloadMoviPlayer}
+            onPointerDown={preloadMoviPlayer}
+          >
+            {posterImage}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25 transition-colors">
+              <span className="tv-poster-play-icon flex size-16 items-center justify-center rounded-full bg-primary/85 shadow-lg transition-transform duration-150">
+                <PlayIcon className="ml-1 size-8 fill-current text-white" aria-hidden />
+              </span>
+            </div>
+            {qualityBadge}
+          </div>
+        </TvFocusable>
+        {tvShowWatchProgress && (
+          <div className="flex w-full flex-col gap-1.5">
+            <Progress value={watchProgressPercent} max={100} className="h-1.5 w-full" />
+            {remainingMinutes != null && (
+              <p className="text-center text-sm text-muted-foreground">
+                <Trans>
+                  {plural(remainingMinutes, {
+                    one: "# minute remaining",
+                    other: "# minutes remaining",
+                  })}
+                </Trans>
+              </p>
+            )}
+          </div>
+        )}
+        <div className="flex w-full flex-col gap-2">
+          {!download && role !== "viewer" && <MediaButtonTorrent media={media} className="w-full" size="lg" />}
+          {!download && role === "viewer" && <MediaButtonRequest media={media} className="w-full" size="lg" />}
+          {!download && (
+            <MediaButtonTrailer title={displayTitle} data={data} variant="secondary" className="w-full" size="lg" />
+          )}
+        </div>
       </div>
     );
   }

@@ -39,6 +39,14 @@ Keep both aligned when changing brand colors.
 1. **Cinema browse** — posters, carousels, hover previews, sticky filters, bottom mobile nav. Atmospheric but product-first.
 2. **Admin / dense** — tables, modules settings, forms, torrents. Flat, compact, clear hierarchy. Do not "marketing-ify" these screens.
 
+## TV mode (`?mode=tv`)
+
+Third layout: **living-room / spatial navigation** (`features/tv-mode/`, `html[data-tv]`). Test with `?mode=tv` on movies, library, search, and player.
+
+- Use `TvFocusable`, `TvRouterLink`, and keys in `tv-focus-keys.ts` for remote-friendly targets.
+- Keep nav links passing `mode: "tv"` in search params where the TV topbar already does.
+- TV-specific chrome (hide dense toolbars, disable unfinished actions) belongs in feature views — document user-facing behavior in `apps/website` [TV mode](/guides/tv-mode/) guide.
+
 ## Hard rules
 
 - Prefer Tailwind utilities + existing CSS variables over new one-off color systems.
@@ -54,7 +62,7 @@ Keep both aligned when changing brand colors.
 
 - **`redesign-existing-projects`**: run audit first, then fix — but **preserve** Montserrat + lime + dark cinema. Skip advice that replaces the brand font/accent.
 - **`web-design-guidelines`**: use for a11y / forms / focus / UX compliance audits.
-- **Playwright / browser MCP**: after UI changes, screenshot `http://localhost:3000` key routes (login, movies, downloads, settings/modules) in dark mode at minimum.
+- **Playwright / browser MCP**: after UI changes, screenshot `http://localhost:3000` key routes (login, movies, downloads, settings/modules) in dark mode at minimum; add `?mode=tv` when touching TV layout or focus.
 
 ## High-ROI polish targets
 

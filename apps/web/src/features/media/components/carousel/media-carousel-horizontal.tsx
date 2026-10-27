@@ -8,13 +8,22 @@ import { InfoIcon } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { CarouselItem } from "@/shared/ui/carousel";
+import { CarouselSeeMoreSlide } from "@/shared/ui/carousel-see-more-slide";
 import { CarouselWrapper } from "@/shared/ui/carousel-wrapper";
+import {
+  carouselMediaFocusKey,
+  carouselSectionKey,
+  carouselSeeMoreSearchKey,
+} from "@/shared/ui/tv/tv-carousel-context";
 
 import { MediaCardHorizontal } from "@/features/media/components/card/media-card-horizontal";
 import { getRemainingTime, getWatchProgressPercent } from "@/features/media/helpers/media.helper";
 import { preloadMoviPlayer } from "@/features/player/helpers/movi-player.helper";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 const MAX_ITEMS = 20;
+
+const HORIZONTAL_SLIDE_CLASS = "w-auto basis-[85%] sm:basis-[55%] md:basis-[42%] lg:basis-[34%] xl:basis-[28%]";
 
 interface MediaCarouselHorizontalProps {
   title: string | ReactNode;
@@ -22,6 +31,7 @@ interface MediaCarouselHorizontalProps {
   medias: Media[];
   seeMoreTo?: string;
   seeMoreSearch?: Record<string, unknown>;
+  tvBarUpFocusKey?: string;
 }
 
 export function MediaCarouselHorizontal({
@@ -30,7 +40,9 @@ export function MediaCarouselHorizontal({
   medias,
   seeMoreTo,
   seeMoreSearch,
+  tvBarUpFocusKey,
 }: MediaCarouselHorizontalProps) {
+  const tvMode = useTvMode();
   const uniqueMedias = useMemo(() => {
     if (!medias || medias.length === 0) return [];
     const uniqueMap = new Map(medias.map((item) => [item.id, item]));
@@ -39,12 +51,25 @@ export function MediaCarouselHorizontal({
 
   if (!medias || uniqueMedias.length === 0) return null;
 
+  const seeMoreSearchKey = carouselSeeMoreSearchKey(seeMoreSearch);
+  const sectionKey = carouselSectionKey(seeMoreTo ?? "inline", seeMoreSearchKey);
+  const tvFirstSlideFocusKey = carouselMediaFocusKey(sectionKey, uniqueMedias[0]);
+
   return (
-    <CarouselWrapper title={title} titleIcon={titleIcon} seeMoreTo={seeMoreTo} seeMoreSearch={seeMoreSearch}>
-      {uniqueMedias.map((item) => (
+    <CarouselWrapper
+      title={title}
+      titleIcon={titleIcon}
+      seeMoreTo={seeMoreTo}
+      seeMoreSearch={seeMoreSearch}
+      tvFirstSlideFocusKey={tvFirstSlideFocusKey}
+      tvBarUpFocusKey={tvBarUpFocusKey}
+    >
+      {uniqueMedias.map((item, index) => (
         <CarouselItem
           key={item.id}
-          className="w-auto basis-[85%] sm:basis-[55%] md:basis-[42%] lg:basis-[34%] xl:basis-[28%]"
+          slideIndex={index}
+          layout="wide"
+          className={HORIZONTAL_SLIDE_CLASS}
           onMouseEnter={item.download?.id ? preloadMoviPlayer : undefined}
           onFocus={item.download?.id ? preloadMoviPlayer : undefined}
           onPointerDown={item.download?.id ? preloadMoviPlayer : undefined}
@@ -54,9 +79,11 @@ export function MediaCarouselHorizontal({
               <div className="flex items-end justify-between gap-1">
                 {getRemainingTime(item) && <Badge variant="secondary">{getRemainingTime(item)}</Badge>}
 
-                <Link to={item.type === "tv" ? "/tv/$id" : "/movies/$id"} params={{ id: item.id.toString() }}>
-                  <Button variant="secondary" size="icon" icon={InfoIcon} aria-label="Info" />
-                </Link>
+                {!tvMode && (
+                  <Link to={item.type === "tv" ? "/tv/$id" : "/movies/$id"} params={{ id: item.id.toString() }}>
+                    <Button variant="secondary" size="icon" icon={InfoIcon} aria-label="Info" />
+                  </Link>
+                )}
               </div>
 
               <div
@@ -68,6 +95,16 @@ export function MediaCarouselHorizontal({
           </div>
         </CarouselItem>
       ))}
+      {seeMoreTo && (
+        <CarouselSeeMoreSlide
+          seeMoreTo={seeMoreTo}
+          seeMoreSearch={seeMoreSearch}
+          slideIndex={uniqueMedias.length}
+          layout="wide"
+          className={HORIZONTAL_SLIDE_CLASS}
+          extraCount={Math.max(0, medias.length - uniqueMedias.length)}
+        />
+      )}
     </CarouselWrapper>
   );
 }

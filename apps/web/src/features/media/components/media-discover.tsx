@@ -1,19 +1,21 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { Media } from "@seedarr/sdk";
 import type { InfiniteData, UseInfiniteQueryOptions } from "@tanstack/react-query";
 import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { LibraryIcon, SparklesIcon, TrophyIcon } from "lucide-react";
+import { ClapperboardIcon, LanguagesIcon, LibraryIcon, SparklesIcon, TrophyIcon } from "lucide-react";
 
 import { PlaceholderEmpty } from "@/shared/components/seedarr-placeholder";
 import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
+import { tmdbOriginalLanguageLabel } from "@/shared/helpers/tmdb-original-language.helper";
 import { flattenInfiniteResults } from "@/shared/hooks/use-infinite-list";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 import { Container } from "@/shared/ui/container";
 import { SectionHeading } from "@/shared/ui/section-heading";
+import { carouselMediaFocusKey, carouselSectionKey } from "@/shared/ui/tv/tv-carousel-context";
 
 import { useRole } from "@/features/auth/hooks/use-role";
 import { MediaCarousel } from "@/features/media/components/carousel/media-carousel";
@@ -24,15 +26,23 @@ import { MediaTabsViewMode } from "@/features/media/components/tabs/media-tabs-v
 import { discoverScopedTitleIcon } from "@/features/media/helpers/discover-scoped-display.helper";
 import {
   isScopedDiscoverSearch,
+  languageDiscoverQueryOptions,
   type MovieDiscoverSearch,
+  newDiscoverQueryOptions,
+  popularDiscoverQueryOptions,
   type TvDiscoverSearch,
 } from "@/features/media/helpers/discover-search.helper";
 import { genreQueries } from "@/features/media/hooks/genre.queries";
+import { mediaQueries } from "@/features/media/hooks/media.queries";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
 import { RequestCarousel } from "@/features/request/components/request-carousel";
 import { requestQueries } from "@/features/request/hooks/request.queries";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
+import { useUserPreferences } from "@/features/settings/stores/user-preference-store";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
+import { tvMediaFocusKey, tvNavPrimaryFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { useTvInitialFocus } from "@/features/tv-mode/use-tv-initial-focus";
 
 type DiscoverResult = {
   results: Media[];
@@ -48,11 +58,16 @@ type DiscoverQueryOptions = UseInfiniteQueryOptions<
   number
 >;
 
-function DiscoverAdminPendingRequests({ type }: { type: "movie" | "tv" }) {
+function DiscoverAdminPendingRequests({ type, tvBarUpFocusKey }: { type: "movie" | "tv"; tvBarUpFocusKey?: string }) {
   const { data: pendingRequests } = useSuspenseQuery(requestQueries.byType(type));
   if (!pendingRequests.length) return null;
   return (
-    <RequestCarousel requests={pendingRequests} seeMoreTo="/requests" seeMoreSearch={{ type, status: "pending" }} />
+    <RequestCarousel
+      requests={pendingRequests}
+      seeMoreTo="/requests"
+      seeMoreSearch={{ type, status: "pending" }}
+      tvBarUpFocusKey={tvBarUpFocusKey}
+    />
   );
 }
 
@@ -121,21 +136,41 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
   emptySubtitle,
 }: MediaDiscoverProps<TSearch>) {
   const locale = useTmdbLocale();
+  const { i18n, t } = useLingui();
   const isMobile = useIsMobile();
+  const discoverCarouselLanguage = useUserPreferences((s) => s.discoverCarouselLanguage);
+  const tvMode = useTvMode();
   const { isAdmin } = useRole();
   const viewMode = useEffectiveViewMode(type);
   const isScoped = isScopedDiscoverSearch(search);
 
   const { data: genres = [] } = useQuery(genreQueries.list(type, locale));
   const discoverQuery = useInfiniteQuery(queryOptions as DiscoverQueryOptions);
-  const newQuery = useInfiniteQuery(
-    type === "movie" ? movieQueries.discover({}, locale) : tvQueries.discover({}, locale),
+  const popularQuery = useInfiniteQuery(
+    type === "movie"
+      ? movieQueries.discover(popularDiscoverQueryOptions("movie"), locale)
+      : tvQueries.discover(popularDiscoverQueryOptions("tv"), locale),
   );
+  const newMovieOptions = type === "movie" ? newDiscoverQueryOptions("movie") : null;
+  const languageQuery = useInfiniteQuery({
+    ...(type === "movie"
+      ? movieQueries.discover(languageDiscoverQueryOptions(discoverCarouselLanguage ?? "en"), locale)
+      : tvQueries.discover(languageDiscoverQueryOptions(discoverCarouselLanguage ?? "en"), locale)),
+    enabled: popularQuery.isFetched && Boolean(discoverCarouselLanguage),
+  });
+  const newQuery = useInfiniteQuery({
+    ...movieQueries.discover(newMovieOptions ?? { sort_by: "popularity.desc" }, locale),
+    enabled:
+      popularQuery.isFetched && (!discoverCarouselLanguage || languageQuery.isFetched) && newMovieOptions !== null,
+  });
   const topRatedQuery = useInfiniteQuery({
     ...(type === "movie"
       ? movieQueries.discover({ sort_by: "vote_average.desc" }, locale)
       : tvQueries.discover({ sort_by: "vote_average.desc" }, locale)),
-    enabled: newQuery.isFetched,
+    enabled:
+      type === "movie"
+        ? newQuery.isFetched
+        : popularQuery.isFetched && (!discoverCarouselLanguage || languageQuery.isFetched),
   });
 
   const [genreRevealCount, setGenreRevealCount] = useState(0);
@@ -147,8 +182,15 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
   }, [genres]);
 
   const sectionTitle = useMemo(() => {
+    if (search.type === "popular") {
+      return type === "movie" ? <Trans>Popular Movies</Trans> : <Trans>Popular TV Shows</Trans>;
+    }
     if (search.type === "new") {
-      return type === "movie" ? <Trans>New Movies</Trans> : <Trans>New TV Shows</Trans>;
+      return <Trans>New Movies</Trans>;
+    }
+    if (search.lang) {
+      const name = tmdbOriginalLanguageLabel(search.lang, i18n.locale);
+      return type === "movie" ? t`Films ${name}` : t`TV Shows ${name}`;
     }
     if (search.type === "top_rated" || search.type === "top-rated") {
       return type === "movie" ? <Trans>Top Rated Movies</Trans> : <Trans>Top Rated TV Shows</Trans>;
@@ -158,7 +200,7 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
       if (name) return name;
     }
     return type === "movie" ? <Trans>Movies</Trans> : <Trans>TV Shows</Trans>;
-  }, [genreNameById, search, type]);
+  }, [genreNameById, i18n.locale, search, t, type]);
 
   const results = flattenInfiniteResults(discoverQuery);
 
@@ -166,21 +208,77 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
     setGenreRevealCount((count) => Math.min(count + 1, genres.length));
   }, [genres.length]);
 
+  const popularItems = popularQuery.data?.pages[0]?.results ?? [];
   const newItems = newQuery.data?.pages[0]?.results ?? [];
   const topRatedItems = topRatedQuery.data?.pages[0]?.results ?? [];
+  const languageItems = languageQuery.data?.pages[0]?.results ?? [];
+  const languageLabel = discoverCarouselLanguage
+    ? tmdbOriginalLanguageLabel(discoverCarouselLanguage, i18n.locale)
+    : "";
   const routePath = type === "movie" ? "/movies" : "/tv";
   const canLoadGenres = topRatedQuery.isFetched;
+
+  const inProgressQuery = useQuery({
+    ...mediaQueries.inProgress(type),
+    enabled: tvMode && !isScoped,
+  });
+  const initialTvFocusKey = useMemo(() => {
+    if (!tvMode) return undefined;
+    if (isScoped && results[0]) return tvMediaFocusKey(results[0]);
+    const resume = inProgressQuery.data?.[0];
+    if (resume) return carouselMediaFocusKey(carouselSectionKey("/downloads"), resume);
+    if (popularItems[0]) return carouselMediaFocusKey(carouselSectionKey(routePath, "popular"), popularItems[0]);
+    if (languageItems[0]) return carouselMediaFocusKey(carouselSectionKey(routePath, "lang"), languageItems[0]);
+    if (newItems[0]) return carouselMediaFocusKey(carouselSectionKey(routePath, "new"), newItems[0]);
+    if (topRatedItems[0]) return carouselMediaFocusKey(carouselSectionKey(routePath, "top_rated"), topRatedItems[0]);
+    return routePath === "/movies" ? "NAV-/movies" : "NAV-/tv";
+  }, [
+    tvMode,
+    isScoped,
+    results,
+    inProgressQuery.data,
+    popularItems,
+    languageItems,
+    topRatedItems,
+    newItems,
+    routePath,
+  ]);
+  useTvInitialFocus(initialTvFocusKey);
 
   if (!isScoped) {
     return (
       <Container className="space-y-8">
         <MediaCarouselWatching type={type} />
-        {isAdmin && <DiscoverAdminPendingRequests type={type} />}
+        {isAdmin && (
+          <DiscoverAdminPendingRequests
+            type={type}
+            tvBarUpFocusKey={(inProgressQuery.data?.length ?? 0) === 0 ? tvNavPrimaryFocusKey(type) : undefined}
+          />
+        )}
         <div className="space-y-8">
+          {popularQuery.isFetched && popularItems.length > 0 && (
+            <MediaCarousel
+              title={<Trans>Popular</Trans>}
+              titleIcon={SparklesIcon}
+              data={popularItems}
+              seeMoreTo={routePath}
+              seeMoreSearch={{ type: "popular" }}
+              tvBarUpFocusKey={(inProgressQuery.data?.length ?? 0) === 0 ? tvNavPrimaryFocusKey(type) : undefined}
+            />
+          )}
+          {languageQuery.isFetched && discoverCarouselLanguage && languageItems.length > 0 && (
+            <MediaCarousel
+              title={type === "movie" ? t`Films ${languageLabel}` : t`TV Shows ${languageLabel}`}
+              titleIcon={LanguagesIcon}
+              data={languageItems}
+              seeMoreTo={routePath}
+              seeMoreSearch={{ lang: discoverCarouselLanguage }}
+            />
+          )}
           {newQuery.isFetched && newItems.length > 0 && (
             <MediaCarousel
               title={<Trans>New</Trans>}
-              titleIcon={SparklesIcon}
+              titleIcon={ClapperboardIcon}
               data={newItems}
               seeMoreTo={routePath}
               seeMoreSearch={{ type: "new" }}
@@ -230,10 +328,7 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
       ) : results.length === 0 ? (
         <PlaceholderEmpty title={emptyTitle} subtitle={emptySubtitle} />
       ) : viewMode === "grid" ? (
-        <>
-          <MediaGrid items={results} query={discoverQuery} />
-          <InfiniteSentinel query={discoverQuery} />
-        </>
+        <MediaGrid items={results} query={discoverQuery} />
       ) : (
         <>
           <MediaTable media={results} query={discoverQuery} />

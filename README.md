@@ -87,6 +87,7 @@ You can retrieve all features and how to configure each one following the docume
 - Lightweight **SQLite** database, no external DB required
 - **Docker** ready with a single `docker compose up`
 - Responsive, **mobile-friendly** design
+- Optional **TV mode** (`?mode=tv`) — spatial navigation and a living-room UI for browsers on TVs and set-top boxes
 - Available in **English** and **French**
 
 ## Contributing

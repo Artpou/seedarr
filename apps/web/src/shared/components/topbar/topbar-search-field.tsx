@@ -1,18 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { useDebounce } from "@uidotdev/usehooks";
 
+import { cn } from "@/lib/utils";
 import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { Input } from "@/shared/ui/input";
+import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
+
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface TopbarSearchFieldProps {
   value?: string;
   onChange: (value: string | undefined) => void;
   placeholder: string;
   classNameWrapper?: string;
+  /** Spatial-nav focus key when `?mode=tv` (input stays editable). */
+  tvFocusKey?: string;
+  tvAccessibilityLabel?: string;
 }
 
-export function TopbarSearchField({ value, onChange, placeholder, classNameWrapper }: TopbarSearchFieldProps) {
+export function TopbarSearchField({
+  value,
+  onChange,
+  placeholder,
+  classNameWrapper,
+  tvFocusKey,
+  tvAccessibilityLabel,
+}: TopbarSearchFieldProps) {
+  const tvMode = useTvMode();
+  const inputId = useId();
   const [query, setQuery] = useState(value ?? "");
   const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
 
@@ -26,16 +42,39 @@ export function TopbarSearchField({ value, onChange, placeholder, classNameWrapp
     onChange(next);
   }, [debouncedQuery, onChange, value]);
 
-  return (
+  const wrapperClass = classNameWrapper ?? "min-w-0 flex-1";
+  const focusInput = () => document.getElementById(inputId)?.focus();
+
+  const field = (
     <Input
+      id={inputId}
       type="search"
       search
       variant="ghost"
-      classNameWrapper={classNameWrapper ?? "min-w-0 flex-1"}
-      className="h-10"
+      classNameWrapper={wrapperClass}
+      className="rounded-full"
       placeholder={placeholder}
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      aria-label={tvAccessibilityLabel ?? placeholder}
     />
+  );
+
+  if (!tvMode || !tvFocusKey) {
+    return field;
+  }
+
+  return (
+    <TvFocusable
+      focusRoot
+      tv={{
+        focusKey: tvFocusKey,
+        onPress: focusInput,
+        accessibilityLabel: tvAccessibilityLabel ?? placeholder,
+      }}
+      className={cn(wrapperClass, "rounded-full")}
+    >
+      {field}
+    </TvFocusable>
   );
 }

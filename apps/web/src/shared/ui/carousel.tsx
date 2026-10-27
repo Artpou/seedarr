@@ -5,6 +5,7 @@ import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
+import { TvCarouselSlideIndex } from "@/shared/ui/tv/tv-carousel-context";
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -37,6 +38,10 @@ function useCarousel() {
   }
 
   return context;
+}
+
+export function useCarouselApiOptional(): CarouselApi | undefined {
+  return React.useContext(CarouselContext)?.api ?? undefined;
 }
 
 const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & CarouselProps>(
@@ -97,10 +102,12 @@ const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
       onSelect(api);
       api.on("reInit", onSelect);
       api.on("select", onSelect);
+      api.on("scroll", onSelect);
 
       return () => {
         api.off("reInit", onSelect);
         api.off("select", onSelect);
+        api.off("scroll", onSelect);
       };
     }, [api, onSelect]);
 
@@ -147,20 +154,32 @@ const CarouselContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
 );
 CarouselContent.displayName = "CarouselContent";
 
-const CarouselItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => {
+type CarouselItemProps = React.HTMLAttributes<HTMLDivElement> & {
+  slideIndex?: number;
+  /** Poster tiles (default) vs wide rows (resume watching, requests). */
+  layout?: "poster" | "wide";
+};
+
+const CarouselItem = React.forwardRef<HTMLDivElement, CarouselItemProps>(
+  ({ className, slideIndex, layout = "poster", children, ...props }, ref) => {
     return (
-      // biome-ignore lint/a11y/useSemanticElements: shadcn specific
-      <div
-        ref={ref}
-        role="group"
-        aria-roledescription="slide"
-        className={cn(
-          "min-w-0 shrink-0 grow-0 w-[165px] sm:w-[180px] transition-all duration-200 border-2 border-transparent rounded-xl",
-          className,
-        )}
-        {...props}
-      />
+      <TvCarouselSlideIndex index={slideIndex}>
+        {/* biome-ignore lint/a11y/useSemanticElements: shadcn specific */}
+        <div
+          ref={ref}
+          role="group"
+          aria-roledescription="slide"
+          className={cn(
+            "shrink-0 grow-0 transition-all duration-200",
+            layout === "poster" && "min-w-0 w-[165px] sm:w-[180px] border-2 border-transparent rounded-xl",
+            layout === "wide" && "min-w-0 w-auto border-0 rounded-lg",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </div>
+      </TvCarouselSlideIndex>
     );
   },
 );
@@ -222,4 +241,29 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
 );
 CarouselNext.displayName = "CarouselNext";
 
-export { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi };
+function CarouselEdgeFades() {
+  const { canScrollPrev, canScrollNext, orientation } = useCarousel();
+
+  if (orientation === "vertical") {
+    return null;
+  }
+
+  return (
+    <>
+      {canScrollPrev ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-linear-to-r from-background to-transparent"
+          aria-hidden
+        />
+      ) : null}
+      {canScrollNext ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-background to-transparent"
+          aria-hidden
+        />
+      ) : null}
+    </>
+  );
+}
+
+export { Carousel, CarouselContent, CarouselEdgeFades, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi };

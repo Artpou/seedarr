@@ -6,6 +6,7 @@ import {
   DownloadIcon,
   PlayIcon,
   PuzzleIcon,
+  TvIcon,
   UserCircleIcon,
   UsersIcon,
 } from "lucide-react";
@@ -53,6 +54,20 @@ const features: Feature[] = [
     image: "/assets/torrents.png",
     imageAlt: "Torrent search results in Seedarr",
     icon: DownloadIcon,
+  },
+  {
+    url: "/movies?mode=tv",
+    title: "Built for the living room too",
+    items: [
+      { text: "Optional TV mode — add ?mode=tv to the URL" },
+      { text: "Spatial navigation with a remote or keyboard" },
+      { text: "Focus-friendly top bar, carousels, and player" },
+      { text: "Search and library browse from the couch" },
+    ],
+    detail: "Same household library and playback — UI tuned for distance and D-pad control.",
+    image: "/assets/movie.png",
+    imageAlt: "Seedarr interface suitable for TV browsers",
+    icon: TvIcon,
   },
   {
     url: "/downloads/:id/play",

@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { Download, Media, TMDBTvDetails } from "@seedarr/sdk";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronDownIcon, ChevronUpIcon, ClapperboardIcon, MagnetIcon } from "lucide-react";
 
 import { DialogDelete } from "@/shared/components/dialog/dialog-delete";
@@ -14,6 +14,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
 
 import { useRole } from "@/features/auth/hooks/use-role";
 import { getDownloadStatus } from "@/features/downloads/helpers/downloads.helper";
@@ -31,6 +32,8 @@ import {
 } from "@/features/tv/helpers/episode-downloads.helper";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
 import { useEpisodeDownloadMap } from "@/features/tv/hooks/use-episode-download-map";
+import { tvTorrentsFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 function countSeasonDownloads(
   seasonNumber: number,
@@ -53,7 +56,9 @@ interface TvEpisodesSectionProps {
 export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionProps) {
   const { role } = useRole();
   const { t } = useLingui();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const tvMode = useTvMode();
   const locale = useTmdbLocale();
   const deleteTorrent = useDownloadDelete();
   const validSeasons = useMemo(() => (tv.seasons ?? []).filter((s) => s.season_number > 0), [tv.seasons]);
@@ -93,6 +98,7 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
           value={selectedSeason}
           onValueChange={setSelectedSeason}
           className="min-w-0 flex-1"
+          tvFocusKeyPrefix={tvMode ? `TV-SEASON-${tv.id}` : undefined}
           options={validSeasons.map((season) => {
             const episodeCount = season.episode_count ?? 0;
             const downloaded = countSeasonDownloads(season.season_number, episodeCount, episodeDownloadMap);
@@ -112,11 +118,31 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
             };
           })}
         />
-        <Button size={isMobile ? "icon-lg" : "default"} asChild icon={MagnetIcon}>
-          <Link to="/tv/$id/torrents" params={{ id: tv.id.toString() }} search={{ season: seasonNumber }}>
-            {!isMobile && <Trans>Torrents</Trans>}
-          </Link>
-        </Button>
+        {tvMode ? (
+          <TvFocusable
+            focusRoot
+            tv={{
+              focusKey: `${tvTorrentsFocusKey(tv.id)}-season-${seasonNumber}`,
+              onPress: () =>
+                navigate({
+                  to: "/tv/$id/torrents",
+                  params: { id: tv.id.toString() },
+                  search: { season: seasonNumber },
+                }),
+              accessibilityLabel: t`Torrents`,
+            }}
+          >
+            <Button size={isMobile ? "icon-lg" : "default"} icon={MagnetIcon}>
+              {!isMobile && <Trans>Torrents</Trans>}
+            </Button>
+          </TvFocusable>
+        ) : (
+          <Button size={isMobile ? "icon-lg" : "default"} asChild icon={MagnetIcon}>
+            <Link to="/tv/$id/torrents" params={{ id: tv.id.toString() }} search={{ season: seasonNumber }}>
+              {!isMobile && <Trans>Torrents</Trans>}
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="space-y-3">

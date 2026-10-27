@@ -66,7 +66,7 @@ code {
   --foreground: oklch(1 0 0);
   --background: oklch(0.19 0.004 240);
   --card: oklch(0.21 0.005 235);
-  --input: oklch(0.26 0.008 225);
+  --input: oklch(0.22 0.006 235);
 
   --card-foreground: oklch(0.92 0.01 140);
   --popover: oklch(0.26 0.008 225);
@@ -144,7 +144,7 @@ code {
   --destructive: oklch(0.6 0.18 25);
   --warning: oklch(76.9% 0.188 70.08);
   --border: oklch(0.32 0.006 230);
-  --input: oklch(0.26 0.008 225);
+  --input: oklch(0.22 0.006 235);
   --ring: oklch(0.63 0.13 135);
 }
 
@@ -167,4 +167,98 @@ code {
   h3 {
     @apply text-lg font-medium text-foreground;
   }
+}
+
+/* Native search clear uses system accent (often blue); we render our own in `Input`. */
+[data-slot="input"][type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+/* Neutralize Chrome/Safari autofill (light blue) — match theme tokens */
+[data-slot="input"]:-webkit-autofill,
+[data-slot="input"]:-webkit-autofill:hover,
+[data-slot="input"]:-webkit-autofill:focus,
+[data-slot="input"]:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--input) inset;
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+  transition: background-color 99999s ease-out 0s;
+}
+
+[data-slot="input"].bg-transparent:-webkit-autofill,
+[data-slot="input"].bg-transparent:-webkit-autofill:hover,
+[data-slot="input"].bg-transparent:-webkit-autofill:focus,
+[data-slot="input"].bg-transparent:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--background) inset;
+}
+
+html[data-tv] {
+  font-size: 125%;
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+html[data-tv] [data-tv-focus-root],
+html[data-tv] [data-slot="nav-link"] {
+  scroll-margin-top: 5.5rem;
+}
+
+html[data-tv] [data-slot="table-row"][data-tv-focus-root][data-tv-focused="true"],
+html[data-tv]
+  [data-tv-focus-root][data-tv-focused="true"]:not(:has([data-slot="button"])):not(:has([data-slot="media-card"])) {
+  box-shadow: inset 0 0 0 3px var(--primary);
+}
+
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"].tv-media-poster-target {
+  box-shadow:
+    0 0 0 3px var(--primary),
+    0 0 24px color-mix(in oklch, var(--primary) 45%, transparent);
+}
+
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="media-poster-play"] {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 3px color-mix(in oklch, var(--primary-foreground) 55%, transparent);
+}
+
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] .tv-poster-play-icon {
+  transform: scale(1.08);
+  background-color: var(--primary);
+}
+
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="media-card"],
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="carousel-see-more"] {
+  border-color: var(--primary);
+  border-style: solid;
+  border-width: 6px;
+  box-shadow: none;
+}
+
+html[data-tv] [data-slot="container"] {
+  @apply max-w-[1600px];
+}
+
+html[data-tv] [data-slot="button"][data-tv-focused="true"],
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="button"],
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="input"],
+html[data-tv] [data-slot="nav-link"][data-tv-focused="true"],
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="card"] {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 3px var(--primary);
+}
+
+html[data-tv] [data-slot="button"][data-tv-focused="true"][data-variant="default"],
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="button"][data-variant="default"] {
+  box-shadow: inset 0 0 0 3px var(--primary-foreground);
+}
+
+html[data-tv] [data-slot="button"][data-tv-focused="true"][data-variant="secondary"],
+html[data-tv] [data-slot="button"][data-tv-focused="true"][data-variant="input"],
+html[data-tv] [data-slot="button"][data-tv-focused="true"][data-variant="ghost"],
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="button"][data-variant="secondary"],
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="button"][data-variant="input"],
+html[data-tv] [data-tv-focus-root][data-tv-focused="true"] [data-slot="button"][data-variant="ghost"] {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
 }

@@ -149,7 +149,7 @@ export function MediaSheetFilter({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
-          variant={triggerVariant ?? "secondary"}
+          variant={triggerVariant ?? "outline"}
           size={isMobile ? "icon-lg" : "lg"}
           className="relative shrink-0"
           aria-label={t(msg`Filters`)}
@@ -160,7 +160,7 @@ export function MediaSheetFilter({
           </span>
           {activeCount > 0 && (
             <span
-              className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground"
+              className="absolute -top-1.5 -right-1.5 flex min-w-5 h-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
               aria-hidden
             >
               {activeCount}

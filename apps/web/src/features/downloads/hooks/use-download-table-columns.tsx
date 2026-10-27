@@ -83,6 +83,7 @@ export function useDownloadTableColumns({ canDelete, onDelete }: UseDownloadTabl
         }),
         columnHelper.accessor((row) => row.title || row.original_title || "", {
           id: "info",
+          meta: { cellClassName: "min-w-0 max-w-0 w-full" },
           header: ({ column }) => <DataTableColumnHeader column={column} title={<Trans>Info</Trans>} />,
           cell: ({ row }) => {
             const m = row.original;
@@ -128,7 +129,7 @@ export function useDownloadTableColumns({ canDelete, onDelete }: UseDownloadTabl
         }),
         columnHelper.accessor((row) => (row.download.createdAt ? new Date(row.download.createdAt).getTime() : 0), {
           id: "date",
-          meta: { headerClassName: "w-24 md:w-28", cellClassName: "w-24 md:w-28" },
+          meta: { headerClassName: "w-24 md:w-28 shrink-0", cellClassName: "w-24 md:w-28 shrink-0" },
           header: ({ column }) => <DataTableColumnHeader column={column} title={<Trans>Date</Trans>} />,
           cell: ({ row }) => {
             const createdAt = row.original.download.createdAt;
@@ -141,12 +142,12 @@ export function useDownloadTableColumns({ canDelete, onDelete }: UseDownloadTabl
         }),
         columnHelper.display({
           id: "actions",
-          meta: { headerClassName: "w-36 md:w-48", cellClassName: "w-36 md:w-48" },
+          meta: { headerClassName: "w-20 shrink-0", cellClassName: "w-20 shrink-0" },
           cell: ({ row }) => {
             const dl = row.original.download;
             return (
               <div className="flex items-center justify-end gap-1.5">
-                <MediaButtonPlay media={row.original} size="sm" />
+                <MediaButtonPlay media={row.original} size="sm" iconOnly />
                 {canDelete(dl) && (
                   <Button
                     variant="destructive"

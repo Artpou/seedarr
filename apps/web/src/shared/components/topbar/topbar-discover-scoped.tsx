@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 
+import { tmdbOriginalLanguageLabel } from "@/shared/helpers/tmdb-original-language.helper";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 import { Button } from "@/shared/ui/button";
 
@@ -39,8 +40,15 @@ export function TopbarDiscoverScoped({ mediaType }: TopbarDiscoverScopedProps) {
   });
 
   const title = useMemo(() => {
+    if (search.type === "popular") {
+      return mediaType === "movie" ? t`Popular Movies` : t`Popular TV Shows`;
+    }
     if (search.type === "new") {
-      return mediaType === "movie" ? t`New Movies` : t`New TV Shows`;
+      return t`New Movies`;
+    }
+    if (search.lang) {
+      const name = tmdbOriginalLanguageLabel(search.lang, locale);
+      return mediaType === "movie" ? t`Films ${name}` : t`TV Shows ${name}`;
     }
     if (search.type === "top_rated" || search.type === "top-rated") {
       return mediaType === "movie" ? t`Top Rated Movies` : t`Top Rated TV Shows`;
@@ -50,7 +58,7 @@ export function TopbarDiscoverScoped({ mediaType }: TopbarDiscoverScopedProps) {
       if (name) return name;
     }
     return mediaType === "movie" ? t`Movies` : t`TV Shows`;
-  }, [genres, mediaType, search.genre, search.type, t]);
+  }, [genres, locale, mediaType, search.genre, search.lang, search.type, t]);
 
   const listTo = mediaType === "movie" ? "/movies" : "/tv";
 

@@ -9,6 +9,7 @@ export interface ContainerProps {
 export function Container({ children, className, full = false }: ContainerProps) {
   return (
     <div
+      data-slot="container"
       className={cn(
         "container mx-auto px-3 sm:p-6 space-y-2 sm:space-y-8",
         full && "pb-20! flex flex-col items-center justify-center w-full h-screen",

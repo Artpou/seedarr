@@ -73,9 +73,9 @@ export const fileTokenRateLimiter = rateLimiter({
 });
 
 export const tmdbRateLimiter = rateLimiter({
-  windowMs: Math.floor(ms("1m")),
+  windowMs: Math.floor(ms("15s")),
   limit: 60,
-  message: { error: "Too many TMDB requests. Please try again in 1 minute." },
+  message: { error: "Too many TMDB requests. Please try again in 15 seconds." },
   statusCode: 429,
   keyGenerator,
 });
