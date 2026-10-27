@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { BookmarkIcon, CalendarIcon, ClockIcon, HeartIcon, LogOutIcon, SettingsIcon } from "lucide-react";
 
 import { BadgeRole } from "@/shared/components/badge/badge-role";
-import { TopbarSearchField } from "@/shared/components/topbar/topbar-search-field";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import {
@@ -19,7 +18,6 @@ import { useAuth } from "@/features/auth/auth-store";
 import { useLogout } from "@/features/auth/hooks/auth.queries";
 import { UserAvatar } from "@/features/user/components/user-avatar";
 import { userQueries } from "@/features/user/hooks/user.queries";
-import type { ProfileRouteSearch } from "@/routes/helpers/profile-route.helper";
 
 interface TopbarProfileProps {
   userId: string;
@@ -29,7 +27,6 @@ export function TopbarProfile({ userId }: TopbarProfileProps) {
   const { t } = useLingui();
   const navigate = useNavigate();
   const location = useLocation();
-  const search = location.search as ProfileRouteSearch;
   const authUser = useAuth((s) => s.user);
   const { data: profileUser } = useQuery(userQueries.details(userId));
   const user = profileUser ?? authUser;
@@ -41,16 +38,8 @@ export function TopbarProfile({ userId }: TopbarProfileProps) {
 
   const displayName = user.pseudo || user.username;
 
-  const updateSearch = (patch: Partial<ProfileRouteSearch>) => {
-    void navigate({
-      to: location.pathname,
-      search: { ...search, ...patch },
-      resetScroll: false,
-    });
-  };
-
   const goTo = (to: "/user/$id" | "/user/$id/likes" | "/user/$id/watch-list" | "/user/$id/history") => {
-    void navigate({ to, params: { id: userId }, search, resetScroll: false });
+    void navigate({ to, params: { id: userId }, search: location.search, resetScroll: false });
   };
 
   return (
@@ -108,12 +97,6 @@ export function TopbarProfile({ userId }: TopbarProfileProps) {
           </DropDrawerGroup>
         </DropDrawerContent>
       </DropDrawer>
-
-      <TopbarSearchField
-        value={search.q}
-        onChange={(q) => updateSearch({ q })}
-        placeholder={t`Search in my profile...`}
-      />
 
       <Button
         variant="ghost"

@@ -16,6 +16,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 
 import { getTorrentFiles } from "@/features/downloads/helpers/downloads.helper";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import {
   collectAddedSubtitleLanguages,
   isMatchingSubtitleRelease,
@@ -55,6 +56,7 @@ export function SubtitleSearchDialog({
   mediaTitle,
 }: SubtitleSearchDialogProps) {
   const { t } = useLingui();
+  const tvMode = useTvMode();
   const [language, setLanguage] = useState("EN");
   const { data, isLoading, error } = useQuery({
     ...subtitleQueries.search(tmdbId, language),
@@ -88,7 +90,9 @@ export function SubtitleSearchDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-y-auto max-h-[85vh]">
+      <DialogContent
+        className={tvMode ? "max-w-3xl overflow-y-auto max-h-[90vh]" : "max-w-2xl overflow-y-auto max-h-[85vh]"}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <SubtitlesIcon className="size-5" />
@@ -148,6 +152,7 @@ export function SubtitleSearchDialog({
                         mediaTitle={mediaTitle}
                         downloadId={downloadId}
                         language={language}
+                        tvMode={tvMode}
                         onDownload={handleDownload}
                         isDownloading={downloadSubtitle.isPending && downloadSubtitle.variables?.url === sub.url}
                       />
@@ -168,6 +173,7 @@ function SubtitleRow({
   mediaTitle,
   downloadId,
   language,
+  tvMode,
   onDownload,
   isDownloading,
 }: {
@@ -175,10 +181,19 @@ function SubtitleRow({
   mediaTitle: string;
   downloadId: string;
   language: string;
+  tvMode: boolean;
   onDownload: (input: { downloadId: string; url: string; language: string; mediaTitle: string }) => void;
   isDownloading: boolean;
 }) {
   const isBestMatch = isMatchingSubtitleRelease(subtitle.release_name, mediaTitle);
+
+  const download = () =>
+    onDownload({
+      downloadId,
+      url: subtitle.url,
+      language,
+      mediaTitle,
+    });
 
   return (
     <li className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
@@ -200,17 +215,18 @@ function SubtitleRow({
       </div>
       <Button
         variant="default"
-        size="sm"
+        size={tvMode ? "default" : "sm"}
         disabled={isDownloading}
-        onClick={() =>
-          onDownload({
-            downloadId,
-            url: subtitle.url,
-            language,
-            mediaTitle,
-          })
-        }
+        onClick={download}
         icon={DownloadIcon}
+        tv={
+          tvMode
+            ? {
+                focusKey: `tv-subtitle-download:${subtitle.url}`,
+                onPress: download,
+              }
+            : undefined
+        }
       >
         {isDownloading ? <Trans>Adding…</Trans> : <Trans>Add</Trans>}
       </Button>

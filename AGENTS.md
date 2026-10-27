@@ -252,6 +252,15 @@ Seedarr is designed for a **trusted household / self-hosted instance**:
 - Auth check in `_app.tsx` `beforeLoad` → redirect `/login`
 - Prefer wrapping route content in `<Container>` (some pages like discover use custom layouts)
 
+### TV mode (`?mode=tv`)
+
+- `TvModeBootstrap` reads `mode=tv` from the URL, sets `useTvModeStore`, adds `data-tv` on `<html>`, and initializes `@noriginmedia/norigin-spatial-navigation`.
+- Topbar / carousels / player use `TvFocusable`, `TvRouterLink`, and focus keys in `features/tv-mode/tv-focus-keys.ts`.
+- **Nav links** in TV topbar pass `search={{ mode: "tv" }}` so the flag survives in-app navigation.
+- **Topbar search:** `TopbarGlobalSearch` / `TopbarSearchField` — launcher off-route, editable on `/search` and library; debounced URL sync via `use-topbar-search-route` / `use-topbar-downloads-search`.
+- **Library (TV):** hide grid/list tabs and in-page sync; topbar sync button stays **disabled** until TV sync UX is ready.
+- User docs: `apps/website` guide [TV mode](/guides/tv-mode/).
+
 ### Data Layer
 
 - `unwrap(api.endpoint.$method(params))` for all API calls (queries **and** mutations)

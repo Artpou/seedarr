@@ -23,6 +23,7 @@ import { useRole } from "@/features/auth/hooks/use-role";
 import { MediaSearchPicker } from "@/features/media/components/modal/media-search-modal";
 import { useModule } from "@/features/module/hooks/use-module";
 import { useManualSync, useRemoteSync } from "@/features/settings/hooks/remote-sync.queries";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface SyncError {
   name: string;
@@ -36,6 +37,7 @@ interface DownloadButtonSynchronizeProps {
 
 export function DownloadButtonSynchronize({ topbar = false }: DownloadButtonSynchronizeProps) {
   const isMobile = useIsMobile();
+  const tvMode = useTvMode();
   const { t } = useLingui();
   const { isAdmin } = useRole();
   const [unmatchedFiles, setUnmatchedFiles] = useState<SyncError[]>([]);
@@ -58,6 +60,8 @@ export function DownloadButtonSynchronize({ topbar = false }: DownloadButtonSync
   const progress = unmatchedFiles.length > 0 ? `${currentIndex + 1} / ${unmatchedFiles.length}` : undefined;
 
   if (!isAdmin) return null;
+
+  const iconOnly = topbar || isMobile || tvMode;
 
   const handleSync = () => {
     if (!tmdbAvailable) {
@@ -94,13 +98,16 @@ export function DownloadButtonSynchronize({ topbar = false }: DownloadButtonSync
   return (
     <>
       <Button
-        variant={topbar ? "ghost" : "secondary"}
-        size={topbar || isMobile ? "icon-lg" : "lg"}
+        variant={topbar ? "ghost" : "outline"}
+        size={iconOnly ? "icon-lg" : "lg"}
+        rounded={topbar}
+        className={topbar ? "shrink-0 border border-border" : undefined}
         onClick={handleSync}
         loading={syncMutation.isPending}
+        disabled={tvMode}
         icon={RefreshCwIcon}
       >
-        {!isMobile && <Trans>Synchronize</Trans>}
+        {!iconOnly && <Trans>Synchronize</Trans>}
       </Button>
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>

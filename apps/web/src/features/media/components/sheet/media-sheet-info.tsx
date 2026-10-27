@@ -16,6 +16,7 @@ import { MediaBadgeRuntime } from "@/features/media/components/badge/media-badge
 import { MediaDetails } from "@/features/media/components/media-details";
 import { MediaProviders } from "@/features/media/components/media-providers";
 import { MediaRatingImdb, MediaRatingTmdb, MediaRatingUser } from "@/features/media/components/rating/media-rating";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface MediaSheetInfoProps {
   data: Movie | TV;
@@ -27,6 +28,7 @@ function isMovie(data: Movie | TV): data is Movie {
 }
 
 export function MediaSheetInfo({ data, children }: MediaSheetInfoProps) {
+  const tvMode = useTvMode();
   const [sheetOpen, setSheetOpen] = useState(false);
   const media = data.media;
   const movie = isMovie(data) ? data.movie : null;
@@ -63,13 +65,15 @@ export function MediaSheetInfo({ data, children }: MediaSheetInfoProps) {
       <div className="space-y-2">
         <div className="flex gap-2">
           <h1>{title}</h1>
-          <Button
-            type="button"
-            variant="ghost"
-            icon={InfoIcon}
-            onClick={() => setSheetOpen(true)}
-            className="px-0 xl:hidden self-center"
-          ></Button>
+          {!tvMode && (
+            <Button
+              type="button"
+              variant="ghost"
+              icon={InfoIcon}
+              onClick={() => setSheetOpen(true)}
+              className="px-0 xl:hidden self-center"
+            />
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Flag lang={originalLanguage} />

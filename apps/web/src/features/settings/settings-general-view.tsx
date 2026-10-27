@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useNavigate } from "@tanstack/react-router";
-import { FileIcon, LogOutIcon, UserIcon } from "lucide-react";
+import { FileIcon, LayoutGridIcon, LogOutIcon, UserIcon } from "lucide-react";
 
+import { SelectDiscoverCarouselLanguage } from "@/shared/components/select/select-discover-carousel-language";
 import { SelectI18nLang } from "@/shared/components/select/select-i18n-lang";
 import { SelectQuality } from "@/shared/components/select/select-quality";
 import { Button } from "@/shared/ui/button";
@@ -28,6 +29,8 @@ export function SettingsGeneralView() {
   const maxSize = useUserPreferences((s) => s.maxSize);
   const setQuality = useUserPreferences((s) => s.setQuality);
   const setMaxSize = useUserPreferences((s) => s.setMaxSize);
+  const discoverCarouselLanguage = useUserPreferences((s) => s.discoverCarouselLanguage);
+  const setDiscoverCarouselLanguage = useUserPreferences((s) => s.setDiscoverCarouselLanguage);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [pseudo, setPseudo] = useState(currentUser?.pseudo ?? currentUser?.username ?? "");
 
@@ -57,7 +60,7 @@ export function SettingsGeneralView() {
             <Label>
               <Trans>Language</Trans>
             </Label>
-            <p className="hidden text-sm text-muted-foreground md:block">
+            <p className="hidden text-xs text-muted-foreground md:block">
               <Trans>Interface language for Seedarr.</Trans>
             </p>
           </div>
@@ -69,28 +72,26 @@ export function SettingsGeneralView() {
         {currentUser && (
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="profile-pseudo">
-                  <Trans>Display name</Trans>
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="profile-pseudo"
-                    value={pseudo}
-                    onChange={(e) => setPseudo(e.target.value)}
-                    placeholder={t`Display name`}
-                    maxLength={64}
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    loading={updateProfile.isPending}
-                    onClick={handleSavePseudo}
-                    disabled={pseudo.trim() === savedPseudo}
-                  >
-                    <Trans>Save</Trans>
-                  </Button>
-                </div>
+              <div className="flex items-end gap-2">
+                <Input
+                  id="profile-pseudo"
+                  label={<Trans>Display name</Trans>}
+                  classNameWrapper="min-w-0 flex-1"
+                  value={pseudo}
+                  onChange={(e) => setPseudo(e.target.value)}
+                  placeholder={t`Display name`}
+                  maxLength={64}
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  loading={updateProfile.isPending}
+                  onClick={handleSavePseudo}
+                  disabled={pseudo.trim() === savedPseudo}
+                >
+                  <Trans>Save</Trans>
+                </Button>
               </div>
             </div>
           </div>
@@ -118,7 +119,7 @@ export function SettingsGeneralView() {
             <Label>
               <Trans>Default quality</Trans>
             </Label>
-            <p className="hidden text-sm text-muted-foreground md:block">
+            <p className="hidden text-xs text-muted-foreground md:block">
               <Trans>Minimum quality filter applied when searching torrents.</Trans>
             </p>
           </div>
@@ -130,7 +131,7 @@ export function SettingsGeneralView() {
             <Label htmlFor="max-size">
               <Trans>Max torrent size</Trans>
             </Label>
-            <p className="hidden text-sm text-muted-foreground md:block">
+            <p className="hidden text-xs text-muted-foreground md:block">
               <Trans>Hide torrents larger than this size. Leave empty for no limit.</Trans>
             </p>
           </div>
@@ -150,6 +151,28 @@ export function SettingsGeneralView() {
             />
             <span className="shrink-0 text-sm text-muted-foreground">GB</span>
           </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 rounded-md border p-4">
+        <h3 className="flex items-center gap-3">
+          <LayoutGridIcon className="size-4" />
+          <Trans>Discover</Trans>
+        </h3>
+        <div className="flex flex-col gap-1 sm:gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <Label>
+              <Trans>Carousel language</Trans>
+            </Label>
+            <p className="hidden text-xs text-muted-foreground md:block">
+              <Trans>Add a popular movies or TV row filtered by original language. Choose none to hide it.</Trans>
+            </p>
+          </div>
+          <SelectDiscoverCarouselLanguage
+            value={discoverCarouselLanguage}
+            onValueChange={setDiscoverCarouselLanguage}
+            triggerClassName="w-full md:w-56"
+          />
         </div>
       </div>
 

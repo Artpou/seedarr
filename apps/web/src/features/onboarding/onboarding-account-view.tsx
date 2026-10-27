@@ -99,7 +99,7 @@ export function OnboardingAccountView({ onContinue }: OnboardingAccountProps) {
 
         <Input
           id="password"
-          type="password"
+          password
           autoComplete="new-password"
           label={<Trans>Password</Trans>}
           {...register("password", {
@@ -111,7 +111,7 @@ export function OnboardingAccountView({ onContinue }: OnboardingAccountProps) {
 
         <Input
           id="confirmPassword"
-          type="password"
+          password
           autoComplete="new-password"
           label={<Trans>Confirm Password</Trans>}
           {...register("confirmPassword", {

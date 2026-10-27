@@ -5,11 +5,15 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 
+import { useRole } from "@/features/auth/hooks/use-role";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
 import { MediaCarouselCast } from "@/features/media/components/carousel/media-carousel-cast";
 import { type MediaDetailTab, MediaDetailView } from "@/features/media/media-detail-view";
 import { MovieRelated } from "@/features/movies/components/movie-related";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
+import { tvDetailInitialFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { useTvInitialFocus } from "@/features/tv-mode/use-tv-initial-focus";
 
 export interface MovieDetailViewProps {
   movieId: string;
@@ -17,6 +21,8 @@ export interface MovieDetailViewProps {
 }
 
 export function MovieDetailView({ movieId, urlTab }: MovieDetailViewProps) {
+  const { role } = useRole();
+  const tvMode = useTvMode();
   const navigate = useNavigate();
   const locale = useTmdbLocale();
   const { data } = useSuspenseQuery(movieQueries.details(movieId, locale));
@@ -43,6 +49,15 @@ export function MovieDetailView({ movieId, urlTab }: MovieDetailViewProps) {
     return hasActiveDownload ? "downloads" : "info";
   }, [urlTab, torrentDownloads.length, remoteDownloads.length, hasActiveDownload]);
 
+  useTvInitialFocus(
+    tvDetailInitialFocusKey({
+      mediaType: "movie",
+      mediaId: movieId,
+      downloadId: liveDownload?.id,
+      isViewer: role === "viewer",
+    }),
+  );
+
   return (
     <MediaDetailView
       data={data}
@@ -52,12 +67,25 @@ export function MovieDetailView({ movieId, urlTab }: MovieDetailViewProps) {
       tab={tab}
       onTabChange={(t) => navigate({ to: ".", search: { tab: t }, replace: true })}
     >
-      <MediaCarouselCast data={data} />
-      <MovieRelated
-        collection={data.collection}
-        collectionMedia={data.related.collection}
-        recommendedMovies={data.related.recommendations}
-      />
+      {tvMode ? (
+        <>
+          <MovieRelated
+            collection={data.collection}
+            collectionMedia={data.related.collection}
+            recommendedMovies={data.related.recommendations}
+          />
+          <MediaCarouselCast data={data} />
+        </>
+      ) : (
+        <>
+          <MediaCarouselCast data={data} />
+          <MovieRelated
+            collection={data.collection}
+            collectionMedia={data.related.collection}
+            recommendedMovies={data.related.recommendations}
+          />
+        </>
+      )}
     </MediaDetailView>
   );
 }

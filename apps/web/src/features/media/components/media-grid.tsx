@@ -1,12 +1,14 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 import type { Media } from "@seedarr/sdk";
 import { useElementScrollRestoration } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
+import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
 import { flattenInfiniteResults, type InfiniteResultsQuery } from "@/shared/hooks/use-infinite-list";
 
 import { MediaGridSkeleton } from "@/features/media/components/media-grid-skeletons";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import { MediaCard } from "./card/media-card";
 
 const MEDIA_GRID_MIN_COL = 165;
@@ -23,7 +25,69 @@ function getMediaGridColumns(width: number): number {
   return Math.max(1, Math.floor((width + MEDIA_GRID_GAP) / (MEDIA_GRID_MIN_COL + MEDIA_GRID_GAP)));
 }
 
-export function MediaGrid({ items, query, showType, downloadMode }: MediaGridProps) {
+export function MediaGrid(props: MediaGridProps) {
+  const tvMode = useTvMode();
+  if (tvMode) {
+    return <MediaGridTv {...props} />;
+  }
+  return <MediaGridVirtual {...props} />;
+}
+
+function MediaGridTv({ items, query, showType, downloadMode }: MediaGridProps) {
+  const displayItems = items ?? flattenInfiniteResults(query);
+  const isPending = Boolean(query?.isPending) && displayItems.length === 0;
+
+  const [parentEl, setParentEl] = useState<HTMLDivElement | null>(null);
+  const [columns, setColumns] = useState(() =>
+    getMediaGridColumns(typeof window === "undefined" ? 1200 : Math.min(window.innerWidth - 64, 1400)),
+  );
+
+  useLayoutEffect(() => {
+    if (!parentEl) return;
+
+    const measure = () => {
+      setColumns(getMediaGridColumns(parentEl.getBoundingClientRect().width));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(parentEl);
+    return () => observer.disconnect();
+  }, [parentEl]);
+
+  if (isPending) {
+    return <MediaGridSkeleton />;
+  }
+
+  if (displayItems.length === 0) return null;
+
+  return (
+    <>
+      <div
+        ref={setParentEl}
+        className="grid w-full gap-4"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
+        {displayItems.map((item) => (
+          <div key={`${item.type}-${item.id}`} className="relative">
+            <MediaCard
+              media={item}
+              showPreview={!downloadMode}
+              showPlay
+              showSocial={!downloadMode}
+              showType={showType}
+              showQuality={downloadMode}
+              showDownload
+            />
+          </div>
+        ))}
+      </div>
+      <InfiniteSentinel query={query} />
+    </>
+  );
+}
+
+function MediaGridVirtual({ items, query, showType, downloadMode }: MediaGridProps) {
   const displayItems = items ?? flattenInfiniteResults(query);
   const isPending = Boolean(query?.isPending) && displayItems.length === 0;
 
@@ -71,18 +135,6 @@ export function MediaGrid({ items, query, showType, downloadMode }: MediaGridPro
   });
 
   const virtualRows = virtualizer.getVirtualItems();
-  const lastRowIndex = virtualRows.at(-1)?.index;
-
-  const fetchNextPage = query?.fetchNextPage;
-  const hasNextPage = query?.hasNextPage;
-  const isFetchingNextPage = query?.isFetchingNextPage;
-
-  useEffect(() => {
-    if (lastRowIndex == null || rowCount === 0) return;
-    if (lastRowIndex >= rowCount - 2 && hasNextPage && !isFetchingNextPage) {
-      void fetchNextPage?.();
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, lastRowIndex, rowCount]);
 
   if (isPending) {
     return <MediaGridSkeleton />;
@@ -91,41 +143,44 @@ export function MediaGrid({ items, query, showType, downloadMode }: MediaGridPro
   if (displayItems.length === 0) return null;
 
   return (
-    <div ref={setParentEl} className="w-full">
-      <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-        {virtualRows.map((virtualRow) => {
-          const start = virtualRow.index * columns;
-          const rowItems = displayItems.slice(start, start + columns);
+    <>
+      <div ref={setParentEl} className="w-full">
+        <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+          {virtualRows.map((virtualRow) => {
+            const start = virtualRow.index * columns;
+            const rowItems = displayItems.slice(start, start + columns);
 
-          return (
-            <div
-              key={virtualRow.key}
-              data-index={virtualRow.index}
-              ref={virtualizer.measureElement}
-              className="absolute top-0 left-0 w-full grid gap-4"
-              style={{
-                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                paddingBottom: MEDIA_GRID_GAP,
-                transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
-              }}
-            >
-              {rowItems.map((item) => (
-                <div key={`${item.type}-${item.id}`} className="relative">
-                  <MediaCard
-                    media={item}
-                    showPreview={!downloadMode}
-                    showPlay
-                    showSocial={!downloadMode}
-                    showType={showType}
-                    showQuality={downloadMode}
-                    showDownload
-                  />
-                </div>
-              ))}
-            </div>
-          );
-        })}
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                className="absolute top-0 left-0 w-full grid gap-4"
+                style={{
+                  gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                  paddingBottom: MEDIA_GRID_GAP,
+                  transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
+                }}
+              >
+                {rowItems.map((item) => (
+                  <div key={`${item.type}-${item.id}`} className="relative">
+                    <MediaCard
+                      media={item}
+                      showPreview={!downloadMode}
+                      showPlay
+                      showSocial={!downloadMode}
+                      showType={showType}
+                      showQuality={downloadMode}
+                      showDownload
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+      <InfiniteSentinel query={query} />
+    </>
   );
 }

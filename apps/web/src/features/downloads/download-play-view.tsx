@@ -30,6 +30,9 @@ import { TvCarousel } from "@/features/tv/components/tv-carousel";
 import { formatSeasonEpisode } from "@/features/tv/helpers/episode.helper";
 import { inferEpisodeFromDownload } from "@/features/tv/helpers/episode-downloads.helper";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { useTvPlaybackChrome } from "@/features/tv-mode/use-tv-playback-chrome";
+import { useTvPlayerKeys } from "@/features/tv-mode/use-tv-player-keys";
 
 export interface DownloadPlayViewProps {
   id: string;
@@ -39,6 +42,7 @@ export interface DownloadPlayViewProps {
 
 export function DownloadPlayView({ id, season: searchSeason, episode: searchEpisode }: DownloadPlayViewProps) {
   const { t } = useLingui();
+  const tvMode = useTvMode();
   const locale = useTmdbLocale();
   const queryClient = useQueryClient();
 
@@ -162,6 +166,22 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
     playerRef.current = player;
   }, []);
 
+  const canAddSubtitles = download.mediaId != null;
+
+  useTvPlaybackChrome(tvMode && !subtitleDialogOpen);
+  useTvPlayerKeys({ playerRef, active: tvMode && !subtitleDialogOpen });
+
+  const subtitleSearchDialog =
+    canAddSubtitles && subtitleDialogOpen ? (
+      <SubtitleSearchDialog
+        open={subtitleDialogOpen}
+        onOpenChange={setSubtitleDialogOpen}
+        tmdbId={String(download.mediaId)}
+        downloadId={id}
+        mediaTitle={displayName}
+      />
+    ) : null;
+
   // Fallback if startat wasn't applied — movi-player holds seeks via _pendingSeek until ready.
   const handleLoadedMetadata = useCallback(() => {
     if (hasInitialSeeked.current) return;
@@ -197,24 +217,40 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
     [download, externalSubtitles?.paths],
   );
 
+  const backTo = media.type === "tv" ? "/tv/$id" : "/movies/$id";
+
+  if (tvMode) {
+    return (
+      <>
+        {subtitleSearchDialog}
+        <div className="fixed inset-0 z-40 flex h-dvh min-h-0 flex-col bg-black">
+          <Player
+            src={streamUrl}
+            tracks={subtitleTracks}
+            startAt={resumePosition}
+            onPlayer={handlePlayer}
+            onLoadedMetadata={handleLoadedMetadata}
+            onError={handlePlaybackError}
+            onAddSubtitles={canAddSubtitles ? () => setSubtitleDialogOpen(true) : undefined}
+            enableSubtitleDelay
+            tvImmersive
+            className="relative flex-1 min-h-0 w-full"
+          />
+        </div>
+      </>
+    );
+  }
+
   return (
     <Container className="max-w-7xl">
       <div className="space-y-4">
-        {subtitleDialogOpen && (
-          <SubtitleSearchDialog
-            open={subtitleDialogOpen}
-            onOpenChange={setSubtitleDialogOpen}
-            tmdbId={String(download.mediaId ?? "")}
-            downloadId={id}
-            mediaTitle={displayName}
-          />
-        )}
+        {subtitleSearchDialog}
 
         <div className="flex justify-center">
           <div className="w-full md:w-[70%] space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <Button size="icon-sm" variant="ghost" asChild aria-label={t`Back to media`} icon={ArrowLeftIcon}>
-                <Link to={media.type === "tv" ? "/tv/$id" : "/movies/$id"} params={{ id: String(media.id) }} />
+                <Link to={backTo} params={{ id: String(media.id) }} />
               </Button>
               <span className="font-semibold text-base truncate">{media.title}</span>
               {media.type === "tv" && season != null && episode != null && (
@@ -255,7 +291,7 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
           withSocialActions
           withDownload
           link={{
-            to: media.type === "tv" ? "/tv/$id" : "/movies/$id",
+            to: backTo,
             params: { id: String(media.id) },
           }}
         />

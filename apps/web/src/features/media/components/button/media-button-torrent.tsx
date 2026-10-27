@@ -1,10 +1,13 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { Media } from "@seedarr/sdk";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { MagnetIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button, type ButtonProps } from "@/shared/ui/button";
+import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
+
+import { tvTorrentsFocusKey } from "@/features/tv-mode/tv-focus-keys";
 
 interface MediaButtonTorrentProps extends ButtonProps {
   media: Pick<Media, "id" | "type">;
@@ -24,7 +27,9 @@ export function MediaButtonTorrent({
   ...props
 }: MediaButtonTorrentProps) {
   const { t } = useLingui();
+  const navigate = useNavigate();
   const to = media.type === "tv" ? "/tv/$id/torrents" : "/movies/$id/torrents";
+  const goTorrents = () => navigate({ to, params: { id: media.id.toString() } });
 
   if (circular) {
     return (
@@ -37,10 +42,15 @@ export function MediaButtonTorrent({
   }
 
   return (
-    <Button asChild icon={MagnetIcon} className={cn(className)} {...props}>
-      <Link to={to} params={{ id: media.id.toString() }}>
-        <Trans>Torrents</Trans>
-      </Link>
-    </Button>
+    <TvFocusable
+      focusRoot
+      tv={{ focusKey: tvTorrentsFocusKey(media.id), onPress: goTorrents, accessibilityLabel: t`Torrents` }}
+    >
+      <Button asChild icon={MagnetIcon} className={cn(className)} {...props}>
+        <Link to={to} params={{ id: media.id.toString() }}>
+          <Trans>Torrents</Trans>
+        </Link>
+      </Button>
+    </TvFocusable>
   );
 }

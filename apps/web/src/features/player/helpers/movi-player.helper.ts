@@ -3,6 +3,8 @@ export interface MoviPlayerHandle extends HTMLElement {
   currentTime: number;
   duration: number;
   paused: boolean;
+  play: () => Promise<void>;
+  pause: () => void;
   volume: number;
   muted: boolean;
   subtitleDelay: number;
@@ -15,6 +17,8 @@ export interface MoviPlayerHandle extends HTMLElement {
 type CcExtrasOpts = {
   onAddSubtitles?: () => void;
   enableDelay?: boolean;
+  /** Larger controls + TV menu focus targets in the CC panel. */
+  tv?: boolean;
   labels?: {
     delay: string;
     addSubtitles: string;
@@ -98,19 +102,28 @@ function injectCcExtras(player: MoviPlayerHandle, opts: CcExtrasOpts): void {
   wrap.style.cssText =
     "border-top:1px solid rgba(255,255,255,0.12);padding:0.4rem 0.5rem;display:flex;flex-direction:column;gap:0.35rem;";
 
+  const tv = opts.tv === true;
+  const tvBtnStyle = tv
+    ? "border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:inherit;border-radius:0.4rem;padding:0.35rem 0.65rem;font:inherit;font-size:0.85rem;cursor:pointer;min-width:2.75rem;"
+    : "border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:inherit;border-radius:0.35rem;padding:0.15rem 0.4rem;font:inherit;font-size:0.7rem;cursor:pointer;";
+
   if (opts.enableDelay) {
     const row = document.createElement("div");
-    row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:0.35rem;";
+    row.style.cssText = tv
+      ? "display:flex;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.15rem 0;"
+      : "display:flex;align-items:center;justify-content:space-between;gap:0.35rem;";
 
     const label = document.createElement("span");
     label.textContent = labels.delay;
-    label.style.cssText = "font-size:0.75rem;opacity:0.8;";
+    label.style.cssText = tv ? "font-size:0.85rem;opacity:0.9;" : "font-size:0.75rem;opacity:0.8;";
 
     const controls = document.createElement("div");
     controls.style.cssText = "display:flex;align-items:center;gap:0.25rem;";
 
     const readout = document.createElement("span");
-    readout.style.cssText = "min-width:3.25rem;text-align:center;font-variant-numeric:tabular-nums;font-size:0.75rem;";
+    readout.style.cssText = tv
+      ? "min-width:3.5rem;text-align:center;font-variant-numeric:tabular-nums;font-size:0.85rem;"
+      : "min-width:3.25rem;text-align:center;font-variant-numeric:tabular-nums;font-size:0.75rem;";
     const formatDelay = (seconds: number): string =>
       seconds === 0 ? "0s" : `${seconds > 0 ? "+" : ""}${seconds.toFixed(1)}s`;
     readout.textContent = formatDelay(player.subtitleDelay ?? 0);
@@ -119,8 +132,8 @@ function injectCcExtras(player: MoviPlayerHandle, opts: CcExtrasOpts): void {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = text;
-      btn.style.cssText =
-        "border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:inherit;border-radius:0.35rem;padding:0.15rem 0.4rem;font:inherit;font-size:0.7rem;cursor:pointer;";
+      btn.className = tv ? "seedarr-tv-cc-menu-btn" : "";
+      btn.style.cssText = tvBtnStyle;
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const current = player.subtitleDelay ?? 0;
@@ -140,8 +153,10 @@ function injectCcExtras(player: MoviPlayerHandle, opts: CcExtrasOpts): void {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = labels.addSubtitles;
-    btn.style.cssText =
-      "display:flex;width:100%;align-items:center;justify-content:center;padding:0.45rem 0.5rem;border:0;border-radius:0.35rem;background:rgba(255,255,255,0.08);color:inherit;font:inherit;font-size:0.8rem;cursor:pointer;";
+    btn.className = tv ? "seedarr-tv-cc-menu-btn" : "";
+    btn.style.cssText = tv
+      ? "display:flex;width:100%;align-items:center;justify-content:center;padding:0.65rem 0.75rem;border:0;border-radius:0.4rem;background:rgba(255,255,255,0.1);color:inherit;font:inherit;font-size:0.9rem;cursor:pointer;"
+      : "display:flex;width:100%;align-items:center;justify-content:center;padding:0.45rem 0.5rem;border:0;border-radius:0.35rem;background:rgba(255,255,255,0.08);color:inherit;font:inherit;font-size:0.8rem;cursor:pointer;";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       opts.onAddSubtitles?.();

@@ -127,7 +127,7 @@ export function OnboardingIndexersView({ onBack }: OnboardingIndexersViewProps) 
       </div>
 
       {(selection === "prowlarr" || selection === "jackett") && (
-        <Card className="p-4 bg-transparent">
+        <Card className="space-y-4 p-4 bg-transparent">
           <Input
             label={<Trans>URL</Trans>}
             placeholder={selection === "prowlarr" ? "http://localhost:9696" : "http://localhost:9117"}
@@ -135,7 +135,8 @@ export function OnboardingIndexersView({ onBack }: OnboardingIndexersViewProps) 
             onChange={(e) => setIndexerUrl(e.target.value)}
           />
           <Input
-            label={<Trans>API Key</Trans>}
+            label={<Trans>API key</Trans>}
+            password
             placeholder={t(msg`Enter your API key...`)}
             value={indexerApiKey}
             onChange={(e) => setIndexerApiKey(e.target.value)}

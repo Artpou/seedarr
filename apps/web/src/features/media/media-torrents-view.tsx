@@ -18,6 +18,7 @@ import { TorrentTable } from "@/features/torrent/components/torrent-table";
 import { buildExistingInfoHashSet } from "@/features/torrent/helpers/torrent-uri.helper";
 import { useTorrents } from "@/features/torrent/hooks/torrent.queries";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 const ALL_EPISODES = "all";
 
@@ -157,6 +158,7 @@ function TorrentsBody({
     episode,
     existingInfoHashes,
   });
+  const tvMode = useTvMode();
   const [visibleSources, setVisibleSources] = useState<Set<string>>(new Set());
 
   const filteredTorrents = useMemo(() => {
@@ -179,9 +181,9 @@ function TorrentsBody({
 
   return (
     <Container>
-      <MediaCardHorizontal media={media} withOverview withSocialActions />
+      <MediaCardHorizontal media={media} withOverview withSocialActions={!tvMode} />
       {episodeSelectors}
-      {sources.length > 1 ? (
+      {sources.length > 1 && !tvMode ? (
         <div className="xl:grid xl:grid-cols-7 xl:gap-6">
           <div className="xl:col-span-5">{torrentTable}</div>
           <div className="hidden xl:block xl:col-span-2">

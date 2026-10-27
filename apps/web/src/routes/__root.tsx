@@ -7,6 +7,7 @@ import { RoutePendingFallback } from "@/shared/components/route-pending-fallback
 import { ErrorView, NotFoundView } from "@/shared/components/view/error-view";
 import { useThemeStore, useThemeSync } from "@/shared/hooks/use-theme";
 
+import { TvModeBootstrap } from "@/features/tv-mode/tv-mode-bootstrap";
 import type { SeedarrRouterContext } from "@/router";
 
 const TanStackDevtools =
@@ -45,6 +46,7 @@ function RootComponent() {
 
   return (
     <>
+      <TvModeBootstrap />
       <Outlet />
       <Toaster
         richColors

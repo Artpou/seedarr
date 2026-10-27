@@ -15,12 +15,15 @@ const DEFAULT_VIEW_MODES: Record<ViewModeScope, ViewMode> = {
 interface UserPreferences {
   quality: Resolution | null;
   maxSize: number | null;
+  /** ISO 639-1 TMDB `original_language` for the optional movies/TV discover carousel. */
+  discoverCarouselLanguage: string | null;
   viewModes: Record<ViewModeScope, ViewMode>;
 }
 
 interface UserPreferenceStore extends UserPreferences {
   setQuality: (quality: Resolution | null) => void;
   setMaxSize: (maxSize: number | null) => void;
+  setDiscoverCarouselLanguage: (language: string | null) => void;
   setViewMode: (scope: ViewModeScope, viewMode: ViewMode) => void;
 }
 
@@ -29,14 +32,16 @@ export const useUserPreferences = create<UserPreferenceStore>()(
     (set) => ({
       quality: null,
       maxSize: null,
+      discoverCarouselLanguage: null,
       viewModes: { ...DEFAULT_VIEW_MODES },
       setQuality: (quality) => set({ quality }),
       setMaxSize: (maxSize) => set({ maxSize }),
+      setDiscoverCarouselLanguage: (discoverCarouselLanguage) => set({ discoverCarouselLanguage }),
       setViewMode: (scope, viewMode) => set((state) => ({ viewModes: { ...state.viewModes, [scope]: viewMode } })),
     }),
     {
       name: "user-preferences",
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         const state = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -57,7 +62,10 @@ export const useUserPreferences = create<UserPreferenceStore>()(
         };
         if (version < 2) {
           const { showCategories: _removed, ...rest } = migrated as Record<string, unknown>;
-          return rest;
+          Object.assign(migrated, rest);
+        }
+        if (version < 3) {
+          return { ...migrated, discoverCarouselLanguage: null };
         }
         return migrated;
       },

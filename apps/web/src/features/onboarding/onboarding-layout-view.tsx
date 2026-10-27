@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AppAmbientBackground } from "@/shared/components/app-ambient-background";
 import { Badge } from "@/shared/ui/badge";
 
 interface OnboardingLayoutProps {
@@ -9,16 +10,9 @@ interface OnboardingLayoutProps {
 export function OnboardingLayoutView({ children }: OnboardingLayoutProps) {
   return (
     <div className="bg-background relative min-h-svh overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_0%_0%,oklch(0.63_0.13_135_/_0.28),transparent_60%)]" />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-25"
-        style={{
-          backgroundImage: "radial-gradient(oklch(1 0 0 / 0.05) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }}
-      />
+      <AppAmbientBackground variant="prominent" />
 
-      <div className="relative grid min-h-svh lg:grid-cols-2">
+      <div className="relative z-10 grid min-h-svh lg:grid-cols-2">
         <aside className="hidden flex-col justify-center items-center px-10 py-12 lg:pl-30 lg:flex">
           <div className="flex flex-col items-center max-w-sm space-y-5 pb-20">
             <img

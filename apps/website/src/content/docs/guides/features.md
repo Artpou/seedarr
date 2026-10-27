@@ -43,6 +43,13 @@ description: What Seedarr can do today.
 - **Shared household library** — any authenticated user can browse and stream; mutations require ownership or admin
 - Guided onboarding for new users
 
+## TV mode (living room)
+
+- Optional UI activated with **`?mode=tv`** on any page
+- **Spatial navigation** for remote / D-pad / arrow keys
+- Simplified top bar, focus-friendly carousels, and TV-oriented player chrome
+- See the [TV mode guide](/guides/tv-mode/) for setup and limitations (e.g. library sync disabled on TV for now)
+
 ## Self-hosted & private
 
 - Runs on your hardware — your data stays yours

@@ -14,6 +14,8 @@ import {
 } from "@/shared/ui/dropdrawer";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+
 type ResponsiveTabOption = {
   value: string;
   label: ReactNode;
@@ -28,6 +30,8 @@ interface ResponsiveTabsProps {
   listClassName?: string;
   /** Force select/drawer UI even on desktop (useful for many options). */
   forceSelect?: boolean;
+  /** Spatial-nav focus keys: `{prefix}-{option.value}` per tab. */
+  tvFocusKeyPrefix?: string;
 }
 
 export function ResponsiveTabs({
@@ -37,17 +41,46 @@ export function ResponsiveTabs({
   className,
   listClassName,
   forceSelect = false,
+  tvFocusKeyPrefix,
 }: ResponsiveTabsProps) {
   const isMobile = useIsMobile();
-  const useSelect = forceSelect || isMobile || options.length > 8;
+  const tvMode = useTvMode();
+  const useSelect = forceSelect || ((isMobile || options.length > 8) && !tvMode);
   const selected = options.find((option) => option.value === value) ?? options[0];
   const SelectedIcon = selected?.icon;
+
+  if (tvMode && tvFocusKeyPrefix) {
+    return (
+      <div className={cn("flex flex-wrap gap-2", className)}>
+        {options.map((option) => {
+          const Icon = option.icon;
+          const active = option.value === value;
+          return (
+            <Button
+              key={option.value}
+              variant={active ? "default" : "secondary"}
+              size="lg"
+              className="shrink-0 gap-2"
+              tv={{
+                focusKey: `${tvFocusKeyPrefix}-${option.value}`,
+                onPress: () => onValueChange(option.value),
+                accessibilityLabel: typeof option.label === "string" ? option.label : option.value,
+              }}
+            >
+              {Icon ? <Icon className="size-4" /> : null}
+              <span className="font-medium">{option.label}</span>
+            </Button>
+          );
+        })}
+      </div>
+    );
+  }
 
   if (useSelect) {
     return (
       <DropDrawer>
         <DropDrawerTrigger asChild>
-          <Button variant="secondary" size="lg" className={cn("w-full bg-input justify-between gap-2", className)}>
+          <Button variant="outline" size="lg" className={cn("w-full justify-between gap-2", className)}>
             <span className="flex min-w-0 items-center gap-2">
               {SelectedIcon ? <SelectedIcon className="size-4 shrink-0 text-foreground" /> : null}
               <span className="truncate font-medium">{selected?.label}</span>
@@ -66,7 +99,7 @@ export function ResponsiveTabs({
                   icon={option.value === value ? <CheckIcon className="size-4" /> : undefined}
                 >
                   <span className="flex items-center gap-2">
-                    {Icon ? <Icon className="size-4 text-foreground" /> : null}
+                    {Icon ? <Icon className="size-4" /> : null}
                     {option.label}
                   </span>
                 </DropDrawerItem>
@@ -88,7 +121,7 @@ export function ResponsiveTabs({
           const Icon = option.icon;
           return (
             <TabsTrigger key={option.value} value={option.value} size="lg" className="shrink-0 gap-2">
-              {Icon ? <Icon className="size-4 text-foreground" /> : null}
+              {Icon ? <Icon className="size-4" /> : null}
               <span className="font-medium">{option.label}</span>
             </TabsTrigger>
           );

@@ -1,23 +1,19 @@
 import { useCallback, useState } from "react";
 
-import { msg } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import type { ActivityCategory, ActivityType } from "@seedarr/contracts";
 import type { Activity } from "@seedarr/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
-import { useDebounce } from "@uidotdev/usehooks";
 import { DownloadIcon, LayoutGridIcon, type LucideIcon, MoreHorizontalIcon, PuzzleIcon, UserIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/shared/components/empty-state";
 import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { Select } from "@/shared/components/select/select";
-import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { usePagedState } from "@/shared/hooks/use-paged-state";
 import { DataTable } from "@/shared/ui/data-table";
 import { DataTablePagination } from "@/shared/ui/data-table-pagination";
-import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/shared/ui/sheet";
 
@@ -47,15 +43,12 @@ const TYPE_FILTERS: { value: ActivityTypeFilter; label: React.ReactNode }[] = [
   { value: "ERROR", label: <Trans>Error</Trans> },
 ];
 
-export function SettingsActivityView() {
-  const { t } = useLingui();
+export function SettingsActivityView({ searchQ }: { searchQ?: string }) {
   const [selectedLog, setSelectedLog] = useState<Activity | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<ActivityCategoryFilter>("all");
   const [typeFilter, setTypeFilter] = useState<ActivityTypeFilter>("all");
-  const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
   const filters = {
-    q: debouncedQuery.trim() || undefined,
+    q: searchQ?.trim() || undefined,
     category: categoryFilter,
     type: typeFilter,
   };
@@ -88,21 +81,8 @@ export function SettingsActivityView() {
     getRowId: (row) => row.id,
   });
 
-  const searchInput = (
-    <Input
-      type="search"
-      search
-      placeholder={t(msg`Search activity…`)}
-      value={query}
-      onChange={(e) => setQuery(e.target.value)}
-      classNameWrapper="w-full"
-      h="lg"
-    />
-  );
-
   return (
     <div className="space-y-4">
-      {searchInput}
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <ResponsiveTabs
           className="w-full"

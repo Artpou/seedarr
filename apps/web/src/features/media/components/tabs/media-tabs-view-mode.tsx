@@ -26,7 +26,7 @@ export function MediaTabsViewMode({ scope, showOnMobile = false }: { scope: View
       <TabsList size="lg">
         {VIEW_OPTIONS.map(({ value, icon: Icon }) => (
           <TabsTrigger key={value} value={value} size="lg">
-            <Icon className="size-4 text-foreground" />
+            <Icon className="size-4" />
           </TabsTrigger>
         ))}
       </TabsList>

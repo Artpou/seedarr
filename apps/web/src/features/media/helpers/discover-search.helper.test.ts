@@ -14,14 +14,20 @@ import {
 describe("discover-search.helper", () => {
   it("validates discover search params", () => {
     expect(parseDiscoverType("new")).toBe("new");
+    expect(parseDiscoverType("popular")).toBe("popular");
     expect(parseDiscoverType("top_rated")).toBe("top_rated");
     expect(parseDiscoverType("top-rated")).toBe("top-rated");
     expect(parseDiscoverType("top rated")).toBe("top_rated");
     expect(parseDiscoverType("unknown")).toBeUndefined();
 
     expect(isScopedDiscoverSearch({})).toBe(false);
-    expect(isScopedDiscoverSearch({ type: "new" })).toBe(true);
+    expect(isScopedDiscoverSearch({ type: "popular" })).toBe(true);
     expect(isScopedDiscoverSearch({ genre: "28" })).toBe(true);
+    expect(isScopedDiscoverSearch({ lang: "fr" })).toBe(true);
+
+    const movieLang = buildMovieDiscoverOptions({ lang: "ja" });
+    expect(movieLang.sort_by).toBe("popularity.desc");
+    expect(movieLang.with_original_language).toBe("ja");
 
     expect(validateMovieDiscoverSearch({ type: "top_rated", genre: "28" })).toMatchObject({
       type: "top_rated",
@@ -39,10 +45,17 @@ describe("discover-search.helper", () => {
     expect(movieWithBoth.sort_by).toBe("vote_average.desc");
     expect(movieWithBoth.with_genres).toBeUndefined();
 
-    // When type=new and genre are both present, type takes precedence
+    // When type=popular and genre are both present, type takes precedence
+    const moviePopularWithGenre = buildMovieDiscoverOptions({ type: "popular", genre: "28" });
+    expect(moviePopularWithGenre.sort_by).toBe("popularity.desc");
+    expect(moviePopularWithGenre.with_release_type).toBe("4|5");
+    expect(moviePopularWithGenre.with_genres).toBeUndefined();
+
     const movieNewWithGenre = buildMovieDiscoverOptions({ type: "new", genre: "28" });
-    expect(movieNewWithGenre.sort_by).toBeUndefined();
-    expect(movieNewWithGenre.with_genres).toBeUndefined();
+    expect(movieNewWithGenre.sort_by).toBe("popularity.desc");
+    expect(movieNewWithGenre.with_release_type).toBe("2|3");
+    expect(movieNewWithGenre["release_date.gte"]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(movieNewWithGenre["release_date.lte"]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
     // When only genre is present, with_genres is set
     const movieGenreOnly = buildMovieDiscoverOptions({ genre: "28" });

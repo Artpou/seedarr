@@ -10,6 +10,7 @@ import ms from "ms";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { AppAmbientBackground } from "@/shared/components/app-ambient-background";
 import { RoutePendingFallback } from "@/shared/components/route-pending-fallback";
 import { AppTopbar } from "@/shared/components/topbar/app-topbar";
 import { ErrorView } from "@/shared/components/view/error-view";
@@ -17,6 +18,8 @@ import { APP_NAV_ITEMS } from "@/shared/config/nav";
 
 import { useAuth } from "@/features/auth/auth-store";
 import { useRole } from "@/features/auth/hooks/use-role";
+import { TvAppFocus } from "@/features/tv-mode/tv-app-focus";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ context }) => {
@@ -74,6 +77,8 @@ function AuthenticatedLayout() {
   const { state, href, pathname } = useLocation();
   const { t } = useLingui();
   const router = useRouter();
+  const tvMode = useTvMode();
+  const hideAppChrome = tvMode && pathname.includes("/play");
 
   const stateRef = useRef<unknown>(null);
 
@@ -104,34 +109,44 @@ function AuthenticatedLayout() {
   });
 
   return (
-    <div className="flex flex-col min-w-0">
-      <AppTopbar isAuthenticated={true} />
-      <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
-        <Outlet />
-      </main>
+    <div className="relative min-h-svh bg-background">
+      <AppAmbientBackground variant="subtle" />
+      <TvAppFocus className="relative z-10 flex min-h-svh min-w-0 flex-col">
+        {!hideAppChrome && <AppTopbar isAuthenticated={true} />}
+        <main
+          className={cn("flex-1 md:pb-0", hideAppChrome ? "pb-0" : "pb-[calc(4rem+env(safe-area-inset-bottom,0px))]")}
+        >
+          <Outlet />
+        </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom,0px)]">
-        <div className="flex items-center justify-around h-16">
-          {visibleNavItems.map((item) => {
-            const matchUrl = item.matchPrefix ?? item.url;
-            const isActive = pathname.startsWith(matchUrl);
-            return (
-              <Link
-                key={item.url}
-                to={item.url}
-                search={{}}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <item.icon className="size-5" />
-                <span className="text-xs font-medium">{t(item.title)}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+        <nav
+          className={cn(
+            "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom,0px)]",
+            hideAppChrome && "hidden",
+          )}
+        >
+          <div className="flex items-center justify-around h-16">
+            {visibleNavItems.map((item) => {
+              const matchUrl = item.matchPrefix ?? item.url;
+              const isActive = pathname.startsWith(matchUrl);
+              return (
+                <Link
+                  key={item.url}
+                  to={item.url}
+                  search={{}}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <item.icon className="size-5" />
+                  <span className="text-xs font-medium">{t(item.title)}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </TvAppFocus>
     </div>
   );
 }

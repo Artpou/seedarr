@@ -7,6 +7,7 @@ describe("user-preference-store", () => {
     useUserPreferences.setState({
       quality: null,
       maxSize: null,
+      discoverCarouselLanguage: null,
       viewModes: { movie: "grid", tv: "grid", downloads: "list", profile: "grid" },
     });
   });
@@ -15,10 +16,12 @@ describe("user-preference-store", () => {
     useUserPreferences.getState().setQuality("1080p" as never);
     useUserPreferences.getState().setMaxSize(5);
     useUserPreferences.getState().setViewMode("downloads", "grid");
+    useUserPreferences.getState().setDiscoverCarouselLanguage("fr");
 
     const state = useUserPreferences.getState();
     expect(state.quality).toBe("1080p");
     expect(state.maxSize).toBe(5);
+    expect(state.discoverCarouselLanguage).toBe("fr");
     expect(state.viewModes.downloads).toBe("grid");
     expect(state.viewModes.movie).toBe("grid");
   });

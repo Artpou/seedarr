@@ -1,18 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useDebounce } from "@uidotdev/usehooks";
 import { FilmIcon, SearchIcon, TvIcon } from "lucide-react";
 
 import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
-import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { flattenInfiniteResults } from "@/shared/hooks/use-infinite-list";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useTmdbLocale } from "@/shared/hooks/use-tmdb-locale";
 import { Container } from "@/shared/ui/container";
-import { Input } from "@/shared/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 import { MediaGrid } from "@/features/media/components/media-grid";
@@ -24,15 +20,14 @@ import { movieQueries } from "@/features/movies/hooks/movie.queries";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
 import { TvFiltersSheet } from "@/features/tv/components/tv-filters-sheet";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import {
   clearSearchFilters,
-  hasActiveSearchFilters,
   pickMovieSearchFilters,
   pickTvSearchFilters,
   type SearchRouteSearch,
   type SearchRouteType,
   shouldLoadSearchResults,
-  validateSearchRouteSearch,
 } from "@/routes/helpers/search-route.helper";
 
 export interface SearchViewProps {
@@ -42,33 +37,11 @@ export interface SearchViewProps {
 export function SearchView({ search }: SearchViewProps) {
   const { q, type } = search;
   const navigate = useNavigate();
-  const { t } = useLingui();
   const locale = useTmdbLocale();
-  const isMobile = useIsMobile();
   const viewMode = useEffectiveViewMode(type);
-
-  const [query, setQuery] = useState(q || "");
-  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
+  const tvMode = useTvMode();
 
   const isSearching = shouldLoadSearchResults(q);
-  const hasFilters = hasActiveSearchFilters(search);
-
-  useEffect(() => {
-    setQuery(q || "");
-  }, [q]);
-
-  useEffect(() => {
-    if (debouncedQuery === (q || "")) return;
-    navigate({
-      to: "/search",
-      search: (prev) => {
-        const current = clearSearchFilters({ ...validateSearchRouteSearch(prev), type });
-        return { ...current, q: debouncedQuery, type };
-      },
-      replace: true,
-      resetScroll: false,
-    });
-  }, [debouncedQuery, navigate, q, type]);
 
   const movieDiscoverOptions = useMemo(() => buildMovieDiscoverOptions(pickMovieSearchFilters(search)), [search]);
   const tvDiscoverOptions = useMemo(() => buildTvDiscoverOptions(pickTvSearchFilters(search)), [search]);
@@ -120,7 +93,6 @@ export function SearchView({ search }: SearchViewProps) {
       replace: true,
       resetScroll: false,
     });
-    setQuery("");
   };
 
   const handleTvFiltersChange = (value: ReturnType<typeof pickTvSearchFilters>) => {
@@ -130,10 +102,7 @@ export function SearchView({ search }: SearchViewProps) {
       replace: true,
       resetScroll: false,
     });
-    setQuery("");
   };
-
-  const placeholder = type === "tv" ? t`Search TV shows...` : t`Search movies...`;
 
   const showResultsSkeleton = activeQuery.isPending && results.length === 0;
 
@@ -163,10 +132,7 @@ export function SearchView({ search }: SearchViewProps) {
       </p>
     </div>
   ) : viewMode === "grid" ? (
-    <>
-      <MediaGrid items={results} query={activeQuery} />
-      <InfiniteSentinel query={activeQuery} />
-    </>
+    <MediaGrid items={results} query={activeQuery} />
   ) : (
     <>
       <MediaTable media={results} query={activeQuery} />
@@ -176,43 +142,38 @@ export function SearchView({ search }: SearchViewProps) {
 
   return (
     <Container className="sm:space-y-3">
-      <div className="flex flex-row items-center justify-between gap-2">
-        <Tabs value={type} onValueChange={handleTypeChange} className="min-w-0 flex-1">
-          <TabsList size="lg" className="w-full sm:w-fit">
-            <TabsTrigger value="movie" size="lg" className="flex-1 sm:flex-none">
-              <FilmIcon className="size-4" />
-              <Trans>Movies</Trans>
-            </TabsTrigger>
-            <TabsTrigger value="tv" size="lg" className="flex-1 sm:flex-none">
-              <TvIcon className="size-4" />
-              <Trans>TV Shows</Trans>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+      {!tvMode && (
+        <div className="flex flex-row items-center justify-between gap-2">
+          <Tabs value={type} onValueChange={handleTypeChange} className="min-w-0 flex-1">
+            <TabsList size="lg" className="w-full sm:w-fit">
+              <TabsTrigger value="movie" size="lg" className="flex-1 sm:flex-none">
+                <FilmIcon className="size-4" />
+                <Trans>Movies</Trans>
+              </TabsTrigger>
+              <TabsTrigger value="tv" size="lg" className="flex-1 sm:flex-none">
+                <TvIcon className="size-4" />
+                <Trans>TV Shows</Trans>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {!isSearching &&
-            (type === "movie" ? (
-              <MovieFiltersSheet
-                value={pickMovieSearchFilters(search)}
-                onChange={handleMovieFiltersChange}
-                triggerVariant="secondary"
-              />
-            ) : (
-              <TvFiltersSheet
-                value={pickTvSearchFilters(search)}
-                onChange={handleTvFiltersChange}
-                triggerVariant="secondary"
-              />
-            ))}
-          <MediaTabsViewMode scope={type} />
-        </div>
-      </div>
-
-      {!hasFilters && !isMobile && (
-        <div className="relative w-full">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
-          <Input h="lg" placeholder={placeholder} value={query} search onChange={(e) => setQuery(e.target.value)} />
+          <div className="flex shrink-0 items-center gap-2">
+            {!isSearching &&
+              (type === "movie" ? (
+                <MovieFiltersSheet
+                  value={pickMovieSearchFilters(search)}
+                  onChange={handleMovieFiltersChange}
+                  triggerVariant="secondary"
+                />
+              ) : (
+                <TvFiltersSheet
+                  value={pickTvSearchFilters(search)}
+                  onChange={handleTvFiltersChange}
+                  triggerVariant="secondary"
+                />
+              ))}
+            <MediaTabsViewMode scope={type} />
+          </div>
         </div>
       )}
 

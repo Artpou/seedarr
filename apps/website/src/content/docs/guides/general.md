@@ -9,6 +9,7 @@ Open **Settings → General** after signing in.
 
 - **Language** — English or French (Lingui). Preference is stored per user.
 - Theme follows the app’s light/dark switch in the UI.
+- **TV mode** is not a General setting — add `?mode=tv` to the URL when opening Seedarr on a TV. See [TV mode](/guides/tv-mode/).
 
 ## Password
 

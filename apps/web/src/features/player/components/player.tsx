@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLingui } from "@lingui/react/macro";
 
+import { cn } from "@/lib/utils";
 import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 
 import { resolveSubtitleTracksToBlobs, type SubtitleTrack } from "@/features/downloads/helpers/subtitle-tracks.helper";
@@ -11,6 +12,7 @@ import {
   errorDetail,
   type MoviPlayerHandle,
 } from "@/features/player/helpers/movi-player.helper";
+import { injectTvMoviControlFocusStyle } from "@/features/tv-mode/tv-movi-player-controls.helper";
 
 interface PlayerProps {
   src: string;
@@ -23,6 +25,8 @@ interface PlayerProps {
   onAddSubtitles?: () => void;
   enableSubtitleDelay?: boolean;
   className?: string;
+  /** TV play page: fill the viewport (CSS only — no native fullscreen). */
+  tvImmersive?: boolean;
 }
 
 /**
@@ -44,6 +48,7 @@ export function Player({
   onAddSubtitles,
   enableSubtitleDelay = false,
   className,
+  tvImmersive = false,
 }: PlayerProps) {
   const { t } = useLingui();
   const hostRef = useRef<HTMLDivElement>(null);
@@ -137,6 +142,9 @@ export function Player({
         player.setAttribute("controls", "");
         player.setAttribute("theme", "dark");
         player.setAttribute("sw", "auto");
+        if (tvImmersive) {
+          player.setAttribute("playsinline", "");
+        }
         // Must be set before source() — otherwise init does seek(0) for the poster frame
         // and overwrites a later currentTime resume seek.
         if (resumeAt > 0) player.setAttribute("startat", String(resumeAt));
@@ -145,7 +153,12 @@ export function Player({
         if (primary) player.setAttribute("themecolor", primary);
 
         player.style.width = "100%";
-        player.style.aspectRatio = "16 / 9";
+        if (tvImmersive) {
+          player.style.height = "100%";
+          player.style.aspectRatio = "auto";
+        } else {
+          player.style.aspectRatio = "16 / 9";
+        }
 
         player.addEventListener("loadedmetadata", handleLoaded);
         player.addEventListener("loadeddata", handleLoaded);
@@ -188,10 +201,30 @@ export function Player({
         );
         if (loopMenu) loopMenu.style.display = "none";
 
+        if (tvImmersive) {
+          injectTvMoviControlFocusStyle(player, primary || undefined);
+          const progressBar = player.shadowRoot?.querySelector<HTMLElement>(".movi-progress-bar");
+          if (progressBar) {
+            progressBar.tabIndex = -1;
+            progressBar.style.pointerEvents = "none";
+          }
+          const fullscreenBtn = player.shadowRoot?.querySelector<HTMLElement>(".movi-fullscreen-btn");
+          if (fullscreenBtn) fullscreenBtn.style.display = "none";
+          const fullscreenMenu = player.shadowRoot?.querySelector<HTMLElement>(
+            '.movi-context-menu-item[data-action="fullscreen"]',
+          );
+          if (fullscreenMenu) fullscreenMenu.style.display = "none";
+          const volumeContainer = player.shadowRoot?.querySelector<HTMLElement>(".movi-volume-container");
+          if (volumeContainer) volumeContainer.style.display = "none";
+          const pipBtn = player.shadowRoot?.querySelector<HTMLElement>(".movi-pip-btn");
+          if (pipBtn) pipBtn.style.display = "none";
+        }
+
         if (onAddSubtitlesRef.current || enableSubtitleDelay) {
           ensureCcMenuAvailable(player, {
             onAddSubtitles: onAddSubtitlesRef.current ? () => onAddSubtitlesRef.current?.() : undefined,
             enableDelay: enableSubtitleDelay,
+            tv: tvImmersive,
             labels: {
               delay: t`Delay`,
               addSubtitles: t`Add subtitles`,
@@ -215,16 +248,22 @@ export function Player({
       onPlayerRef.current(null);
       host.replaceChildren();
     };
-  }, [src, tracksKey, enableSubtitleDelay, resumeAt, t]);
+  }, [src, tracksKey, enableSubtitleDelay, resumeAt, tvImmersive, t]);
 
   return (
     <>
       {isEngineLoading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black aspect-video" aria-busy="true">
+        <div
+          className={cn(
+            "absolute inset-0 z-10 flex items-center justify-center bg-black",
+            !tvImmersive && "aspect-video",
+          )}
+          aria-busy="true"
+        >
           <SeedarrLoader size={72} delayMs={0} />
         </div>
       )}
-      <div ref={hostRef} className={className} />
+      <div ref={hostRef} className={cn(className, tvImmersive && "h-full min-h-0")} />
     </>
   );
 }

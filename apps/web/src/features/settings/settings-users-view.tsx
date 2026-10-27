@@ -1,18 +1,14 @@
 import { useState } from "react";
 
-import { msg } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import type { User } from "@seedarr/sdk";
 import { useQuery } from "@tanstack/react-query";
-import { useDebounce } from "@uidotdev/usehooks";
 import { UserPlusIcon } from "lucide-react";
 
 import { EmptyState } from "@/shared/components/empty-state";
-import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { usePagedState } from "@/shared/hooks/use-paged-state";
 import { Button } from "@/shared/ui/button";
 import { DataTablePagination } from "@/shared/ui/data-table-pagination";
-import { Input } from "@/shared/ui/input";
 
 import { useRole } from "@/features/auth/hooks/use-role";
 import { UserFormModal } from "@/features/user/components/user-form-modal";
@@ -21,14 +17,11 @@ import { userQueries } from "@/features/user/hooks/user.queries";
 
 const PAGE_SIZE = 20;
 
-export function SettingsUsersView() {
-  const { t } = useLingui();
+export function SettingsUsersView({ searchQ }: { searchQ?: string }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
   const { isAdmin } = useRole();
-  const filters = { q: debouncedQuery.trim() || undefined };
+  const filters = { q: searchQ?.trim() || undefined };
   const { page, setPage } = usePagedState(filters);
 
   const { data, isLoading, isError, refetch } = useQuery(userQueries.list({ q: filters.q, page, limit: PAGE_SIZE }));
@@ -52,22 +45,9 @@ export function SettingsUsersView() {
     refetch();
   };
 
-  const searchInput = (
-    <Input
-      type="search"
-      search
-      placeholder={t(msg`Search users…`)}
-      value={query}
-      onChange={(e) => setQuery(e.target.value)}
-      classNameWrapper="w-full"
-      h="lg"
-    />
-  );
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        {searchInput}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         {isAdmin && (
           <Button onClick={handleCreateUser} icon={UserPlusIcon} className="shrink-0 w-full sm:w-auto">
             <Trans>Create User</Trans>

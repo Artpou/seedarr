@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { Movie, TV } from "@seedarr/sdk";
@@ -7,6 +7,10 @@ import { FilmIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, type ButtonProps } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/shared/ui/dialog";
+import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
+
+import { tvTrailerFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface MediaButtonTrailerProps extends Omit<ButtonProps, "onClick"> {
   title: string;
@@ -15,7 +19,11 @@ interface MediaButtonTrailerProps extends Omit<ButtonProps, "onClick"> {
 
 export function MediaButtonTrailer({ title, data, className, ...props }: MediaButtonTrailerProps) {
   const item = "movie" in data ? data.movie : data.tv;
-  const { i18n } = useLingui();
+  const media = data.media;
+  const mediaType = "movie" in data ? "movie" : "tv";
+  const { i18n, t } = useLingui();
+  const tvMode = useTvMode();
+  const [open, setOpen] = useState(false);
 
   const youtubeTrailer = useMemo(() => {
     const videos = item?.videos?.results;
@@ -28,7 +36,41 @@ export function MediaButtonTrailer({ title, data, className, ...props }: MediaBu
     );
   }, [item?.videos, i18n.locale]);
 
-  if (!youtubeTrailer) return null;
+  if (!youtubeTrailer || !media) return null;
+
+  const iframe = (
+    <iframe
+      src={`https://www.youtube.com/embed/${youtubeTrailer.key}?autoplay=1`}
+      title={title}
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+      className="w-full h-full rounded-lg"
+    />
+  );
+
+  if (tvMode) {
+    return (
+      <>
+        <TvFocusable
+          focusRoot
+          tv={{
+            focusKey: tvTrailerFocusKey(mediaType, media.id),
+            onPress: () => setOpen(true),
+            accessibilityLabel: t`Watch Trailer`,
+          }}
+        >
+          <Button variant="secondary" className={cn(className)} icon={FilmIcon} {...props}>
+            <Trans>Watch Trailer</Trans>
+          </Button>
+        </TvFocusable>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="sm:max-w-[90vw] max-w-[95vw] p-0 border-none aspect-video" showCloseButton={false}>
+            {iframe}
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   return (
     <Dialog>
@@ -38,13 +80,7 @@ export function MediaButtonTrailer({ title, data, className, ...props }: MediaBu
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[90vw] max-w-[95vw] p-0 border-none aspect-video" showCloseButton={false}>
-        <iframe
-          src={`https://www.youtube.com/embed/${youtubeTrailer.key}?autoplay=1`}
-          title={title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full rounded-lg"
-        />
+        {iframe}
       </DialogContent>
     </Dialog>
   );

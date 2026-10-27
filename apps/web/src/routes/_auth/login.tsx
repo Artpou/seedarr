@@ -5,10 +5,13 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { LoginInput } from "@seedarr/contracts";
 import { api, unwrap } from "@seedarr/sdk";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { CircleAlertIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 
+import { Alert, AlertDescription } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Field, FieldError } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 
 import { useAuth } from "@/features/auth/auth-store";
@@ -57,33 +60,40 @@ function Login() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label htmlFor="username">
-              <Trans>Username</Trans>
-            </label>
+          {error ? (
+            <Alert variant="destructive">
+              <CircleAlertIcon />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <Field data-invalid={errors.username ? true : undefined} className="gap-1">
             <Input
               id="username"
+              h="lg"
+              autoComplete="username"
+              label={<Trans>Username</Trans>}
+              aria-invalid={errors.username ? true : undefined}
               {...register("username", {
                 required: t(msg`Username is required`),
                 minLength: { value: 3, message: t(msg`Min 3 characters`) },
               })}
             />
-            {errors.username && <p className="text-sm text-destructive">{errors.username.message}</p>}
-          </div>
+            <FieldError errors={[errors.username]} />
+          </Field>
 
-          <div>
-            <label htmlFor="password">
-              <Trans>Password</Trans>
-            </label>
+          <Field data-invalid={errors.password ? true : undefined} className="gap-1">
             <Input
               id="password"
-              type="password"
+              h="lg"
+              password
+              autoComplete="current-password"
+              label={<Trans>Password</Trans>}
+              aria-invalid={errors.password ? true : undefined}
               {...register("password", { required: t(msg`Password is required`) })}
             />
-            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
+            <FieldError errors={[errors.password]} />
+          </Field>
 
           <Button type="submit" loading={isPending} disabled={isPending} className="w-full">
             <Trans>Login</Trans>

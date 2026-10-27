@@ -42,9 +42,18 @@ interface UseTorrentColumnsOptions {
   onInspect: (torrent: TorrentWithMeta) => void;
   onDownload: (torrent: TorrentWithMeta) => void;
   isInLibrary?: (torrent: TorrentWithMeta) => boolean;
+  /** TV: row is the action target — hide per-row buttons. */
+  tvMode?: boolean;
 }
 
-export function useTorrentColumns({ media, count, onInspect, onDownload, isInLibrary }: UseTorrentColumnsOptions) {
+export function useTorrentColumns({
+  media,
+  count,
+  onInspect,
+  onDownload,
+  isInLibrary,
+  tvMode = false,
+}: UseTorrentColumnsOptions) {
   return useMemo(
     () =>
       columnHelper.columns([
@@ -60,7 +69,7 @@ export function useTorrentColumns({ media, count, onInspect, onDownload, isInLib
           cell: ({ row }) => {
             const torrent = row.original;
             const container = getVideoContainer(torrent.title);
-            const detailsHref = safeHttpUrl(torrent.detailsUrl);
+            const detailsHref = tvMode ? null : safeHttpUrl(torrent.detailsUrl);
 
             return (
               <div className="flex flex-col gap-2 max-w-full">
@@ -132,38 +141,42 @@ export function useTorrentColumns({ media, count, onInspect, onDownload, isInLib
             );
           },
         }),
-        columnHelper.display({
-          id: "actions",
-          meta: { headerClassName: "w-auto text-right", cellClassName: "text-right" },
-          cell: ({ row }) => {
-            const torrent = row.original;
-            return (
-              <div className="flex items-center justify-end gap-1.5">
-                <Button
-                  variant="secondary"
-                  size="icon-sm"
-                  icon={InfoIcon}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onInspect(torrent);
-                  }}
-                />
-                <Button
-                  size="sm"
-                  icon={DownloadIcon}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDownload(torrent);
-                  }}
-                >
-                  {isInLibrary?.(torrent) ? <Trans>Add episode</Trans> : <Trans>Download</Trans>}
-                </Button>
-              </div>
-            );
-          },
-          enableSorting: false,
-        }),
+        ...(tvMode
+          ? []
+          : [
+              columnHelper.display({
+                id: "actions",
+                meta: { headerClassName: "w-auto text-right", cellClassName: "text-right" },
+                cell: ({ row }) => {
+                  const torrent = row.original;
+                  return (
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="secondary"
+                        size="icon-sm"
+                        icon={InfoIcon}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onInspect(torrent);
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        icon={DownloadIcon}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDownload(torrent);
+                        }}
+                      >
+                        {isInLibrary?.(torrent) ? <Trans>Add episode</Trans> : <Trans>Download</Trans>}
+                      </Button>
+                    </div>
+                  );
+                },
+                enableSorting: false,
+              }),
+            ]),
       ]),
-    [media.original_language, count, onInspect, onDownload, isInLibrary],
+    [media.original_language, count, onInspect, onDownload, isInLibrary, tvMode],
   );
 }

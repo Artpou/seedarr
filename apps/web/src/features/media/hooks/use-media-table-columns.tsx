@@ -103,11 +103,11 @@ export function useMediaTableColumns({ showActions = true }: { showActions?: boo
           ? [
               columnHelper.display({
                 id: "actions",
-                meta: { headerClassName: "w-36 md:w-44", cellClassName: "w-36 md:w-44" },
+                meta: { headerClassName: "w-28 shrink-0", cellClassName: "w-28 shrink-0" },
                 cell: ({ row }) => (
                   <div className="flex items-center justify-end gap-1.5">
                     <MediaButtonReview media={row.original} />
-                    <MediaButtonPlay media={row.original} size="sm" />
+                    <MediaButtonPlay media={row.original} size="sm" iconOnly />
                   </div>
                 ),
                 enableSorting: false,

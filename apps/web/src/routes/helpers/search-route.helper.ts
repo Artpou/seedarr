@@ -5,6 +5,10 @@ import type { TvFiltersValue } from "@/features/tv/components/tv-filters-sheet";
 
 export type SearchRouteType = "movie" | "tv";
 
+export function isSearchPath(pathname: string): boolean {
+  return pathname === "/search" || pathname === "/search/";
+}
+
 export type SearchRouteSearch = {
   q: string;
   type: SearchRouteType;
@@ -50,34 +54,6 @@ export function shouldLoadSearchResults(query: string): boolean {
 export function omitSearchQueryFromLoaderDeps<T extends { q?: string }>(search: T): Omit<T, "q"> {
   const { q: _q, ...rest } = search;
   return rest;
-}
-
-export function hasActiveSearchFilters(search: SearchRouteSearch): boolean {
-  const {
-    q: _q,
-    type: _type,
-    release_date_gte,
-    release_date_lte,
-    first_air_date_gte,
-    first_air_date_lte,
-    with_watch_providers,
-    with_keywords,
-    with_runtime_gte,
-    with_runtime_lte,
-    vote_average_gte,
-  } = search;
-
-  return Boolean(
-    release_date_gte ||
-      release_date_lte ||
-      first_air_date_gte ||
-      first_air_date_lte ||
-      with_watch_providers ||
-      with_keywords ||
-      with_runtime_gte != null ||
-      with_runtime_lte != null ||
-      vote_average_gte != null,
-  );
 }
 
 export function pickMovieSearchFilters(search: SearchRouteSearch): MovieFiltersValue {

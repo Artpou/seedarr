@@ -9,6 +9,8 @@ import { Button } from "@/shared/ui/button";
 
 import { MediaReview } from "@/features/media/components/media-review";
 import { useToggleLike, useToggleWatchList } from "@/features/media/hooks/media.queries";
+import { tvMediaLikeFocusKey, tvMediaReviewFocusKey, tvMediaWatchlistFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface MediaSocialActionsProps {
   media: Media;
@@ -18,11 +20,14 @@ interface MediaSocialActionsProps {
 
 /** Like + watchlist only. User rating lives in MediaRatingUser on detail pages. */
 export function MediaSocialActions({ media, className, size = "xl" }: MediaSocialActionsProps) {
+  const tvMode = useTvMode();
   const toggleLike = useToggleLike();
   const toggleWatchList = useToggleWatchList();
   const iconSize = size === "lg" ? "icon-lg" : "icon-xl";
 
   const [open, setOpen] = useState(false);
+
+  const mediaType = media.type === "tv" ? "tv" : "movie";
 
   return (
     <div className={cn("flex flex-row gap-3", className)}>
@@ -32,6 +37,15 @@ export function MediaSocialActions({ media, className, size = "xl" }: MediaSocia
         rounded
         onClick={() => setOpen(true)}
         aria-label={t`Review`}
+        tv={
+          tvMode
+            ? {
+                focusKey: tvMediaReviewFocusKey(media.id, mediaType),
+                onPress: () => setOpen(true),
+                accessibilityLabel: t`Review`,
+              }
+            : undefined
+        }
       >
         <StarIcon className={cn(media.userScore != null && "fill-white")} />
       </Button>
@@ -45,6 +59,15 @@ export function MediaSocialActions({ media, className, size = "xl" }: MediaSocia
           toggleLike.mutate(media);
         }}
         aria-label={t`Like`}
+        tv={
+          tvMode
+            ? {
+                focusKey: tvMediaLikeFocusKey(media.id, mediaType),
+                onPress: () => toggleLike.mutate(media),
+                accessibilityLabel: t`Like`,
+              }
+            : undefined
+        }
       >
         <HeartIcon className={cn(media.liked && "fill-white")} />
       </Button>
@@ -58,6 +81,15 @@ export function MediaSocialActions({ media, className, size = "xl" }: MediaSocia
           toggleWatchList.mutate(media);
         }}
         aria-label={t`Watchlist`}
+        tv={
+          tvMode
+            ? {
+                focusKey: tvMediaWatchlistFocusKey(media.id, mediaType),
+                onPress: () => toggleWatchList.mutate(media),
+                accessibilityLabel: t`Watchlist`,
+              }
+            : undefined
+        }
       >
         <ClockPlusIcon className={cn(media.inWatchList && "text-white")} />
       </Button>

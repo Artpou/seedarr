@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import type { ListMediaQuery } from "@seedarr/contracts";
 import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -11,13 +11,12 @@ import { BookmarkIcon, CalendarIcon, ClockIcon, HeartIcon } from "lucide-react";
 import { BadgeRole } from "@/shared/components/badge/badge-role";
 import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { SentinelStuck, StickyFilterBar } from "@/shared/components/sentinel/sentinel-stuck";
+import { StatSurfaceGlow } from "@/shared/components/stats/stat-surface";
 import { SEARCH_INPUT_DEBOUNCE_MS } from "@/shared/constants/search";
 import { flattenInfiniteResults } from "@/shared/hooks/use-infinite-list";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Badge } from "@/shared/ui/badge";
-import { Card } from "@/shared/ui/card";
 import { Container } from "@/shared/ui/container";
-import { Input } from "@/shared/ui/input";
 
 import { useAuth } from "@/features/auth/auth-store";
 import { MediaGrid } from "@/features/media/components/media-grid";
@@ -58,7 +57,6 @@ export interface UserProfileViewProps {
 }
 
 export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
-  const { t } = useLingui();
   const navigate = useNavigate();
   const currentUser = useAuth((s) => s.user);
   const isOwnProfile = currentUser?.id === id;
@@ -89,8 +87,7 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
   }, [search.q]);
 
   useEffect(() => {
-    if (mobileOwnProfile) return;
-    if (!isOwnProfile) return;
+    if (isOwnProfile) return;
     const next = debouncedSearch.trim() || undefined;
     if ((search.q ?? undefined) === next) return;
     void navigate({
@@ -99,10 +96,10 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
       search: { ...search, q: next },
       resetScroll: false,
     });
-  }, [debouncedSearch, id, isOwnProfile, mobileOwnProfile, navigate, search, search.q]);
+  }, [debouncedSearch, id, isOwnProfile, navigate, search, search.q]);
 
-  const libraryFilters = mobileOwnProfile ? pickProfileLibraryFilters(search) : localLibraryFilters;
-  const effectiveSearch = mobileOwnProfile ? (search.q ?? "").trim() : debouncedSearch.trim();
+  const libraryFilters = isOwnProfile ? pickProfileLibraryFilters(search) : localLibraryFilters;
+  const effectiveSearch = isOwnProfile ? (search.q ?? "").trim() : debouncedSearch.trim();
 
   const listBase: ProfileListBase = {
     userId: id,
@@ -150,36 +147,41 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
   return (
     <Container>
       {!mobileOwnProfile && (
-        <div className="flex w-full flex-col items-center justify-between gap-6 lg:flex-row lg:items-start">
-          <Card className="flex w-full flex-row items-center gap-6 p-6 lg:min-w-[520px] lg:w-auto">
-            <div className="flex max-w-[250px] justify-center lg:justify-start">
-              <UserAvatar user={profileUser} editable />
+        <StatSurfaceGlow className="mb-1 p-6 sm:p-8">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-10 xl:gap-14">
+            <div className="flex shrink-0 flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6 lg:max-w-[min(100%,28rem)]">
+              <div className="relative shrink-0">
+                <div className="absolute -inset-2 rounded-full bg-primary/25 blur-xl opacity-60" aria-hidden />
+                <div className="relative rounded-full ring-2 ring-background/80 ring-offset-2 ring-offset-background/50">
+                  <UserAvatar user={profileUser} editable />
+                </div>
+              </div>
+
+              <div className="flex max-w-md flex-col items-center gap-1 text-center sm:items-start sm:text-left">
+                <h2 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{displayName}</h2>
+                <p className="text-sm text-muted-foreground/90">@{profileUser.username}</p>
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                  <BadgeRole role={profileUser.role} />
+                  {profileUser.createdAt && (
+                    <Badge variant="outline" className="border-border/50 bg-background/30 font-normal backdrop-blur-sm">
+                      <CalendarIcon className="size-3.5 opacity-70" />
+                      {new Date(profileUser.createdAt).toLocaleDateString()}
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="flex w-full max-w-md flex-col gap-1">
-              <div className="flex items-center justify-center gap-2 md:justify-start">
-                <h2 className="truncate">{displayName}</h2>
-              </div>
-              <p className="text-sm text-muted-foreground">@{profileUser.username}</p>
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-2 md:justify-start">
-                <BadgeRole role={profileUser.role} />
-                {profileUser.createdAt && (
-                  <Badge variant="outline">
-                    <CalendarIcon className="size-3.5" />
-                    {new Date(profileUser.createdAt).toLocaleDateString()}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </Card>
-
-          <div className="flex flex-col gap-3">
-            <UserProfileStats userId={id} />
+            <UserProfileStats userId={id} className="lg:min-w-[min(100%,24rem)]" />
           </div>
-        </div>
+        </StatSurfaceGlow>
       )}
 
-      {mobileOwnProfile && <UserProfileStats userId={id} />}
+      {mobileOwnProfile && (
+        <div className="mb-2">
+          <UserProfileStats userId={id} />
+        </div>
+      )}
 
       {isOwnProfile && pendingRequests.length > 0 && (
         <RequestCarousel
@@ -193,37 +195,25 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
         {showPageToolbar && (
           <>
             <SentinelStuck setIsStuck={setIsStuck} marginTop={-30} />
-            {!isStuck && (
-              <Input
-                type="search"
-                search
-                classNameWrapper="w-full"
-                h="lg"
-                placeholder={t`Search in my profile...`}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            )}
-
             <StickyFilterBar isStuck={isStuck}>
-              {isStuck ? (
+              {isStuck && isOwnProfile ? (
                 <div className="flex w-full items-center gap-2">
-                  <Input
-                    type="search"
-                    search
-                    classNameWrapper="w-full min-w-0 flex-1"
-                    className="h-10"
-                    placeholder={t`Search in my profile...`}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
                   <LibraryFiltersSheet
                     genreScope="both"
                     type="movie"
                     value={libraryFilters}
                     onChange={(value) => {
                       setSorting([]);
-                      setLocalLibraryFilters(value);
+                      if (isOwnProfile) {
+                        void navigate({
+                          to: "/user/$id",
+                          params: { id },
+                          search: { ...search, ...value },
+                          resetScroll: false,
+                        });
+                      } else {
+                        setLocalLibraryFilters(value);
+                      }
                     }}
                   />
                 </div>
@@ -251,7 +241,16 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
                     value={libraryFilters}
                     onChange={(value) => {
                       setSorting([]);
-                      setLocalLibraryFilters(value);
+                      if (isOwnProfile) {
+                        void navigate({
+                          to: "/user/$id",
+                          params: { id },
+                          search: { ...search, ...value },
+                          resetScroll: false,
+                        });
+                      } else {
+                        setLocalLibraryFilters(value);
+                      }
                     }}
                   />
                 </div>

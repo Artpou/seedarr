@@ -21,7 +21,6 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DataTable } from "@/shared/ui/data-table";
 import { Img } from "@/shared/ui/image";
-import { Input } from "@/shared/ui/input";
 import { Switch } from "@/shared/ui/switch";
 import { TooltipWrapper } from "@/shared/ui/tooltip-wrapper";
 
@@ -83,7 +82,7 @@ interface SettingsModulesViewProps {
   onSearchChange: (search: string) => void;
 }
 
-export function SettingsModulesView({ filter, search, onFilterChange, onSearchChange }: SettingsModulesViewProps) {
+export function SettingsModulesView({ filter, search, onFilterChange }: SettingsModulesViewProps) {
   const { t } = useLingui();
   const navigate = useNavigate();
   const { data: modules = [] } = useQuery(moduleQueries.list());
@@ -229,14 +228,6 @@ export function SettingsModulesView({ filter, search, onFilterChange, onSearchCh
 
   return (
     <section className="space-y-4">
-      <Input
-        placeholder={t(msg`Search modules…`)}
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-        search
-        classNameWrapper="w-full"
-        h="lg"
-      />
       <ModuleTabsFilter value={filter} onChange={onFilterChange} className="w-full" />
 
       <DataTable

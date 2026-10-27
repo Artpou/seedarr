@@ -33,6 +33,7 @@ export default defineConfig({
           items: [
             { label: "Features", slug: "guides/features" },
             { label: "General settings", slug: "guides/general" },
+            { label: "TV mode", slug: "guides/tv-mode" },
             { label: "Modules", slug: "guides/modules" },
             { label: "TMDB", slug: "guides/tmdb" },
             { label: "Indexers", slug: "guides/indexers" },
