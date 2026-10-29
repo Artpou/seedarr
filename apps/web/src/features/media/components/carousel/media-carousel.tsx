@@ -26,6 +26,8 @@ interface MediaCarouselProps {
   seeMoreSearch?: Record<string, unknown>;
   showType?: boolean;
   tvBarUpFocusKey?: string;
+  onTvItemFocused?: (media: Media) => void;
+  tvSelectedMedia?: Media | null;
 }
 
 export function MediaCarousel({
@@ -36,6 +38,8 @@ export function MediaCarousel({
   seeMoreSearch,
   showType,
   tvBarUpFocusKey,
+  onTvItemFocused,
+  tvSelectedMedia,
 }: MediaCarouselProps) {
   const navigate = useNavigate();
 
@@ -73,7 +77,18 @@ export function MediaCarousel({
             })
           }
         >
-          <MediaCard media={item} showPreview showPlay showSocial showType={showType} />
+          <MediaCard
+            media={item}
+            showPreview
+            showPlay
+            showSocial
+            showType={showType}
+            onTvFocused={onTvItemFocused}
+            tvHighlighted={
+              tvSelectedMedia != null && tvSelectedMedia.id === item.id && tvSelectedMedia.type === item.type
+            }
+            tvBarUpFocusKey={tvBarUpFocusKey}
+          />
         </CarouselItem>
       ))}
       {seeMoreTo && (

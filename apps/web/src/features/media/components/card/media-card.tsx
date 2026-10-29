@@ -20,6 +20,7 @@ import { MediaBadgeRating } from "@/features/media/components/badge/media-badge-
 import { MediaBadgeType } from "@/features/media/components/badge/media-badge-type";
 import { MediaButtonPlay } from "@/features/media/components/button/media-button-play";
 import { MediaImg } from "@/features/media/components/media-image";
+import { tvArrowUpHandler } from "@/features/tv-mode/tv-arrow.helper";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import { MediaCardPreview } from "./media-card-preview";
 
@@ -33,6 +34,9 @@ type MediaCardProps = {
   showPlay?: boolean;
   showPreview?: boolean;
   showQuality?: boolean;
+  tvHighlighted?: boolean;
+  onTvFocused?: (media: Media) => void;
+  tvBarUpFocusKey?: string;
 };
 
 export function MediaCard({
@@ -45,6 +49,9 @@ export function MediaCard({
   showPlay,
   showPreview,
   showQuality,
+  tvHighlighted,
+  onTvFocused,
+  tvBarUpFocusKey,
 }: MediaCardProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -113,6 +120,7 @@ export function MediaCard({
       data-slot="media-card"
       className={cn(
         "group w-full gap-0 overflow-hidden border-2 border-transparent pt-0 pb-0 text-center transition-colors hover:border-primary",
+        tvHighlighted && "border-primary bg-primary/5",
         className,
       )}
     >
@@ -133,7 +141,11 @@ export function MediaCard({
         focusKey: tvFocusKey,
         onPress: openDetail,
         accessibilityLabel: media.title,
-        onFocused: onCarouselFocused,
+        onFocused: () => {
+          onCarouselFocused?.();
+          onTvFocused?.(media);
+        },
+        ...tvArrowUpHandler(tvBarUpFocusKey),
       }}
       className="rounded-xl"
     >

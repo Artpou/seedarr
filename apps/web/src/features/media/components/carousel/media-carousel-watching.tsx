@@ -1,29 +1,43 @@
+import { useMemo } from "react";
+
 import { Trans } from "@lingui/react/macro";
 import type { Media } from "@seedarr/sdk";
-import { PlayCircleIcon } from "lucide-react";
+import { DownloadIcon } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-store";
 import { MediaCarouselHorizontal } from "@/features/media/components/carousel/media-carousel-horizontal";
-import { useSuspenseMediaInProgress } from "@/features/media/hooks/use-media";
+import { sortDownloadedLibraryCarousel } from "@/features/media/helpers/media.helper";
+import { useSuspenseMediaLibrary } from "@/features/media/hooks/use-media";
 import { tvNavPrimaryFocusKey } from "@/features/tv-mode/tv-focus-keys";
 
 interface MediaCarouselWatchingProps {
   type: Media["type"];
+  onTvItemFocused?: (media: Media) => void;
+  tvSelectedMedia?: Media | null;
+  tvBarUpFocusKey?: string;
 }
 
-export function MediaCarouselWatching({ type }: MediaCarouselWatchingProps) {
+export function MediaCarouselWatching({
+  type,
+  onTvItemFocused,
+  tvSelectedMedia,
+  tvBarUpFocusKey,
+}: MediaCarouselWatchingProps) {
   const authUser = useAuth((s) => s.user);
 
-  const { data: items } = useSuspenseMediaInProgress(type);
-  if (items.length === 0 || !authUser) return null;
+  const { data: items } = useSuspenseMediaLibrary(type);
+  const sortedItems = useMemo(() => sortDownloadedLibraryCarousel(items), [items]);
+  if (sortedItems.length === 0 || !authUser) return null;
 
   return (
     <MediaCarouselHorizontal
-      medias={items}
+      medias={sortedItems}
       seeMoreTo="/downloads"
-      tvBarUpFocusKey={tvNavPrimaryFocusKey(type)}
-      titleIcon={PlayCircleIcon}
-      title={<Trans>Resume watching</Trans>}
+      tvBarUpFocusKey={tvBarUpFocusKey ?? tvNavPrimaryFocusKey(type)}
+      titleIcon={DownloadIcon}
+      title={<Trans>Downloaded</Trans>}
+      onTvItemFocused={onTvItemFocused}
+      tvSelectedMedia={tvSelectedMedia}
     />
   );
 }

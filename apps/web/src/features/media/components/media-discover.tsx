@@ -32,6 +32,7 @@ import {
   popularDiscoverQueryOptions,
   type TvDiscoverSearch,
 } from "@/features/media/helpers/discover-search.helper";
+import { sortDownloadedLibraryCarousel } from "@/features/media/helpers/media.helper";
 import { genreQueries } from "@/features/media/hooks/genre.queries";
 import { mediaQueries } from "@/features/media/hooks/media.queries";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
@@ -40,9 +41,12 @@ import { requestQueries } from "@/features/request/hooks/request.queries";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
 import { useUserPreferences } from "@/features/settings/stores/user-preference-store";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
+import { TvBrowseLayout } from "@/features/tv-mode/tv-browse-layout";
+import { tvCarouselRowFirstFocusKey } from "@/features/tv-mode/tv-discover-carousel-up.helper";
 import { tvMediaFocusKey, tvNavPrimaryFocusKey } from "@/features/tv-mode/tv-focus-keys";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import { useTvInitialFocus } from "@/features/tv-mode/use-tv-initial-focus";
+import { pickFirstMedia, useTvPreviewMedia } from "@/features/tv-mode/use-tv-preview-media";
 
 type DiscoverResult = {
   results: Media[];
@@ -91,10 +95,16 @@ function MediaCategoryCarousel({
   type,
   genre,
   locale,
+  onTvItemFocused,
+  tvSelectedMedia,
+  tvBarUpFocusKey,
 }: {
   type: "movie" | "tv";
   genre: { id: number; name: string };
   locale: string;
+  onTvItemFocused?: (media: Media) => void;
+  tvSelectedMedia?: Media | null;
+  tvBarUpFocusKey?: string;
 }) {
   const query = useInfiniteQuery(
     type === "movie"
@@ -114,6 +124,9 @@ function MediaCategoryCarousel({
       data={items}
       seeMoreTo={routePath}
       seeMoreSearch={{ genre: String(genre.id) }}
+      onTvItemFocused={onTvItemFocused}
+      tvSelectedMedia={tvSelectedMedia}
+      tvBarUpFocusKey={tvBarUpFocusKey}
     />
   );
 }
@@ -218,32 +231,167 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
   const routePath = type === "movie" ? "/movies" : "/tv";
   const canLoadGenres = topRatedQuery.isFetched;
 
-  const inProgressQuery = useQuery({
-    ...mediaQueries.inProgress(type),
+  const downloadedQuery = useQuery({
+    ...mediaQueries.library(type),
     enabled: tvMode && !isScoped,
   });
+  const downloadedItems = useMemo(
+    () => (downloadedQuery.data ? sortDownloadedLibraryCarousel(downloadedQuery.data) : []),
+    [downloadedQuery.data],
+  );
   const initialTvFocusKey = useMemo(() => {
     if (!tvMode) return undefined;
     if (isScoped && results[0]) return tvMediaFocusKey(results[0]);
-    const resume = inProgressQuery.data?.[0];
-    if (resume) return carouselMediaFocusKey(carouselSectionKey("/downloads"), resume);
+    const downloaded = downloadedItems[0];
+    if (downloaded) return carouselMediaFocusKey(carouselSectionKey("/downloads"), downloaded);
     if (popularItems[0]) return carouselMediaFocusKey(carouselSectionKey(routePath, "popular"), popularItems[0]);
     if (languageItems[0]) return carouselMediaFocusKey(carouselSectionKey(routePath, "lang"), languageItems[0]);
     if (newItems[0]) return carouselMediaFocusKey(carouselSectionKey(routePath, "new"), newItems[0]);
     if (topRatedItems[0]) return carouselMediaFocusKey(carouselSectionKey(routePath, "top_rated"), topRatedItems[0]);
     return routePath === "/movies" ? "NAV-/movies" : "NAV-/tv";
+  }, [tvMode, isScoped, results, downloadedItems, popularItems, languageItems, topRatedItems, newItems, routePath]);
+  useTvInitialFocus(initialTvFocusKey);
+
+  const previewPool = useMemo(() => {
+    if (isScoped) return results;
+    return [...downloadedItems, ...popularItems, ...languageItems, ...newItems, ...topRatedItems];
+  }, [isScoped, results, downloadedItems, popularItems, languageItems, newItems, topRatedItems]);
+
+  const defaultPreviewMedia = useMemo(
+    () =>
+      isScoped
+        ? pickFirstMedia([results[0]])
+        : pickFirstMedia([downloadedItems[0], popularItems[0], languageItems[0], newItems[0], topRatedItems[0]]),
+    [isScoped, results, downloadedItems, popularItems, languageItems, newItems, topRatedItems],
+  );
+
+  const { previewMedia, setPreviewMedia } = useTvPreviewMedia(defaultPreviewMedia, previewPool);
+
+  const tvCarouselProps = tvMode ? { onTvItemFocused: setPreviewMedia, tvSelectedMedia: previewMedia } : {};
+
+  const tvRowUpFocus = useMemo(() => {
+    const navUp = tvNavPrimaryFocusKey(type);
+    const downloaded = tvCarouselRowFirstFocusKey("/downloads", undefined, downloadedItems[0]);
+    const popular = tvCarouselRowFirstFocusKey(routePath, { type: "popular" }, popularItems[0]);
+    const language = discoverCarouselLanguage
+      ? tvCarouselRowFirstFocusKey(routePath, { lang: discoverCarouselLanguage }, languageItems[0])
+      : undefined;
+    const newly = tvCarouselRowFirstFocusKey(routePath, { type: "new" }, newItems[0]);
+    const topRated = tvCarouselRowFirstFocusKey(routePath, { type: "top_rated" }, topRatedItems[0]);
+
+    return {
+      watching: navUp,
+      popular: downloaded ?? navUp,
+      language: popular ?? downloaded ?? navUp,
+      new: language ?? popular ?? downloaded ?? navUp,
+      topRated: newly ?? language ?? popular ?? downloaded ?? navUp,
+      genre: topRated ?? newly ?? language ?? popular ?? downloaded ?? navUp,
+      pendingRequests: downloaded ?? navUp,
+    };
   }, [
-    tvMode,
-    isScoped,
-    results,
-    inProgressQuery.data,
+    type,
+    routePath,
+    downloadedItems,
     popularItems,
     languageItems,
-    topRatedItems,
     newItems,
-    routePath,
+    topRatedItems,
+    discoverCarouselLanguage,
   ]);
-  useTvInitialFocus(initialTvFocusKey);
+
+  if (tvMode && !isScoped) {
+    return (
+      <TvBrowseLayout media={previewMedia}>
+        <Container className="space-y-8 px-4 py-4 md:px-6">
+          <MediaCarouselWatching type={type} tvBarUpFocusKey={tvRowUpFocus.watching} {...tvCarouselProps} />
+          {isAdmin && <DiscoverAdminPendingRequests type={type} tvBarUpFocusKey={tvRowUpFocus.pendingRequests} />}
+          <div className="space-y-8">
+            {popularQuery.isFetched && popularItems.length > 0 && (
+              <MediaCarousel
+                title={<Trans>Popular</Trans>}
+                titleIcon={SparklesIcon}
+                data={popularItems}
+                seeMoreTo={routePath}
+                seeMoreSearch={{ type: "popular" }}
+                tvBarUpFocusKey={tvRowUpFocus.popular}
+                {...tvCarouselProps}
+              />
+            )}
+            {languageQuery.isFetched && discoverCarouselLanguage && languageItems.length > 0 && (
+              <MediaCarousel
+                title={type === "movie" ? t`Films ${languageLabel}` : t`TV Shows ${languageLabel}`}
+                titleIcon={LanguagesIcon}
+                data={languageItems}
+                seeMoreTo={routePath}
+                seeMoreSearch={{ lang: discoverCarouselLanguage }}
+                tvBarUpFocusKey={tvRowUpFocus.language}
+                {...tvCarouselProps}
+              />
+            )}
+            {newQuery.isFetched && newItems.length > 0 && (
+              <MediaCarousel
+                title={<Trans>New</Trans>}
+                titleIcon={ClapperboardIcon}
+                data={newItems}
+                seeMoreTo={routePath}
+                seeMoreSearch={{ type: "new" }}
+                tvBarUpFocusKey={tvRowUpFocus.new}
+                {...tvCarouselProps}
+              />
+            )}
+            {topRatedQuery.isFetched && topRatedItems.length > 0 && (
+              <MediaCarousel
+                title={<Trans>Top Rated</Trans>}
+                titleIcon={TrophyIcon}
+                data={topRatedItems}
+                seeMoreTo={routePath}
+                seeMoreSearch={{ type: "top_rated" }}
+                tvBarUpFocusKey={tvRowUpFocus.topRated}
+                {...tvCarouselProps}
+              />
+            )}
+            {canLoadGenres &&
+              genres
+                .slice(0, genreRevealCount)
+                .map((genre) => (
+                  <MediaCategoryCarousel
+                    key={genre.id}
+                    type={type}
+                    genre={genre}
+                    locale={locale}
+                    tvBarUpFocusKey={tvRowUpFocus.genre}
+                    {...tvCarouselProps}
+                  />
+                ))}
+            {canLoadGenres && genreRevealCount < genres.length && (
+              <CategorySentinel key={genreRevealCount} onReveal={revealNextGenre} />
+            )}
+          </div>
+        </Container>
+      </TvBrowseLayout>
+    );
+  }
+
+  if (tvMode && isScoped) {
+    return (
+      <TvBrowseLayout media={previewMedia}>
+        <Container className="py-4 sm:space-y-3">
+          {discoverQuery.isPending ? (
+            <MediaGrid query={discoverQuery} {...tvCarouselProps} />
+          ) : results.length === 0 ? (
+            <PlaceholderEmpty title={emptyTitle} subtitle={emptySubtitle} />
+          ) : (
+            <MediaGrid
+              items={results}
+              query={discoverQuery}
+              tvBarUpFocusKey={tvNavPrimaryFocusKey(type)}
+              {...tvCarouselProps}
+            />
+          )}
+        </Container>
+      </TvBrowseLayout>
+    );
+  }
 
   if (!isScoped) {
     return (
@@ -252,7 +400,7 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
         {isAdmin && (
           <DiscoverAdminPendingRequests
             type={type}
-            tvBarUpFocusKey={(inProgressQuery.data?.length ?? 0) === 0 ? tvNavPrimaryFocusKey(type) : undefined}
+            tvBarUpFocusKey={downloadedItems.length === 0 ? tvNavPrimaryFocusKey(type) : undefined}
           />
         )}
         <div className="space-y-8">
@@ -263,7 +411,7 @@ export function MediaDiscover<TSearch extends MovieDiscoverSearch | TvDiscoverSe
               data={popularItems}
               seeMoreTo={routePath}
               seeMoreSearch={{ type: "popular" }}
-              tvBarUpFocusKey={(inProgressQuery.data?.length ?? 0) === 0 ? tvNavPrimaryFocusKey(type) : undefined}
+              tvBarUpFocusKey={downloadedItems.length === 0 ? tvNavPrimaryFocusKey(type) : undefined}
             />
           )}
           {languageQuery.isFetched && discoverCarouselLanguage && languageItems.length > 0 && (

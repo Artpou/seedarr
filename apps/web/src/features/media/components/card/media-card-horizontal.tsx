@@ -16,7 +16,8 @@ import { DownloadProgress } from "@/features/downloads/components/download-progr
 import { MediaBadgeDate } from "@/features/media/components/badge/media-badge-date";
 import { MediaBadgeRating } from "@/features/media/components/badge/media-badge-rating";
 import { MediaSocialActions } from "@/features/media/components/media-social-actions";
-import { getBackdropUrl, getPosterUrl } from "@/features/media/helpers/media.helper";
+import { getBackdropUrl, getMediaCardLinkOptions, getPosterUrl } from "@/features/media/helpers/media.helper";
+import { tvArrowUpHandler } from "@/features/tv-mode/tv-arrow.helper";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface MediaCardHorizontalProps {
@@ -27,6 +28,9 @@ interface MediaCardHorizontalProps {
   withSocialActions?: boolean;
   withDownload?: boolean;
   link?: LinkOptions;
+  tvHighlighted?: boolean;
+  onTvFocused?: (media: Media) => void;
+  tvBarUpFocusKey?: string;
 }
 
 export function MediaCardHorizontal({
@@ -37,6 +41,9 @@ export function MediaCardHorizontal({
   withSocialActions,
   withDownload,
   link: linkProp,
+  tvHighlighted,
+  onTvFocused,
+  tvBarUpFocusKey,
 }: MediaCardHorizontalProps) {
   const backdropUrl = getBackdropUrl(media.backdrop_path ?? null, "w780");
   const isMobile = useIsMobile();
@@ -47,16 +54,14 @@ export function MediaCardHorizontal({
 
   const link: LinkOptions = useMemo(() => {
     if (linkProp) return linkProp;
-    return {
-      to: media.download?.id ? "/downloads/$id/play" : media.type === "tv" ? "/tv/$id" : "/movies/$id",
-      params: { id: String(media.download?.id ?? media.id) },
-    };
-  }, [linkProp, media.download?.id, media.id, media.type]);
+    return getMediaCardLinkOptions(media, { tvMode });
+  }, [linkProp, media, tvMode]);
 
   const card = (
     <Card
       className={cn(
         "relative pt-0 pb-0 mb-0 overflow-hidden rounded-lg border-2 border-transparent bg-card/60 transition-[border-color,box-shadow] hover:border-primary",
+        tvHighlighted && "border-primary bg-primary/5",
         className,
         withSocialActions && isMobile && "rounded-b-none",
       )}
@@ -131,7 +136,11 @@ export function MediaCardHorizontal({
         focusKey: tvFocusKey,
         onPress: () => navigate(link),
         accessibilityLabel: media.title,
-        onFocused: onCarouselFocused,
+        onFocused: () => {
+          onCarouselFocused?.();
+          onTvFocused?.(media);
+        },
+        ...tvArrowUpHandler(tvBarUpFocusKey),
       }}
       className="rounded-lg"
     >

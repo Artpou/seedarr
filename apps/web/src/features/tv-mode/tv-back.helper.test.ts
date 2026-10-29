@@ -31,19 +31,20 @@ describe("tv-back.helper", () => {
     expect(resolveTvTopbarBackFocusKey("/tv")).toBe("NAV-/tv");
     expect(resolveTvTopbarBackFocusKey("/downloads")).toBe("NAV-/downloads");
     expect(resolveTvTopbarBackFocusKey("/user/42")).toBe("NAV-/user/$id-42");
+    expect(resolveTvTopbarBackFocusKey("/settings")).toBe("NAV-/settings");
     expect(resolveTvTopbarBackFocusKey("/movies/123")).toBeNull();
   });
 
-  it("detects topbar focus via data-tv-focused", () => {
+  it("detects sidebar focus via data-tv-focused", () => {
     const doc = document.implementation.createHTMLDocument("");
     doc.body.innerHTML = `
-      <header data-slot="app-topbar"><a data-tv-focused="true">Movies</a></header>
+      <aside data-slot="tv-sidebar"><a data-tv-focused="true">Movies</a></aside>
       <main><div data-tv-focused="true">Card</div></main>
     `;
     expect(isTvFocusInTopbar(doc)).toBe(true);
 
     doc.body.innerHTML = `
-      <header data-slot="app-topbar"><a>Movies</a></header>
+      <aside data-slot="tv-sidebar"><a>Movies</a></aside>
       <main><div data-tv-focused="true">Card</div></main>
     `;
     expect(isTvFocusInTopbar(doc)).toBe(false);

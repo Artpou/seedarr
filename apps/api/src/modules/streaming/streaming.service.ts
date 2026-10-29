@@ -281,8 +281,11 @@ export class StreamingService extends AuthenticatedService {
     return null;
   }
 
-  listExternalSubtitles(download: Download): Promise<{ paths: string[] }> {
-    return this.subtitles.listExternalSubtitles(download);
+  listExternalSubtitles(
+    download: Download,
+    scope?: { season?: number; episode?: number },
+  ): Promise<{ paths: string[] }> {
+    return this.subtitles.listExternalSubtitles(download, scope);
   }
 
   getSubtitleFile(download: Download, rawFilePath: string): Promise<{ content: string; contentType: string }> {

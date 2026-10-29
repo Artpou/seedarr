@@ -13,6 +13,6 @@ export const subtitleRoutes = SubtitleService.createRouter()
     return c.json(await c.var.service.search(c.req.valid("query")));
   })
   .post("/download", zValidator("json", downloadSubtitleDto), async (c) => {
-    const { downloadId, url, language, mediaTitle } = c.req.valid("json");
-    return c.json(await c.var.service.downloadForDownload(downloadId, url, language, mediaTitle));
+    const { downloadId, url, language, mediaTitle, season, episode } = c.req.valid("json");
+    return c.json(await c.var.service.downloadForDownload(downloadId, url, language, mediaTitle, { season, episode }));
   });

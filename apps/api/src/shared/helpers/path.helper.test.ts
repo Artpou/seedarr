@@ -8,6 +8,7 @@ import {
   getDownloadsRoot,
   requireDownloadFolderName,
   resolveDownloadStagingPath,
+  resolveLocalLibraryPath,
   resolveTorrentStorePath,
   resolveWithinDownloads,
 } from "./path.helper";
@@ -119,5 +120,17 @@ describe("path helper", () => {
         },
       }),
     ).toBe(path.join("/downloads", "Movie.2024.1080p"));
+  });
+
+  it("resolveDownloadStagingPath uses absolute remoteLocation under downloads", () => {
+    process.env.DOWNLOADS_PATH = "/downloads";
+    const folder = path.join("/downloads", "Avatar Aang The Last Airbender (2026)");
+    expect(
+      resolveDownloadStagingPath({
+        torrent: null,
+        remoteLocation: folder,
+      }),
+    ).toBe(folder);
+    expect(resolveLocalLibraryPath(folder)).toBe(folder);
   });
 });

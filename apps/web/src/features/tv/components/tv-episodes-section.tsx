@@ -32,7 +32,7 @@ import {
 } from "@/features/tv/helpers/episode-downloads.helper";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
 import { useEpisodeDownloadMap } from "@/features/tv/hooks/use-episode-download-map";
-import { tvTorrentsFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { tvEpisodeRowFocusKey } from "@/features/tv-mode/tv-focus-keys";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 function countSeasonDownloads(
@@ -90,6 +90,8 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
   if (validSeasons.length === 0) return null;
 
   const episodes = (seasonDetails?.episodes ?? []).slice().sort((a, b) => a.episode_number - b.episode_number);
+  const firstEpisodeFocusKey =
+    tvMode && episodes[0] ? tvEpisodeRowFocusKey(tv.id, seasonNumber, episodes[0].episode_number) : undefined;
 
   return (
     <div className="space-y-4">
@@ -99,6 +101,7 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
           onValueChange={setSelectedSeason}
           className="min-w-0 flex-1"
           tvFocusKeyPrefix={tvMode ? `TV-SEASON-${tv.id}` : undefined}
+          tvGetDownFocusKey={tvMode ? () => firstEpisodeFocusKey : undefined}
           options={validSeasons.map((season) => {
             const episodeCount = season.episode_count ?? 0;
             const downloaded = countSeasonDownloads(season.season_number, episodeCount, episodeDownloadMap);
@@ -118,31 +121,13 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
             };
           })}
         />
-        {tvMode ? (
-          <TvFocusable
-            focusRoot
-            tv={{
-              focusKey: `${tvTorrentsFocusKey(tv.id)}-season-${seasonNumber}`,
-              onPress: () =>
-                navigate({
-                  to: "/tv/$id/torrents",
-                  params: { id: tv.id.toString() },
-                  search: { season: seasonNumber },
-                }),
-              accessibilityLabel: t`Torrents`,
-            }}
-          >
-            <Button size={isMobile ? "icon-lg" : "default"} icon={MagnetIcon}>
-              {!isMobile && <Trans>Torrents</Trans>}
-            </Button>
-          </TvFocusable>
-        ) : (
+        {!tvMode ? (
           <Button size={isMobile ? "icon-lg" : "default"} asChild icon={MagnetIcon}>
             <Link to="/tv/$id/torrents" params={{ id: tv.id.toString() }} search={{ season: seasonNumber }}>
               {!isMobile && <Trans>Torrents</Trans>}
             </Link>
           </Button>
-        )}
+        ) : null}
       </div>
 
       <div className="space-y-3">
@@ -189,89 +174,139 @@ export function TvEpisodesSection({ tv, media, downloads }: TvEpisodesSectionPro
             const isExpanded = expandedEpisode === episodeKey;
             const toggleExpand = () => setExpandedEpisode(isExpanded ? null : episodeKey);
 
-            return (
-              <div key={episode.id} className="space-y-0">
-                <Card className="p-3 flex flex-col sm:flex-row gap-4 overflow-hidden">
-                  <div className="flex flex-col items-center gap-2 w-full sm:w-48">
-                    {episode.still_path ? (
-                      <div className="w-full">
-                        <div className="group/poster relative shrink-0 w-full aspect-video rounded-md overflow-hidden bg-muted">
-                          <img
-                            src={getBackdropUrl(episode.still_path, "w300")}
-                            alt={episode.name}
-                            className="size-full object-cover"
+            const goEpisodePlay = (): void => {
+              if (!episodeDownload) return;
+              void navigate({
+                to: "/downloads/$id/play",
+                params: { id: episodeDownload.id },
+                search: { season: seasonNumber, episode: episode.episode_number },
+              });
+            };
+
+            const goEpisodeTorrents = (): void => {
+              void navigate({
+                to: "/tv/$id/torrents",
+                params: { id: tv.id.toString() },
+                search: { season: seasonNumber, episode: episode.episode_number },
+              });
+            };
+
+            const handleEpisodePress = (): void => {
+              if (canPlay && episodeDownload) {
+                goEpisodePlay();
+                return;
+              }
+              if (role !== "viewer" && !hasDownload) {
+                goEpisodeTorrents();
+                return;
+              }
+              if (hasDownload) {
+                toggleExpand();
+              }
+            };
+
+            const episodeLabel = `${seCode} ${episode.name}`;
+            const episodeFocusKey = tvEpisodeRowFocusKey(tv.id, seasonNumber, episode.episode_number);
+
+            const episodeCard = (
+              <Card className="flex flex-col gap-4 overflow-hidden p-3 sm:flex-row">
+                <div className="flex w-full flex-col items-center gap-2 sm:w-48">
+                  {episode.still_path ? (
+                    <div className="w-full">
+                      <div className="group/poster relative aspect-video w-full shrink-0 overflow-hidden rounded-md bg-muted">
+                        <img
+                          src={getBackdropUrl(episode.still_path, "w300")}
+                          alt={episode.name}
+                          className="size-full object-cover"
+                        />
+                        {media && canPlay && episodeDownload && (
+                          <MediaButtonPlay
+                            className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover/poster:bg-black/50"
+                            media={media}
+                            downloadId={episodeDownload.id}
+                            season={seasonNumber}
+                            episode={episode.episode_number}
+                            circular
+                            spatialNav={!tvMode}
                           />
-                          {media && canPlay && episodeDownload && (
-                            <MediaButtonPlay
-                              className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/poster:bg-black/50 transition-colors"
-                              media={media}
-                              downloadId={episodeDownload.id}
-                              season={seasonNumber}
-                              episode={episode.episode_number}
-                              circular
-                            />
-                          )}
-                        </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="w-full aspect-video flex items-center justify-center rounded-md bg-muted">
-                        <ClapperboardIcon className="size-10 text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="flex aspect-video w-full items-center justify-center rounded-md bg-muted">
+                      <ClapperboardIcon className="size-10 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  {media && episodeDownload && (isDownloaded || isDownloading || canPlay) && (
+                    <MediaButtonPlay
+                      media={media}
+                      downloadId={episodeDownload.id}
+                      season={seasonNumber}
+                      episode={episode.episode_number}
+                      className="w-full"
+                      spatialNav={!tvMode}
+                    />
+                  )}
+
+                  {role !== "viewer" && !hasDownload && !tvMode && (
+                    <Button size="sm" className="w-full" asChild icon={MagnetIcon}>
+                      <Link
+                        to="/tv/$id/torrents"
+                        params={{ id: tv.id.toString() }}
+                        search={{
+                          season: seasonNumber,
+                          episode: episode.episode_number,
+                        }}
+                      >
+                        <Trans>Torrents</Trans>
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="text-base font-semibold">
+                        <span className="mr-2 text-muted-foreground">{seCode}</span>
+                        {episode.name}
+                      </h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <MediaBadgeDate date={episode.air_date} />
+                        <MediaBadgeRuntime minutes={episode.runtime} />
                       </div>
-                    )}
-
-                    {media && episodeDownload && (isDownloaded || isDownloading || canPlay) && (
-                      <MediaButtonPlay
-                        media={media}
-                        downloadId={episodeDownload.id}
-                        season={seasonNumber}
-                        episode={episode.episode_number}
-                        className="w-full"
-                      />
-                    )}
-
-                    {role !== "viewer" && !hasDownload && (
-                      <Button size="sm" className="w-full" asChild icon={MagnetIcon}>
-                        <Link
-                          to="/tv/$id/torrents"
-                          params={{ id: tv.id.toString() }}
-                          search={{
-                            season: seasonNumber,
-                            episode: episode.episode_number,
-                          }}
-                        >
-                          <Trans>Torrents</Trans>
-                        </Link>
+                    </div>
+                    {hasDownload && !tvMode && (
+                      <Button size="icon-sm" variant="ghost" onClick={toggleExpand} aria-label={t`Toggle details`}>
+                        {isExpanded ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
                       </Button>
                     )}
                   </div>
+                  {episode.overview && (
+                    <p className="line-clamp-3 text-sm text-popover-foreground">{episode.overview}</p>
+                  )}
 
-                  <div className="flex-1 min-w-0 flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2 flex-wrap">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-base">
-                          <span className="text-muted-foreground mr-2">{seCode}</span>
-                          {episode.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <MediaBadgeDate date={episode.air_date} />
-                          <MediaBadgeRuntime minutes={episode.runtime} />
-                        </div>
-                      </div>
-                      {hasDownload && (
-                        <Button size="icon-sm" variant="ghost" onClick={toggleExpand} aria-label={t`Toggle details`}>
-                          {isExpanded ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
-                        </Button>
-                      )}
-                    </div>
-                    {episode.overview && (
-                      <p className="text-sm text-popover-foreground line-clamp-3">{episode.overview}</p>
-                    )}
+                  {role !== "viewer" && episodeDownload && !isExpanded && !tvMode && (
+                    <TvEpisodeDownloadControls download={episodeDownload} />
+                  )}
+                </div>
+              </Card>
+            );
 
-                    {role !== "viewer" && episodeDownload && !isExpanded && (
-                      <TvEpisodeDownloadControls download={episodeDownload} />
-                    )}
-                  </div>
-                </Card>
+            return (
+              <div key={episode.id} className="space-y-0">
+                {tvMode ? (
+                  <TvFocusable
+                    focusRoot
+                    className="rounded-xl"
+                    tv={{ focusKey: episodeFocusKey, onPress: handleEpisodePress, accessibilityLabel: episodeLabel }}
+                  >
+                    {episodeCard}
+                  </TvFocusable>
+                ) : (
+                  episodeCard
+                )}
 
                 {isExpanded && episodeDownload && (
                   <div className="mt-2">

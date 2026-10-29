@@ -390,7 +390,13 @@ export function TorrentTable({
 
   return (
     <div className="w-full overflow-hidden">
-      <div className="flex flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+      <div
+        className={
+          tvMode
+            ? "flex flex-col gap-3 py-4"
+            : "flex flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
+        }
+      >
         {tvMode ? (
           <>
             {availableLanguages.length > 0 && (

@@ -51,58 +51,60 @@ export function CarouselWrapper({
 
   return (
     <TvCarouselSection sectionKey={sectionKey}>
-      <Carousel
-        {...props}
-        opts={{
-          align: "start",
-          dragFree: true,
-          ...props.opts,
-        }}
-        plugins={[WheelGesturesPlugin()]}
-      >
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="min-w-0 flex-1 text-lg font-medium">{heading}</h2>
-          {(seeMoreTo || showCarouselArrows) && (
-            <div className="flex items-center gap-2">
-              {seeMoreTo && (
-                <TvFocusable
-                  focusRoot
-                  className="inline-flex shrink-0 rounded-md"
-                  tv={{
-                    focusKey: tvSeeMoreFocusKey(seeMoreTo, seeMoreSearchKey),
-                    onPress: () => navigate({ to: seeMoreTo, search: seeMoreSearch ?? {} }),
-                    accessibilityLabel: "See more",
-                    onArrowPress: (direction) => {
-                      if (direction === "up" && tvBarUpFocusKey) {
-                        setFocus(tvBarUpFocusKey);
-                        return false;
-                      }
-                      if (direction === "down" && tvFirstSlideFocusKey) {
-                        setFocus(tvFirstSlideFocusKey);
-                        return false;
-                      }
-                      return true;
-                    },
-                  }}
-                >
-                  <Button variant="secondary" size={!isMobile ? "sm" : "default"} asChild>
-                    <Link to={seeMoreTo} search={seeMoreSearch}>
-                      <Trans>See more</Trans>
-                    </Link>
-                  </Button>
-                </TvFocusable>
-              )}
-              {showCarouselArrows && <CarouselPrevious className="static h-8 w-8 translate-y-0" />}
-              {showCarouselArrows && <CarouselNext className="static h-8 w-8 translate-y-0" />}
-            </div>
-          )}
-        </div>
+      <div data-slot="tv-carousel-section">
+        <Carousel
+          {...props}
+          opts={{
+            align: "start",
+            dragFree: true,
+            ...props.opts,
+          }}
+          plugins={[WheelGesturesPlugin()]}
+        >
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <h2 className="min-w-0 flex-1 text-lg font-medium">{heading}</h2>
+            {(seeMoreTo && !tvMode) || showCarouselArrows ? (
+              <div className="flex items-center gap-2">
+                {seeMoreTo && !tvMode && (
+                  <TvFocusable
+                    focusRoot
+                    className="inline-flex shrink-0 rounded-md"
+                    tv={{
+                      focusKey: tvSeeMoreFocusKey(seeMoreTo, seeMoreSearchKey),
+                      onPress: () => navigate({ to: seeMoreTo, search: seeMoreSearch ?? {} }),
+                      accessibilityLabel: "See more",
+                      onArrowPress: (direction) => {
+                        if (direction === "up" && tvBarUpFocusKey) {
+                          setFocus(tvBarUpFocusKey);
+                          return false;
+                        }
+                        if (direction === "down" && tvFirstSlideFocusKey) {
+                          setFocus(tvFirstSlideFocusKey);
+                          return false;
+                        }
+                        return true;
+                      },
+                    }}
+                  >
+                    <Button variant="secondary" size={!isMobile ? "sm" : "default"} asChild>
+                      <Link to={seeMoreTo} search={seeMoreSearch}>
+                        <Trans>See more</Trans>
+                      </Link>
+                    </Button>
+                  </TvFocusable>
+                )}
+                {showCarouselArrows && <CarouselPrevious className="static h-8 w-8 translate-y-0" />}
+                {showCarouselArrows && <CarouselNext className="static h-8 w-8 translate-y-0" />}
+              </div>
+            ) : null}
+          </div>
 
-        <div className="relative">
-          <CarouselContent>{children}</CarouselContent>
-          <CarouselEdgeFades />
-        </div>
-      </Carousel>
+          <div className="relative">
+            <CarouselContent>{children}</CarouselContent>
+            <CarouselEdgeFades />
+          </div>
+        </Carousel>
+      </div>
     </TvCarouselSection>
   );
 }

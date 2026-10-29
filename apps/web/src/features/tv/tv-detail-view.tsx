@@ -45,8 +45,15 @@ export function TvDetailView({ tvId, urlTab }: TvDetailViewProps) {
     if (urlTab === "downloads" && torrentDownloads.length === 0) return "info";
     if (urlTab === "server" && remoteDownloads.length === 0) return "info";
     if (urlTab) return urlTab;
-    return hasActiveDownload ? "downloads" : "info";
+    if (hasActiveDownload) return "downloads";
+    if (remoteDownloads.length > 0) return "server";
+    return "info";
   }, [urlTab, torrentDownloads.length, remoteDownloads.length, hasActiveDownload]);
+
+  const firstSeasonNumber = useMemo(
+    () => (tv.seasons ?? []).find((season) => season.season_number > 0)?.season_number ?? 1,
+    [tv.seasons],
+  );
 
   useTvInitialFocus(
     tvDetailInitialFocusKey({
@@ -54,6 +61,7 @@ export function TvDetailView({ tvId, urlTab }: TvDetailViewProps) {
       mediaId: tvId,
       downloadId: liveDownload?.id,
       isViewer: role === "viewer",
+      tvFirstSeason: firstSeasonNumber,
     }),
   );
 

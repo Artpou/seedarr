@@ -1,5 +1,6 @@
 import { BadRequestError } from "@/shared/errors/error";
 
+import fs from "node:fs/promises";
 import path from "node:path";
 
 export function getDownloadsRoot(): string {
@@ -136,6 +137,9 @@ export function resolveDownloadStagingPath(download: DownloadPathSource): string
     }
   }
 
+  const localRemote = resolveLocalLibraryPath(download.remoteLocation);
+  if (localRemote) return localRemote;
+
   const folderName = getDownloadFolderName(download);
   if (!folderName) return null;
 
@@ -159,6 +163,37 @@ export function resolveWithinDownloads(...segments: string[]): string {
   const resolved = path.resolve(getDownloadsRoot(), ...segments);
   assertWithinDownloads(resolved);
   return resolved;
+}
+
+/** Absolute path when remoteLocation points at a local library folder (downloads or HARDLINK_*). */
+export function resolveLocalLibraryPath(remoteLocation: string | null | undefined): string | null {
+  if (!remoteLocation?.trim()) return null;
+  const resolved = path.resolve(remoteLocation.trim().replace(/\/+$/, ""));
+
+  const roots = new Set<string>([path.resolve(getDownloadsRoot())]);
+  const hardlinkRoot = process.env.HARDLINK_PATH?.trim();
+  if (hardlinkRoot && path.isAbsolute(hardlinkRoot)) {
+    roots.add(path.resolve(hardlinkRoot));
+  }
+  for (const typed of [process.env.HARDLINK_MOVIE_PATH?.trim(), process.env.HARDLINK_TV_PATH?.trim()]) {
+    if (!typed) continue;
+    if (path.isAbsolute(typed)) roots.add(path.resolve(typed));
+    else if (hardlinkRoot && path.isAbsolute(hardlinkRoot)) roots.add(path.resolve(hardlinkRoot, typed));
+  }
+
+  for (const root of roots) {
+    if (resolved === root || resolved.startsWith(`${root}${path.sep}`)) {
+      return resolved;
+    }
+  }
+  return null;
+}
+
+export async function removeLocalLibraryPath(remoteLocation: string | null | undefined): Promise<boolean> {
+  const localPath = resolveLocalLibraryPath(remoteLocation);
+  if (!localPath) return false;
+  await fs.rm(localPath, { recursive: true, force: true });
+  return true;
 }
 
 export function resolveWithinAvatars(...segments: string[]): string {

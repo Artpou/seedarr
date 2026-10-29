@@ -17,6 +17,7 @@ import { Container } from "@/shared/ui/container";
 import { Label } from "@/shared/ui/label";
 
 import { buildSubtitleTracks } from "@/features/downloads/helpers/subtitle-tracks.helper";
+import { resolveWatchProgressPosition } from "@/features/downloads/helpers/watch-progress-persist.helper";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
 import { MediaCardHorizontal } from "@/features/media/components/card/media-card-horizontal";
 import { hasWatchProgress } from "@/features/media/helpers/media.helper";
@@ -52,7 +53,6 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
   // biome-ignore lint/style/noNonNullAssertion: mediaId is set for playable downloads
   const { data: media } = useSuspenseQuery(mediaQueries.details(download.mediaId!));
   const { data: playbackInfo } = useSuspenseQuery(downloadQueries.playbackInfo(id));
-  const { data: externalSubtitles } = useSuspenseQuery(subtitleQueries.external(id));
   const { data: mediaDownloads = [] } = useQuery({
     ...downloadQueries.byMedia(media),
     enabled: media.type === "tv",
@@ -73,6 +73,13 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
   const season = searchSeason ?? inferredEpisode?.season;
   const episode = searchEpisode ?? inferredEpisode?.episode;
 
+  const subtitleScope = useMemo(
+    () => (media.type === "tv" && season != null && episode != null ? { season, episode } : undefined),
+    [media.type, season, episode],
+  );
+
+  const { data: externalSubtitles } = useSuspenseQuery(subtitleQueries.external(id, subtitleScope));
+
   const { data: seasonDetails } = useQuery({
     ...tvQueries.season(media.id, season ?? 0, locale),
     enabled: media.type === "tv" && season != null,
@@ -88,6 +95,9 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
     initialResumeRef.current = hasWatchProgress(media) ? (media.progress?.position ?? 0) : 0;
   }
   const resumePosition = initialResumeRef.current;
+
+  const sessionWatchPositionRef = useRef(resumePosition);
+  sessionWatchPositionRef.current = Math.max(sessionWatchPositionRef.current, resumePosition);
 
   const initialSubtitlePrefsRef = useRef<{ delay: number; trackSrc: string | null } | null>(null);
   if (initialSubtitlePrefsRef.current === null) {
@@ -110,10 +120,11 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
       };
       window.clearTimeout(persistSubtitleDebounceRef.current);
       persistSubtitleDebounceRef.current = window.setTimeout(() => {
+        if (!hasInitialSeeked.current && resumePosition > 0) return;
         void persistWatchProgressRef.current({ allowWithoutPlayback: true });
       }, 250);
     },
-    [],
+    [resumePosition],
   );
 
   const playerRef = useRef<MoviPlayerHandle | null>(null);
@@ -147,12 +158,25 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
 
     const persistWatchProgress = async (options?: { allowWithoutPlayback?: boolean }): Promise<void> => {
       const player = playerRef.current;
-      const position = Math.floor(
+      const playerSeconds =
         player && typeof player.currentTime === "number" && Number.isFinite(player.currentTime)
           ? player.currentTime
-          : resumePosition,
-      );
-      if (!options?.allowWithoutPlayback && position < 1) return;
+          : sessionWatchPositionRef.current;
+
+      const cached = queryClient.getQueryData<Media>(mediaQueries.details(mediaId).queryKey)?.progress;
+      const cachedPosition = cached?.downloadId === id ? cached.position : 0;
+
+      const { position, skip } = resolveWatchProgressPosition({
+        playerSeconds,
+        sessionHighWaterMark: sessionWatchPositionRef.current,
+        cachedPosition,
+        resumePosition,
+        allowWithoutPlayback: options?.allowWithoutPlayback === true,
+      });
+
+      if (skip) return;
+
+      sessionWatchPositionRef.current = Math.max(sessionWatchPositionRef.current, position);
 
       const duration = Math.floor(player?.duration || playbackInfo.duration || media.progress?.duration || 0);
       const prefs = subtitlePrefsRef.current;
@@ -234,6 +258,10 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
         tmdbId={String(download.mediaId)}
         downloadId={id}
         mediaTitle={displayName}
+        mediaType={media.type}
+        season={season}
+        episode={episode}
+        subtitleScope={subtitleScope}
       />
     ) : null;
 
@@ -268,14 +296,14 @@ export function DownloadPlayView({ id, season: searchSeason, episode: searchEpis
   );
 
   const subtitleTracks = useMemo(() => {
-    const tracks = buildSubtitleTracks(download, externalSubtitles?.paths ?? []);
+    const tracks = buildSubtitleTracks(download, externalSubtitles?.paths ?? [], subtitleScope);
     const preferred = initialSubtitlePrefsRef.current?.trackSrc;
     if (!preferred) return tracks;
     return tracks.map((track) => ({
       ...track,
       default: subtitleTrackSrcMatches(preferred, track.src),
     }));
-  }, [download, externalSubtitles?.paths]);
+  }, [download, externalSubtitles?.paths, subtitleScope]);
   const subtitleTracksKey = useMemo(() => subtitleTracks.map((track) => track.src).join("|"), [subtitleTracks]);
 
   const backTo = media.type === "tv" ? "/tv/$id" : "/movies/$id";

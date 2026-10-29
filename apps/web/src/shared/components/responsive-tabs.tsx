@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { CheckIcon, ChevronDownIcon, type LucideIcon } from "lucide-react";
@@ -37,6 +37,111 @@ interface ResponsiveTabsProps {
   tvGetDownFocusKey?: (tabValue: string) => string | undefined;
 }
 
+type TvTabsScrollFades = {
+  left: boolean;
+  right: boolean;
+};
+
+function getTvTabsScrollFades(el: HTMLElement): TvTabsScrollFades {
+  const maxScroll = el.scrollWidth - el.clientWidth;
+  if (maxScroll <= 1) {
+    return { left: false, right: false };
+  }
+  return {
+    left: el.scrollLeft > 2,
+    right: el.scrollLeft < maxScroll - 2,
+  };
+}
+
+function TvResponsiveTabsCarousel({
+  value,
+  onValueChange,
+  options,
+  className,
+  tvFocusKeyPrefix,
+  tvGetDownFocusKey,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: ResponsiveTabOption[];
+  className?: string;
+  tvFocusKeyPrefix: string;
+  tvGetDownFocusKey?: (tabValue: string) => string | undefined;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [fades, setFades] = useState<TvTabsScrollFades>({ left: false, right: false });
+
+  const syncFades = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setFades(getTvTabsScrollFades(el));
+  }, []);
+
+  useEffect(() => {
+    syncFades();
+    const el = scrollRef.current;
+    if (!el) return;
+
+    el.addEventListener("scroll", syncFades, { passive: true });
+    const ro = new ResizeObserver(syncFades);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", syncFades);
+      ro.disconnect();
+    };
+  }, [syncFades]);
+
+  return (
+    <div className={cn("relative w-full min-w-0", className)}>
+      {fades.left ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-linear-to-r from-background to-transparent"
+          aria-hidden
+        />
+      ) : null}
+      {fades.right ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-linear-to-l from-background to-transparent"
+          aria-hidden
+        />
+      ) : null}
+      <div
+        ref={scrollRef}
+        data-slot="tv-tabs-carousel"
+        className="flex w-full min-w-0 flex-nowrap gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {options.map((option) => {
+          const Icon = option.icon;
+          const active = option.value === value;
+          return (
+            <Button
+              key={option.value}
+              variant={active ? "default" : "secondary"}
+              size="lg"
+              className="shrink-0 gap-2"
+              tv={{
+                focusKey: `${tvFocusKeyPrefix}-${option.value}`,
+                onPress: () => onValueChange(option.value),
+                accessibilityLabel: typeof option.label === "string" ? option.label : option.value,
+                onArrowPress: (direction) => {
+                  if (direction !== "down" || !tvGetDownFocusKey) return true;
+                  const target = tvGetDownFocusKey(value);
+                  if (!target) return true;
+                  setFocus(target);
+                  return false;
+                },
+              }}
+            >
+              {Icon ? <Icon className="size-4 shrink-0" /> : null}
+              <span className="inline-flex min-w-0 max-w-full items-center font-medium">{option.label}</span>
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function ResponsiveTabs({
   value,
   onValueChange,
@@ -55,36 +160,14 @@ export function ResponsiveTabs({
 
   if (tvMode && tvFocusKeyPrefix) {
     return (
-      <div className={cn("flex flex-wrap gap-2", className)}>
-        {options.map((option) => {
-          const Icon = option.icon;
-          const active = option.value === value;
-          return (
-            <Button
-              key={option.value}
-              variant={active ? "default" : "secondary"}
-              size="lg"
-              className="shrink-0 gap-2"
-              tv={{
-                focusKey: `${tvFocusKeyPrefix}-${option.value}`,
-                onPress: () => onValueChange(option.value),
-                onFocused: () => onValueChange(option.value),
-                accessibilityLabel: typeof option.label === "string" ? option.label : option.value,
-                onArrowPress: (direction) => {
-                  if (direction !== "down" || !tvGetDownFocusKey) return true;
-                  const target = tvGetDownFocusKey(option.value);
-                  if (!target) return true;
-                  setFocus(target);
-                  return false;
-                },
-              }}
-            >
-              {Icon ? <Icon className="size-4 shrink-0" /> : null}
-              <span className="inline-flex min-w-0 max-w-full items-center font-medium">{option.label}</span>
-            </Button>
-          );
-        })}
-      </div>
+      <TvResponsiveTabsCarousel
+        value={value}
+        onValueChange={onValueChange}
+        options={options}
+        className={className}
+        tvFocusKeyPrefix={tvFocusKeyPrefix}
+        tvGetDownFocusKey={tvGetDownFocusKey}
+      />
     );
   }
 

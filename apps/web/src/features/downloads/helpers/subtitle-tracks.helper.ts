@@ -1,4 +1,5 @@
 import type { Download } from "@seedarr/sdk";
+import { parseSeasonEpisode } from "@seedarr/shared";
 
 import { detectLanguage } from "@/shared/helpers/lang.helper";
 
@@ -27,6 +28,63 @@ export interface SubtitleTrack {
   format: "srt" | "vtt" | "ass" | "ssa";
 }
 
+export type SubtitlePlaybackScope = {
+  season?: number;
+  episode?: number;
+};
+
+type ScopedVideoContext = {
+  videoBaseName: string;
+  videoDir: string;
+  topSegment: string;
+};
+
+function getScopedVideoContext(download: Download, scope: SubtitlePlaybackScope): ScopedVideoContext | null {
+  if (scope.season == null || scope.episode == null) return null;
+
+  const torrentFiles = getTorrentFiles(download);
+  const videos = torrentFiles.filter((file) => VIDEO_EXTENSIONS.test(file.name));
+  const matches = videos.filter((file) => {
+    const parsed = parseSeasonEpisode(file.name) ?? parseSeasonEpisode(file.path);
+    return parsed?.season === scope.season && parsed?.episode === scope.episode;
+  });
+  const video = matches.sort((a, b) => b.length - a.length)[0];
+  if (!video) return null;
+
+  const videoPath = normalizeTorrentPath(video.path);
+  return {
+    videoBaseName: video.name.replace(/\.[^.]+$/, ""),
+    videoDir: mediaDir(videoPath),
+    topSegment: videoPath.split("/")[0] ?? "",
+  };
+}
+
+function pathMatchesScopedEpisode(
+  relativePath: string,
+  ctx: ScopedVideoContext,
+  scope: SubtitlePlaybackScope,
+): boolean {
+  if (scope.season == null || scope.episode == null) return true;
+
+  const parsed = parseSeasonEpisode(relativePath);
+  if (parsed) {
+    return parsed.season === scope.season && parsed.episode === scope.episode;
+  }
+
+  const fileName = relativePath.split("/").pop() ?? relativePath;
+  const subBase = fileName.replace(/\.(srt|vtt|ass|ssa)$/i, "");
+  if (subBase === ctx.videoBaseName || subBase.startsWith(`${ctx.videoBaseName}.`)) {
+    return true;
+  }
+
+  const subPath = normalizeTorrentPath(relativePath);
+  if (ctx.videoDir && mediaDir(subPath) === ctx.videoDir) {
+    return true;
+  }
+
+  return ctx.topSegment.length > 0 && subPath.includes(ctx.topSegment);
+}
+
 function extractLangInfo(fileName: string): { label: string; srclang: string } {
   const nameWithoutExt = fileName.replace(/\.(srt|vtt|ass|ssa)$/i, "");
   const match2 = nameWithoutExt.match(/\.([a-z]{2})$/i);
@@ -42,9 +100,14 @@ function extractLangInfo(fileName: string): { label: string; srclang: string } {
 }
 
 /** Same-origin relative URLs — prefetched to blob: URLs before handing to movi-player. */
-export function buildSubtitleTracks(download: Download, externalPaths: string[]): SubtitleTrack[] {
+export function buildSubtitleTracks(
+  download: Download,
+  externalPaths: string[],
+  scope?: SubtitlePlaybackScope,
+): SubtitleTrack[] {
   const tracks: SubtitleTrack[] = [];
   const id = download.id;
+  const scopedVideo = scope ? getScopedVideoContext(download, scope) : null;
 
   if (download.torrent?.files) {
     const torrentFiles = getTorrentFiles(download);
@@ -59,6 +122,9 @@ export function buildSubtitleTracks(download: Download, externalPaths: string[])
       const subtitleFiles = torrentFiles.filter((f) => {
         if (!SUBTITLE_EXTENSIONS.test(f.name)) return false;
         const subPath = normalizeTorrentPath(f.path);
+        if (scopedVideo && scope && !pathMatchesScopedEpisode(subPath, scopedVideo, scope)) {
+          return false;
+        }
         const fileBaseName = f.name.replace(/\.[^.]+$/, "");
         if (fileBaseName.startsWith(videoBaseName)) return true;
         if (topSegment && subPath.includes(topSegment)) return true;
@@ -89,6 +155,9 @@ export function buildSubtitleTracks(download: Download, externalPaths: string[])
   const seenExternal = new Set(tracks.map((t) => t.src));
   for (let i = 0; i < externalPaths.length; i++) {
     const filePath = normalizeTorrentPath(externalPaths[i]);
+    if (scopedVideo && scope && !pathMatchesScopedEpisode(filePath, scopedVideo, scope)) {
+      continue;
+    }
     const fileName = filePath.split("/").pop() || filePath;
     const { label, srclang } = extractLangInfo(fileName);
     const src = `/streaming/${id}/subtitles/${encodeURIComponent(filePath)}`;

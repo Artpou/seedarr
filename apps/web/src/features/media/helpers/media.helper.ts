@@ -2,6 +2,7 @@ import { t } from "@lingui/core/macro";
 import type { Paginate } from "@seedarr/contracts";
 import type { Media } from "@seedarr/sdk";
 import type { InfiniteData } from "@tanstack/react-query";
+import type { LinkOptions } from "@tanstack/react-router";
 
 export type PosterFormat = "w92" | "w154" | "w185" | "w342" | "w500" | "w780" | "original";
 
@@ -87,6 +88,42 @@ export function isActiveDownload(download: Media["download"]): boolean {
   if (!download?.torrent) return false;
   if (download.torrent.transferring) return true;
   return !download.torrent.done && !download.torrent.paused;
+}
+
+function hasStartedWatching(media: Media): boolean {
+  return (media.progress?.position ?? 0) > 0;
+}
+
+/** Primary navigation for library cards: play when a download exists, otherwise media detail. */
+export function getMediaCardLinkOptions(media: Media, options?: { tvMode?: boolean }): LinkOptions {
+  const tvSearch = options?.tvMode ? ({ mode: "tv" } as const) : undefined;
+  const downloadId = media.download?.id;
+  if (downloadId) {
+    return {
+      to: "/downloads/$id/play",
+      params: { id: downloadId },
+      ...(tvSearch ? { search: tvSearch } : {}),
+    } as LinkOptions;
+  }
+  return {
+    to: media.type === "tv" ? "/tv/$id" : "/movies/$id",
+    params: { id: String(media.id) },
+    ...(tvSearch ? { search: tvSearch } : {}),
+  } as LinkOptions;
+}
+
+/** Discover “Downloaded” carousel: in-progress first, then active torrents, then the rest. */
+export function sortDownloadedLibraryCarousel(medias: Media[]): Media[] {
+  const rank = (media: Media): number => {
+    if (hasStartedWatching(media)) return 0;
+    if (isActiveDownload(media.download)) return 1;
+    return 2;
+  };
+
+  return [...medias]
+    .map((media, index) => ({ media, index, rank: rank(media) }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map(({ media }) => media);
 }
 
 export function hasActiveDownload(data: InfiniteData<Paginate<Media>>): boolean {

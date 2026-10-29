@@ -22,6 +22,7 @@ import { useRole } from "@/features/auth/hooks/use-role";
 import { DownloadButtonSynchronize } from "@/features/downloads/components/button/download-button-synchronize";
 import { DownloadModalDelete } from "@/features/downloads/components/download-modal-delete";
 import { LibraryStats } from "@/features/downloads/components/download-stats";
+import { TvLibraryView } from "@/features/downloads/components/tv-library-view";
 import { useBatchDeleteDownloads } from "@/features/downloads/hooks/download.queries";
 import {
   downloadTableFeatures,
@@ -95,6 +96,10 @@ export function DownloadsView({ search }: DownloadsViewProps) {
     }),
     [withGenres, release_date_gte, release_date_lte, with_runtime_gte, with_runtime_lte, vote_average_gte],
   );
+
+  if (tvMode) {
+    return <TvLibraryView results={results} mediaQuery={mediaQuery} effectiveQuery={effectiveQuery} />;
+  }
 
   return (
     <Container className="space-y-1 sm:space-y-3">

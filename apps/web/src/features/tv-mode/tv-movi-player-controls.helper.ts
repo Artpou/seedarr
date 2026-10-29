@@ -190,7 +190,7 @@ export function closeOpenTvMoviMenus(player: MoviPlayerHandle): void {
 function listTvMoviMenuItems(menu: HTMLElement): HTMLElement[] {
   const items: HTMLElement[] = [];
   const nodes = menu.querySelectorAll<HTMLElement>(
-    ".movi-subtitle-track-item, .movi-audio-track-item, .movi-speed-item, .movi-quality-item, [data-seedarr-cc-extras] button[data-seedarr-cc-focus]",
+    ".movi-subtitle-track-item, .movi-audio-track-item, .movi-speed-item, .movi-quality-item, [data-seedarr-cc-extras] button",
   );
   for (const el of nodes) {
     if (isVisibleBarControl(el)) items.push(el);

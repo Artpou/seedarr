@@ -58,7 +58,6 @@ export function MediaSheetInfo({ data, children }: MediaSheetInfoProps) {
   }, [tv]);
 
   const nextEpisode = tv?.next_episode_to_air;
-  const lastEpisode = tv?.last_episode_to_air;
 
   return (
     <div className="flex flex-col gap-5">
@@ -90,18 +89,6 @@ export function MediaSheetInfo({ data, children }: MediaSheetInfoProps) {
               <Trans>
                 Next episode: S{nextEpisode.season_number}E{nextEpisode.episode_number} -{" "}
                 {new Date(nextEpisode.air_date).toLocaleDateString()}
-              </Trans>
-            ) : null}
-          </MediaBadgeLabel>
-          <MediaBadgeLabel show={!nextEpisode && !!lastEpisode?.air_date} variant="glass" size="lg">
-            {lastEpisode?.air_date ? (
-              <Trans>
-                Last episode: S{lastEpisode.season_number}E{lastEpisode.episode_number} -{" "}
-                {new Date(lastEpisode.air_date).toLocaleDateString(undefined, {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })}
               </Trans>
             ) : null}
           </MediaBadgeLabel>

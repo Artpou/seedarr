@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 
+import { cn } from "@/lib/utils";
 import { AppVersionCard } from "@/shared/components/app-version-card";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Container } from "@/shared/ui/container";
@@ -10,10 +11,12 @@ import {
   type SettingsTab,
   useVisibleSettingsTabs,
 } from "@/features/settings/components/settings-page-nav";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 export function SettingsLayoutView() {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const tvMode = useTvMode();
   const visibleTabs = useVisibleSettingsTabs();
 
   const activeTab = (location.pathname.split("/").pop() ?? "general") as SettingsTab;
@@ -24,7 +27,12 @@ export function SettingsLayoutView() {
       {isMobile && !isModuleDetail ? <SettingsPageNav className="mb-4" /> : null}
       <div className="flex flex-col md:flex-row md:gap-6 md:gap-8">
         {!isModuleDetail && !isMobile && (
-          <aside className="shrink-0 space-y-4 md:sticky md:top-14 md:w-56 md:self-start md:overscroll-contain">
+          <aside
+            className={cn(
+              "shrink-0 space-y-4 md:sticky md:self-start md:w-56 md:overscroll-contain",
+              tvMode ? "md:top-4" : "md:top-14",
+            )}
+          >
             <Tabs value={activeTab}>
               <TabsList className="h-auto w-full flex-col gap-1 bg-transparent p-0">
                 {visibleTabs.map((tab) => (

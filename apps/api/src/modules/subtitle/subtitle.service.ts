@@ -73,13 +73,14 @@ export class SubtitleService extends AuthenticatedService {
     url: string,
     language: string,
     mediaTitle: string,
+    scope?: { season?: number; episode?: number },
   ): Promise<{ relativePath: string }> {
     const download = await downloadRepository.get(downloadId);
     if (download.userId !== this.user.id && !["owner", "admin"].includes(this.user.role)) {
       throw new ForbiddenError();
     }
     const downloadFolderPath = resolveWithinDownloads(requireDownloadFolderName(download));
-    return this.download(download, downloadFolderPath, url, language, mediaTitle);
+    return this.download(download, downloadFolderPath, url, language, mediaTitle, scope);
   }
 
   /**
@@ -92,6 +93,7 @@ export class SubtitleService extends AuthenticatedService {
     url: string,
     language: string,
     mediaTitle: string,
+    scope?: { season?: number; episode?: number },
   ): Promise<{ relativePath: string }> {
     assertWithinDownloads(downloadFolderPath);
     let fullZipUrl: string;
@@ -125,7 +127,7 @@ export class SubtitleService extends AuthenticatedService {
     const safeLang = sanitizeFileName(language).slice(0, 10);
     const downloadsRoot = getDownloadsRoot();
 
-    const localVideo = await resolveDownloadLocalVideo(download);
+    const localVideo = await resolveDownloadLocalVideo(download, scope);
     const videoBaseName = localVideo
       ? path.basename(localVideo.fileName, path.extname(localVideo.fileName))
       : sanitizeFileName(mediaTitle);

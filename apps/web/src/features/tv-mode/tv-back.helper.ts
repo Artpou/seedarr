@@ -12,14 +12,15 @@ function normalizePathname(pathname: string): string {
 export function isTvTopbarBackRoot(pathname: string): boolean {
   const path = normalizePathname(pathname);
   if (path === "/movies" || path === "/tv" || path === "/downloads") return true;
+  if (path === "/settings" || path === "/settings/") return true;
   return TV_PROFILE_ROOT.test(path);
 }
 
-/** Whether spatial-nav focus is on a topbar control (TV). */
+/** Whether spatial-nav focus is on the TV sidebar (TV). */
 export function isTvFocusInTopbar(documentRef: Document = document): boolean {
-  const topbar = documentRef.querySelector('[data-slot="app-topbar"]');
-  if (!(topbar instanceof HTMLElement)) return false;
-  return topbar.querySelector('[data-tv-focused="true"]') !== null;
+  const sidebar = documentRef.querySelector('[data-slot="tv-sidebar"]');
+  if (!(sidebar instanceof HTMLElement)) return false;
+  return sidebar.querySelector('[data-tv-focused="true"]') !== null;
 }
 
 export function resolveTvTopbarBackFocusKey(pathname: string): string | null {
@@ -29,6 +30,7 @@ export function resolveTvTopbarBackFocusKey(pathname: string): string | null {
   if (path === "/downloads") return "NAV-/downloads";
   const profileMatch = path.match(TV_PROFILE_ROOT);
   if (profileMatch?.[1]) return `NAV-/user/$id-${profileMatch[1]}`;
+  if (path === "/settings" || path.startsWith("/settings/")) return "NAV-/settings";
   return null;
 }
 

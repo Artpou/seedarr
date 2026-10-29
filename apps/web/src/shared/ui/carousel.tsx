@@ -156,7 +156,7 @@ CarouselContent.displayName = "CarouselContent";
 
 type CarouselItemProps = React.HTMLAttributes<HTMLDivElement> & {
   slideIndex?: number;
-  /** Poster tiles (default) vs wide rows (resume watching, requests). */
+  /** Poster tiles (default) vs wide rows (downloaded library, requests). */
   layout?: "poster" | "wide";
 };
 

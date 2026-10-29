@@ -1,11 +1,15 @@
-import { useLayoutEffect, useState } from "react";
+import { Fragment, useLayoutEffect, useState } from "react";
 
 import type { Media } from "@seedarr/sdk";
 import { useElementScrollRestoration } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
-import { InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
-import { flattenInfiniteResults, type InfiniteResultsQuery } from "@/shared/hooks/use-infinite-list";
+import { InfiniteGridPrefetchSentinel, InfiniteSentinel } from "@/shared/components/sentinel/infinite-sentinel";
+import {
+  flattenInfiniteResults,
+  type InfiniteResultsQuery,
+  prefetchInfiniteOnTvGridFocus,
+} from "@/shared/hooks/use-infinite-list";
 
 import { MediaGridSkeleton } from "@/features/media/components/media-grid-skeletons";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
@@ -19,6 +23,9 @@ interface MediaGridProps {
   query?: InfiniteResultsQuery<Media>;
   showType?: boolean;
   downloadMode?: boolean;
+  tvSelectedMedia?: Media | null;
+  onTvItemFocused?: (media: Media) => void;
+  tvBarUpFocusKey?: string;
 }
 
 function getMediaGridColumns(width: number): number {
@@ -33,7 +40,15 @@ export function MediaGrid(props: MediaGridProps) {
   return <MediaGridVirtual {...props} />;
 }
 
-function MediaGridTv({ items, query, showType, downloadMode }: MediaGridProps) {
+function MediaGridTv({
+  items,
+  query,
+  showType,
+  downloadMode,
+  tvSelectedMedia,
+  onTvItemFocused,
+  tvBarUpFocusKey,
+}: MediaGridProps) {
   const displayItems = items ?? flattenInfiniteResults(query);
   const isPending = Boolean(query?.isPending) && displayItems.length === 0;
 
@@ -61,6 +76,14 @@ function MediaGridTv({ items, query, showType, downloadMode }: MediaGridProps) {
 
   if (displayItems.length === 0) return null;
 
+  const totalRows = Math.ceil(displayItems.length / columns);
+  const prefetchRow = Math.max(0, totalRows - 2);
+
+  const handleTvFocus = (media: Media): void => {
+    onTvItemFocused?.(media);
+    prefetchInfiniteOnTvGridFocus(media, displayItems, columns, query);
+  };
+
   return (
     <>
       <div
@@ -68,21 +91,38 @@ function MediaGridTv({ items, query, showType, downloadMode }: MediaGridProps) {
         className="grid w-full gap-4"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
-        {displayItems.map((item) => (
-          <div key={`${item.type}-${item.id}`} className="relative">
-            <MediaCard
-              media={item}
-              showPreview={!downloadMode}
-              showPlay
-              showSocial={!downloadMode}
-              showType={showType}
-              showQuality={downloadMode}
-              showDownload
-            />
-          </div>
-        ))}
+        {displayItems.map((item, index) => {
+          const row = Math.floor(index / columns);
+          const showPrefetchSentinel = query?.hasNextPage && index % columns === 0 && row === prefetchRow;
+
+          return (
+            <Fragment key={`${item.type}-${item.id}`}>
+              {showPrefetchSentinel ? <InfiniteGridPrefetchSentinel query={query} /> : null}
+              <div className="relative">
+                <MediaCard
+                  media={item}
+                  showPreview={!downloadMode}
+                  showPlay
+                  showSocial={!downloadMode}
+                  showType={showType}
+                  showQuality={downloadMode}
+                  showDownload
+                  tvHighlighted={
+                    tvSelectedMedia != null && tvSelectedMedia.id === item.id && tvSelectedMedia.type === item.type
+                  }
+                  onTvFocused={handleTvFocus}
+                  tvBarUpFocusKey={tvBarUpFocusKey}
+                />
+              </div>
+            </Fragment>
+          );
+        })}
       </div>
-      <InfiniteSentinel query={query} />
+      <InfiniteSentinel
+        query={query}
+        scrollRootSelector="[data-slot='tv-browse-scroll']"
+        rootMargin="0px 0px 400px 0px"
+      />
     </>
   );
 }

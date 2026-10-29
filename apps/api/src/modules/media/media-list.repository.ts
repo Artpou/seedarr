@@ -131,6 +131,13 @@ export async function listEnrichedMedia(userId: string, query: ListMediaQuery = 
     case "downloaded":
       orderBy.push(asc(libraryRankSql(userId)));
       if (!query.sortBy) {
+        orderBy.push(
+          desc(
+            scalarUserRelation(watchProgress, watchProgress.updatedAt, media.id, {
+              userId,
+            }),
+          ),
+        );
         orderBy.push(desc(downloadCreatedAtSql()));
       }
       break;

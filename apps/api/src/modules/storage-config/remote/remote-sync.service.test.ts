@@ -175,6 +175,45 @@ describe("remote-sync.service", () => {
     expect(result.synced).toBe(0);
   });
 
+  it("runRemoteSync skips when download already owns the same absolute local folder", async () => {
+    const localRoot = "/library/downloads";
+    getSyncRoots.mockResolvedValue({
+      moviePath: localRoot,
+      tvPath: localRoot,
+      storageModuleId: null,
+      local: true,
+    });
+    testDbRef.current.insert(media).values({ id: 980431, type: "movie", title: "Aang", imdbId: "tt1" }).run();
+    const folder = `${localRoot}/Avatar Aang The Last Airbender (2026)`;
+    testDbRef.current
+      .insert(download)
+      .values({
+        id: "dl-aang",
+        userId: user.id,
+        mediaId: 980431,
+        origin: "remote-sync",
+        remoteLocation: folder,
+        torrent: null,
+        createdAt: new Date(),
+      })
+      .run();
+
+    listDirectories.mockImplementation(async (base: string) => {
+      if (base === localRoot) {
+        return [{ name: "Avatar Aang The Last Airbender (2026)", path: folder, type: "directory" }];
+      }
+      return [];
+    });
+    syncPathExists.mockResolvedValue(true);
+
+    const result = await runRemoteSync(user.id);
+    expect(result).toMatchObject({ synced: 0, skipped: 1, errors: [] });
+
+    const rows = await testDbRef.current.query.download.findMany();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.id).toBe("dl-aang");
+  });
+
   it("runRemoteSync links nested Title (year) folders when torrent has no remoteLocation", async () => {
     // Hardlink layout: Movies/Dune (2021)/file.mkv — download exists from torrent but library path not linked yet.
     getSyncRoots.mockResolvedValue({

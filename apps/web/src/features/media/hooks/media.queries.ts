@@ -64,7 +64,7 @@ export const mediaQueries = {
           : await unwrap(api.tv.trending.$get({ query: { locale } })),
     }),
 
-  library: (type: Media["type"], pagination: { page: number; limit: number } = { page: 1, limit: 10 }) =>
+  library: (type: Media["type"], pagination: { page: number; limit: number } = { page: 1, limit: 20 }) =>
     queryOptions({
       queryKey: [...mediaQueries.key, "library", type],
       queryFn: async () => {

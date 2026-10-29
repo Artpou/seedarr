@@ -46,7 +46,9 @@ export function MovieDetailView({ movieId, urlTab }: MovieDetailViewProps) {
     if (urlTab === "downloads" && torrentDownloads.length === 0) return "info";
     if (urlTab === "server" && remoteDownloads.length === 0) return "info";
     if (urlTab) return urlTab;
-    return hasActiveDownload ? "downloads" : "info";
+    if (hasActiveDownload) return "downloads";
+    if (remoteDownloads.length > 0) return "server";
+    return "info";
   }, [urlTab, torrentDownloads.length, remoteDownloads.length, hasActiveDownload]);
 
   useTvInitialFocus(

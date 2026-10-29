@@ -20,7 +20,9 @@ import { useAuth } from "@/features/auth/auth-store";
 import { useRole } from "@/features/auth/hooks/use-role";
 import { TvAppFocus } from "@/features/tv-mode/tv-app-focus";
 import { TvBackNavigation } from "@/features/tv-mode/tv-back-navigation";
+import { TvMainChrome } from "@/features/tv-mode/tv-main-chrome";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { TvSidebar } from "@/features/tv-mode/tv-sidebar";
 import { isSearchPath } from "@/routes/helpers/search-route.helper";
 
 export const Route = createFileRoute("/_app")({
@@ -80,7 +82,9 @@ function AuthenticatedLayout() {
   const { t } = useLingui();
   const router = useRouter();
   const tvMode = useTvMode();
-  const hideAppChrome = tvMode && (pathname.includes("/play") || isSearchPath(pathname));
+  const hideTvSidebar = tvMode && (pathname.includes("/play") || isSearchPath(pathname));
+  const showTvShell = tvMode && !hideTvSidebar;
+  const hideMobileChrome = hideTvSidebar;
 
   const stateRef = useRef<unknown>(null);
 
@@ -113,19 +117,30 @@ function AuthenticatedLayout() {
   return (
     <div className="relative min-h-svh bg-background">
       <AppAmbientBackground variant="subtle" />
-      <TvAppFocus className="relative z-10 flex min-h-svh min-w-0 flex-col">
+      <TvAppFocus className={cn("relative z-10 flex min-h-svh min-w-0", showTvShell ? "flex-row" : "flex-col")}>
         <TvBackNavigation />
-        {!hideAppChrome && <AppTopbar isAuthenticated={true} />}
+        {showTvShell ? <TvSidebar /> : null}
+        {!tvMode && <AppTopbar isAuthenticated={true} />}
         <main
-          className={cn("flex-1 md:pb-0", hideAppChrome ? "pb-0" : "pb-[calc(4rem+env(safe-area-inset-bottom,0px))]")}
+          className={cn(
+            "flex min-w-0 flex-1 flex-col md:pb-0",
+            showTvShell && "h-svh min-h-0 overflow-hidden",
+            hideMobileChrome ? "pb-0" : "pb-[calc(4rem+env(safe-area-inset-bottom,0px))]",
+          )}
         >
-          <Outlet />
+          {showTvShell ? (
+            <TvMainChrome>
+              <Outlet />
+            </TvMainChrome>
+          ) : (
+            <Outlet />
+          )}
         </main>
 
         <nav
           className={cn(
             "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom,0px)]",
-            hideAppChrome && "hidden",
+            (hideMobileChrome || tvMode) && "hidden",
           )}
         >
           <div className="flex items-center justify-around h-16">

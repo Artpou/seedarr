@@ -12,10 +12,10 @@ export function useMediaList(query: ListMediaQuery) {
   });
 }
 
-/** Flat “in progress” list — prefetched on movies/tv discover routes. */
-export function useSuspenseMediaInProgress(type: Media["type"]) {
+/** Flat downloaded library — in-progress first (API `libraryRankSql`), prefetched on discover. */
+export function useSuspenseMediaLibrary(type: Media["type"]) {
   return useSuspenseQuery({
-    ...mediaQueries.inProgress(type),
+    ...mediaQueries.library(type),
     refetchInterval: refetchLibraryInterval,
   });
 }

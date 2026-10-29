@@ -1,9 +1,14 @@
-import { isSubtitleFile } from "@seedarr/shared";
+import { isSubtitleFile, parseSeasonEpisode } from "@seedarr/shared";
 
 import { getDownloadFolderName, getDownloadsRoot, resolveWithinDownloads } from "@/shared/helpers/path.helper";
 
 import type { Download } from "@/modules/download/download.schema";
-import { listDownloadVideoSearchDirs } from "@/modules/download/paths.helper";
+import {
+  listDownloadVideoSearchDirs,
+  type PlaybackEpisodeScope,
+  type ResolvedLocalVideo,
+  resolveDownloadLocalVideo,
+} from "@/modules/download/paths.helper";
 import fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -26,6 +31,7 @@ export async function resolveSubtitleFileCandidates(download: Download, rawFileP
   const filePath = normalizeSubtitleRelativePath(rawFilePath);
   const candidates: string[] = [];
   const searchDirs = await listDownloadVideoSearchDirs(download);
+  const folderName = getDownloadFolderName(download);
 
   for (const root of searchDirs) {
     candidates.push(path.join(root, filePath));
@@ -34,7 +40,6 @@ export async function resolveSubtitleFileCandidates(download: Download, rawFileP
   }
 
   candidates.push(resolveWithinDownloads(filePath));
-  const folderName = getDownloadFolderName(download);
   if (folderName && !filePath.startsWith(`${folderName}/`) && filePath !== folderName) {
     candidates.push(resolveWithinDownloads(folderName, filePath));
   }
@@ -42,20 +47,37 @@ export async function resolveSubtitleFileCandidates(download: Download, rawFileP
   return [...new Set(candidates)];
 }
 
-/** List subtitle files on disk that are not already listed in torrent.files. */
-export async function listExternalSubtitlePaths(download: Download): Promise<string[]> {
+function subtitleRelativePathMatchesEpisode(
+  relativePath: string,
+  video: ResolvedLocalVideo,
+  scope: { season: number; episode: number },
+): boolean {
+  const parsed = parseSeasonEpisode(relativePath);
+  if (parsed) {
+    return parsed.season === scope.season && parsed.episode === scope.episode;
+  }
+
+  const videoBase = path.basename(video.fileName, path.extname(video.fileName));
+  const subBase = path.basename(relativePath).replace(/\.(srt|vtt|ass|ssa)$/i, "");
+  if (subBase === videoBase || subBase.startsWith(`${videoBase}.`)) {
+    return true;
+  }
+
+  const downloadsRoot = getDownloadsRoot();
+  const videoDirRel = path.relative(downloadsRoot, path.dirname(video.filePath)).replace(/\\/g, "/");
+  const subDir = relativePath.includes("/") ? relativePath.slice(0, relativePath.lastIndexOf("/")) : "";
+  return subDir === videoDirRel;
+}
+
+/** List side-loaded subtitle files on disk (includes paths also present in torrent metadata). */
+export async function listExternalSubtitlePaths(download: Download, scope?: PlaybackEpisodeScope): Promise<string[]> {
   const searchDirs = await listDownloadVideoSearchDirs(download);
   if (searchDirs.length === 0) return [];
 
   const downloadsRoot = getDownloadsRoot();
-  const folderName = getDownloadFolderName(download);
-  const torrentPaths = new Set(
-    (download.torrent?.files ?? [])
-      .filter((f) => isSubtitleFile(f.path))
-      .map((f) => path.join(folderName ?? "", f.path).replace(/\\/g, "/")),
-  );
-
   const collected: string[] = [];
+  const seen = new Set<string>();
+
   const scan = async (dir: string, relPrefix: string): Promise<void> => {
     let entries: import("node:fs").Dirent[];
     try {
@@ -69,9 +91,12 @@ export async function listExternalSubtitlePaths(download: Download): Promise<str
         await scan(full, relPrefix ? `${relPrefix}/${entry.name}` : entry.name);
         continue;
       }
+      if (!isSubtitleFile(entry.name)) continue;
       const rel = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
       const normalized = rel.replace(/\\/g, "/");
-      if (isSubtitleFile(entry.name) && !torrentPaths.has(normalized)) collected.push(normalized);
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+      collected.push(normalized);
     }
   };
 
@@ -80,6 +105,13 @@ export async function listExternalSubtitlePaths(download: Download): Promise<str
       ? path.relative(downloadsRoot, folderPath).replace(/\\/g, "/")
       : "";
     await scan(folderPath, relRoot);
+  }
+
+  if (scope?.season != null && scope.episode != null) {
+    const video = await resolveDownloadLocalVideo(download, scope);
+    if (!video) return [];
+    const episodeScope = { season: scope.season, episode: scope.episode };
+    return collected.filter((relativePath) => subtitleRelativePathMatchesEpisode(relativePath, video, episodeScope));
   }
 
   return collected;

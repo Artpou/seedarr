@@ -7,7 +7,7 @@ interface DiscoverSectionLabelProps {
   children: ReactNode;
 }
 
-/** Matches carousel section titles (e.g. Resume watching). */
+/** Matches carousel section titles (e.g. Downloaded). */
 export function DiscoverSectionLabel({ icon: Icon, children }: DiscoverSectionLabelProps) {
   return (
     <span className="flex flex-wrap items-center gap-2 text-lg">

@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { stringIdParamDto } from "@seedarr/contracts";
+import { streamingSubtitlesQueryDto, stringIdParamDto } from "@seedarr/contracts";
 import { stream } from "hono/streaming";
 
 import { streamingRateLimiter } from "@/shared/middlewares/rate-limiter.middleware";
@@ -29,10 +29,16 @@ export const streamingRoutes = StreamingService.createRouter()
     for (const [key, value] of Object.entries(headers)) c.header(key, value);
     return stream(c, pipe);
   })
-  .get("/:id/subtitles", zValidator("param", stringIdParamDto), async (c) => {
-    const download = await c.var.service.getDownload(c.req.valid("param").id);
-    return c.json(await c.var.service.listExternalSubtitles(download));
-  })
+  .get(
+    "/:id/subtitles",
+    zValidator("param", stringIdParamDto),
+    zValidator("query", streamingSubtitlesQueryDto),
+    async (c) => {
+      const download = await c.var.service.getDownload(c.req.valid("param").id);
+      const { season, episode } = c.req.valid("query");
+      return c.json(await c.var.service.listExternalSubtitles(download, { season, episode }));
+    },
+  )
   .get("/:id/subtitles/:path{.+}", async (c) => {
     const id = c.req.param("id");
     const filePath = c.req.param("path") ?? "";

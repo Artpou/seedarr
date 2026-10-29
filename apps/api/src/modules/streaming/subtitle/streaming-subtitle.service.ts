@@ -34,8 +34,11 @@ function toWebVtt(content: string, filePath: string): string {
 }
 
 export class StreamingSubtitleService {
-  async listExternalSubtitles(download: Download): Promise<{ paths: string[] }> {
-    return { paths: await listExternalSubtitlePaths(download) };
+  async listExternalSubtitles(
+    download: Download,
+    scope?: { season?: number; episode?: number },
+  ): Promise<{ paths: string[] }> {
+    return { paths: await listExternalSubtitlePaths(download, scope) };
   }
 
   /** Serve subtitle as WebVTT (SRT normalized) — movi-player parses client-side. */

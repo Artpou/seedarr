@@ -199,9 +199,9 @@ export function useTvPlayerKeys({ playerRef, active }: Options) {
           if (key === "Enter") {
             event.preventDefault();
             event.stopPropagation();
-            const delayBtn = getFocusedTvMoviMenuButton(player);
-            if (delayBtn?.closest("[data-seedarr-delay-row]")) {
-              delayBtn.click();
+            const focusedBtn = getFocusedTvMoviMenuButton(player);
+            if (focusedBtn?.closest("[data-seedarr-cc-extras]")) {
+              focusedBtn.click();
               return;
             }
             activateTvMoviMenuItem(player, menuFocusIndexRef.current);

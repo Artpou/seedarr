@@ -4,33 +4,12 @@ import { type UseFocusableConfig, useFocusable } from "@noriginmedia/norigin-spa
 
 import { cn } from "@/lib/utils";
 
+import { scrollTvFocusIfNeeded } from "@/features/tv-mode/tv-focus-scroll.helper";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { isTvSidebarNavFocusKey, useTvSidebarStore } from "@/features/tv-mode/tv-sidebar-store";
 
 /** Focus visuals live in `styles.css` under `html[data-tv]` (inset highlight, follows border-radius). */
 const tvFocusTargetClass = cn("outline-none transition-[box-shadow,background-color,border-color,color] duration-150");
-
-const VIEW_BOTTOM_PADDING = 24;
-
-function tvTopbarScrollInset(): number {
-  const header = document.querySelector('[data-slot="app-topbar"]');
-  if (header instanceof HTMLElement) {
-    return header.getBoundingClientRect().height + 12;
-  }
-  return 72;
-}
-
-/** Scroll only when the focus target leaves the safe band; align under the topbar, not at the bottom. */
-function scrollTvFocusIfNeeded(el: HTMLElement): void {
-  const topInset = tvTopbarScrollInset();
-  const rect = el.getBoundingClientRect();
-  const safeBottom = window.innerHeight - VIEW_BOTTOM_PADDING;
-
-  if (rect.top >= topInset && rect.bottom <= safeBottom) {
-    return;
-  }
-
-  el.scrollIntoView({ block: "start", inline: "nearest", behavior: "smooth" });
-}
 
 type TvFocusableConfig<P = unknown> = UseFocusableConfig<P> & {
   onFocused?: () => void;
@@ -49,7 +28,17 @@ export function useTvFocusable<P = unknown>(config: TvFocusableConfig<P>) {
     onFocused?.();
 
     const focusKey = focusableConfig.focusKey;
-    if (typeof focusKey === "string" && focusKey.startsWith("NAV-")) {
+    if (typeof focusKey === "string") {
+      if (isTvSidebarNavFocusKey(focusKey)) {
+        useTvSidebarStore.getState().setExpanded(true);
+        return;
+      }
+      useTvSidebarStore.getState().setExpanded(false);
+      useTvSidebarStore.getState().setLastContentFocusKey(focusKey);
+    }
+
+    const skipScroll = useTvSidebarStore.getState().consumePendingContentFocusRestore();
+    if (skipScroll) {
       return;
     }
 

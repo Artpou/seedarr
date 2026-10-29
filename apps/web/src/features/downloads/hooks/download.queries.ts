@@ -8,7 +8,6 @@ import ms from "ms";
 import { toast } from "sonner";
 
 import { translateDownloadError } from "@/features/downloads/helpers/download-error.helper";
-import { hasFiles } from "@/features/downloads/helpers/downloads.helper";
 import { mediaQueries } from "@/features/media/hooks/media.queries";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
@@ -61,7 +60,7 @@ export const downloadQueries = {
           }),
         ),
       refetchInterval: ({ state }) => refetchDownloadsByMediaInterval({ state }),
-      enabled: hasFiles(media.download),
+      enabled: Boolean(media?.id),
     }),
   videoFile: (id: string) =>
     queryOptions({

@@ -12,6 +12,10 @@ export function tvTorrentsFocusKey(mediaId: number | string): string {
   return `TORRENTS-${mediaId}`;
 }
 
+export function tvEpisodeRowFocusKey(tvId: number | string, season: number, episode: number): string {
+  return `TV-EPISODE-${tvId}-${season}-${episode}`;
+}
+
 export function tvTorrentRowFocusKey(mediaId: number | string, rowId: string): string {
   return `TORRENT-ROW-${mediaId}-${rowId}`;
 }
@@ -91,9 +95,13 @@ export function tvDetailInitialFocusKey(options: {
   mediaId: number | string;
   downloadId?: string;
   isViewer: boolean;
+  tvFirstSeason?: number;
 }): string {
   if (options.downloadId) return tvPlayFocusKey(options.downloadId);
   if (options.isViewer) return tvRequestFocusKey(options.mediaId, options.mediaType);
+  if (options.mediaType === "tv") {
+    return `TV-SEASON-${options.mediaId}-${options.tvFirstSeason ?? 1}`;
+  }
   return tvTorrentsFocusKey(options.mediaId);
 }
 

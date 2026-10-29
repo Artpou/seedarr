@@ -349,6 +349,28 @@ function notifySubtitlePreferences(player: MoviPlayerHandle, opts: CcExtrasOpts)
   });
 }
 
+function injectDesktopSubtitleMenuLayoutStyle(player: MoviPlayerHandle): void {
+  const root = player.shadowRoot;
+  if (!root || root.getElementById("seedarr-desktop-subtitle-menu-style")) return;
+
+  const style = document.createElement("style");
+  style.id = "seedarr-desktop-subtitle-menu-style";
+  style.textContent = `
+    .movi-subtitle-track-menu {
+      min-width: 20rem !important;
+      width: max(20rem, 100%) !important;
+    }
+    [data-seedarr-delay-row] {
+      flex-wrap: nowrap !important;
+    }
+    [data-seedarr-delay-controls] {
+      flex-wrap: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+  `;
+  root.appendChild(style);
+}
+
 /** Inject Add / Delay controls into movi-player's CC menu (native delay UI is file-source only). */
 function injectCcExtras(player: MoviPlayerHandle, opts: CcExtrasOpts): void {
   const labels = { ...DEFAULT_CC_LABELS, ...opts.labels };
@@ -384,6 +406,7 @@ function injectCcExtras(player: MoviPlayerHandle, opts: CcExtrasOpts): void {
       e.stopPropagation();
       opts.onAddSubtitles?.();
     });
+    btn.dataset.seedarrCcFocus = "true";
     wrap.appendChild(btn);
   }
 
@@ -402,7 +425,7 @@ function injectCcExtras(player: MoviPlayerHandle, opts: CcExtrasOpts): void {
     controls.dataset.seedarrDelayControls = "true";
     controls.style.cssText = tv
       ? "display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center;gap:0.35rem;width:100%;"
-      : "display:flex;align-items:center;gap:0.25rem;flex-wrap:wrap;justify-content:flex-end;";
+      : "display:flex;align-items:center;gap:0.25rem;flex-wrap:nowrap;justify-content:flex-end;flex-shrink:0;";
 
     const readout = document.createElement("span");
     readout.style.cssText = tv
@@ -499,6 +522,9 @@ export function ensureCcMenuAvailable(player: MoviPlayerHandle, opts: CcExtrasOp
     }
 
     injectCcExtras(player, opts);
+    if (!opts.tv) {
+      injectDesktopSubtitleMenuLayoutStyle(player);
+    }
     observeCcMenuSeekBlock(player);
     installExternalSubtitleOffset(player);
 

@@ -20,8 +20,6 @@ import { Button } from "@/shared/ui/button";
 import { TvRouterLink } from "@/shared/ui/tv/tv-router-link";
 
 import { useAuth } from "@/features/auth/auth-store";
-import { DownloadButtonSynchronize } from "@/features/downloads/components/button/download-button-synchronize";
-import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import { validateSearchRouteSearch } from "@/routes/helpers/search-route.helper";
 
 interface AppTopbarProps {
@@ -31,7 +29,6 @@ interface AppTopbarProps {
 const PROFILE_LINK = msg({ id: "nav.profile", message: "Profile" });
 
 function LogoLink() {
-  const tvMode = useTvMode();
   const className = "group flex shrink-0 items-center gap-2";
   const branding = (
     <>
@@ -43,10 +40,6 @@ function LogoLink() {
       <span className="hidden lg:block text-lg font-semibold">Seedarr</span>
     </>
   );
-
-  if (tvMode) {
-    return <div className={className}>{branding}</div>;
-  }
 
   return (
     <TvRouterLink tvFocusKey="NAV-LOGO" to="/movies" search={{}} accessibilityLabel="Seedarr" className={className}>
@@ -103,7 +96,6 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
   const currentUser = useAuth((s) => s.user);
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
-  const tvMode = useTvMode();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -117,7 +109,6 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
   const isProfileActive = location.pathname.startsWith("/user");
   const mobileMode = getTopbarMode(location.pathname, currentUser?.id, location.search as Record<string, unknown>);
   const profileUserId = typeof params.id === "string" ? params.id : currentUser?.id;
-  const tvLibraryTopbar = tvMode && (location.pathname === "/downloads" || location.pathname === "/downloads/");
 
   const handleMobileBack = () => {
     if (mobileMode === "search") {
@@ -194,50 +185,6 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
                 </>
               )}
             </div>
-          ) : tvMode ? (
-            <>
-              <div className="flex min-w-0 shrink-0 items-center gap-4">
-                <LogoLink />
-                <nav
-                  className="flex items-center gap-1 rounded-full border border-border bg-background/35 p-1 shadow-sm"
-                  aria-label={t`Main`}
-                >
-                  {APP_NAV_ITEMS.map((item) => {
-                    const isActive = location.pathname.startsWith(item.url);
-                    return (
-                      <Navlink
-                        key={item.url}
-                        to={item.url}
-                        search={{ mode: "tv" }}
-                        isActive={isActive}
-                        icon={item.icon}
-                        label={<Trans id={item.title.id} />}
-                      />
-                    );
-                  })}
-                </nav>
-              </div>
-              <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-                <TopbarRouteSearch classNameWrapper="min-w-0 w-full max-w-xl flex-1" />
-                {tvLibraryTopbar && <DownloadButtonSynchronize topbar />}
-                {currentUser && (
-                  <TvRouterLink
-                    tvFocusKey={`NAV-/user/$id-${currentUser.id}`}
-                    to="/user/$id"
-                    params={{ id: currentUser.id }}
-                    search={{ mode: "tv" }}
-                    data-slot="nav-link"
-                    accessibilityLabel={t(PROFILE_LINK)}
-                    className={cn(
-                      "relative flex size-10 shrink-0 items-center justify-center rounded-full border border-border transition-colors",
-                      isProfileActive ? "bg-primary/50" : "hover:bg-input",
-                    )}
-                  >
-                    <UserIcon className="size-5 shrink-0 opacity-90" aria-hidden />
-                  </TvRouterLink>
-                )}
-              </div>
-            </>
           ) : (
             <>
               <div className="flex min-w-0 items-center gap-6">

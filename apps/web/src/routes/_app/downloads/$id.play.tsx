@@ -17,16 +17,20 @@ function validatePlaySearch(search: Record<string, unknown>): { season?: number;
 
 export const Route = createFileRoute("/_app/downloads/$id/play")({
   validateSearch: validatePlaySearch,
-  loader: async ({ context, params }) => {
+  loader: async ({ context, params, location }) => {
     // Start fetching the WASM player chunk while route data loads.
     preloadMoviPlayer();
 
     const download = await context.queryClient.ensureQueryData(downloadQueries.details(params.id));
     if (!download?.mediaId) throw new Error("Media ID not found");
 
+    const search = validatePlaySearch((location.search ?? {}) as Record<string, unknown>);
+    const subtitleScope =
+      search.season != null && search.episode != null ? { season: search.season, episode: search.episode } : undefined;
+
     await Promise.all([
       context.queryClient.ensureQueryData(downloadQueries.playbackInfo(params.id)),
-      context.queryClient.ensureQueryData(subtitleQueries.external(params.id)),
+      context.queryClient.ensureQueryData(subtitleQueries.external(params.id, subtitleScope)),
       // Always refetch — ensureQueryData would return stale progress from cache.
       context.queryClient.fetchQuery(mediaQueries.details(download.mediaId)),
     ]);

@@ -3,12 +3,13 @@ import { useMemo, useState } from "react";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
-import type { SubdlSubtitle } from "@seedarr/sdk";
+import type { Media, SubdlSubtitle } from "@seedarr/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { CheckIcon, DownloadIcon, StarIcon, SubtitlesIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Flag } from "@/shared/components/flag";
+import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { Select } from "@/shared/components/select/select";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
@@ -18,6 +19,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
 
 import { getTorrentFiles } from "@/features/downloads/helpers/downloads.helper";
+import type { SubtitlePlaybackScope } from "@/features/downloads/helpers/subtitle-tracks.helper";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
 import { useTvBackIntercept } from "@/features/tv-mode/tv-back-intercept";
 import { tvSubtitleLangFocusPrefix, tvSubtitleRowFocusKey } from "@/features/tv-mode/tv-focus-keys";
@@ -52,6 +54,10 @@ export interface SubtitleSearchDialogProps {
   tmdbId: string;
   downloadId: string;
   mediaTitle: string;
+  mediaType?: Media["type"];
+  season?: number;
+  episode?: number;
+  subtitleScope?: SubtitlePlaybackScope;
 }
 
 export function SubtitleSearchDialog({
@@ -60,6 +66,10 @@ export function SubtitleSearchDialog({
   tmdbId,
   downloadId,
   mediaTitle,
+  mediaType,
+  season,
+  episode,
+  subtitleScope,
 }: SubtitleSearchDialogProps) {
   const { t } = useLingui();
   const tvMode = useTvMode();
@@ -67,11 +77,11 @@ export function SubtitleSearchDialog({
   const langFocusPrefix = tvSubtitleLangFocusPrefix(downloadId);
 
   const { data, isLoading, error } = useQuery({
-    ...subtitleQueries.search(tmdbId, language),
+    ...subtitleQueries.search(tmdbId, language, mediaType === "tv" ? "tv" : undefined),
     enabled: open,
   });
   const { data: externalSubtitles } = useQuery({
-    ...subtitleQueries.external(downloadId),
+    ...subtitleQueries.external(downloadId, subtitleScope),
     enabled: open,
   });
   const { data: download } = useQuery({
@@ -111,10 +121,24 @@ export function SubtitleSearchDialog({
   useTvBackIntercept(tvMode && open, () => onOpenChange(false));
   useTvInitialFocus(tvMode && open ? `${langFocusPrefix}-${language}` : undefined);
 
-  const handleDownload = (input: { downloadId: string; url: string; language: string; mediaTitle: string }): void => {
-    downloadSubtitle.mutate(input, {
-      onSuccess: () => onOpenChange(false),
-    });
+  const handleDownload = (input: {
+    downloadId: string;
+    url: string;
+    language: string;
+    mediaTitle: string;
+    season?: number;
+    episode?: number;
+  }): void => {
+    downloadSubtitle.mutate(
+      {
+        ...input,
+        ...(season != null ? { season } : {}),
+        ...(episode != null ? { episode } : {}),
+      },
+      {
+        onSuccess: () => onOpenChange(false),
+      },
+    );
   };
 
   return (
@@ -140,36 +164,13 @@ export function SubtitleSearchDialog({
               <Trans>Language</Trans>
             </Label>
             {tvMode ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                {SUBDL_LANGUAGE_CODES.map((code) => (
-                  <Button
-                    key={code}
-                    type="button"
-                    variant={language === code ? "default" : "secondary"}
-                    size="lg"
-                    className="h-auto min-w-0 justify-start gap-2 px-3 py-2.5"
-                    onClick={() => setLanguage(code)}
-                    tv={{
-                      focusKey: `${langFocusPrefix}-${code}`,
-                      onPress: () => setLanguage(code),
-                      onFocused: () => setLanguage(code),
-                      accessibilityLabel: t(SUBDL_LANGUAGE_LABELS[code]),
-                      onArrowPress: (direction) => {
-                        if (direction !== "down" || !firstRowFocusKey || isLoading || error) return true;
-                        setFocus(firstRowFocusKey);
-                        return false;
-                      },
-                    }}
-                  >
-                    <SubtitleLanguageOptionLabel
-                      code={code}
-                      name={t(SUBDL_LANGUAGE_LABELS[code])}
-                      alreadyAdded={addedLanguages.has(code)}
-                      tvMode
-                    />
-                  </Button>
-                ))}
-              </div>
+              <ResponsiveTabs
+                value={language}
+                onValueChange={setLanguage}
+                options={languageOptions}
+                tvFocusKeyPrefix={langFocusPrefix}
+                tvGetDownFocusKey={firstRowFocusKey && !isLoading && !error ? () => firstRowFocusKey : undefined}
+              />
             ) : (
               <Select value={language} onValueChange={setLanguage} options={languageOptions} />
             )}

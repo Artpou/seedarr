@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getBackdropUrl,
+  getMediaCardLinkOptions,
   getMediaType,
   getPosterUrl,
   getRemainingTime,
@@ -10,6 +11,7 @@ import {
   hasWatchProgress,
   isActiveDownload,
   isMediaWatched,
+  sortDownloadedLibraryCarousel,
 } from "./media.helper";
 
 describe("media.helper", () => {
@@ -26,6 +28,20 @@ describe("media.helper", () => {
     expect(getMediaType("tv")).toBe("tv");
     expect(getMediaType("other")).toBeUndefined();
     expect(getMediaType(1)).toBeUndefined();
+  });
+
+  it("links downloaded media to play and preserves tv mode", () => {
+    const movie = { id: 1, type: "movie", download: { id: "dl-1" } } as never;
+    expect(getMediaCardLinkOptions(movie)).toEqual({ to: "/downloads/$id/play", params: { id: "dl-1" } });
+    expect(getMediaCardLinkOptions(movie, { tvMode: true })).toEqual({
+      to: "/downloads/$id/play",
+      params: { id: "dl-1" },
+      search: { mode: "tv" },
+    });
+    expect(getMediaCardLinkOptions({ id: 2, type: "tv" } as never)).toEqual({
+      to: "/tv/$id",
+      params: { id: "2" },
+    });
   });
 
   it("computes watch progress helpers", () => {
@@ -57,5 +73,16 @@ describe("media.helper", () => {
         pageParams: [],
       } as never),
     ).toBe(true);
+  });
+
+  it("sorts started watching before idle downloads", () => {
+    const started = { id: 2, progress: { position: 120, duration: 3600 }, download: { torrent: { done: true } } };
+    const idle = {
+      id: 1,
+      progress: { position: 0, duration: 0 },
+      download: { torrent: { done: false, paused: true } },
+    };
+    const sorted = sortDownloadedLibraryCarousel([idle, started] as never);
+    expect(sorted.map((m) => m.id)).toEqual([2, 1]);
   });
 });

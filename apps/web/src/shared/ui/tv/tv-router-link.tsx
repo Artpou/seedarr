@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import type { TvFocusTarget } from "./tv-focusable";
 import { TvFocusable } from "./tv-focusable";
 
 type TvRouterLinkProps = {
@@ -13,6 +14,7 @@ type TvRouterLinkProps = {
   className?: string;
   children: ReactNode;
   accessibilityLabel?: string;
+  onArrowPress?: TvFocusTarget["onArrowPress"];
   "data-slot"?: string;
 } & Omit<React.ComponentProps<"a">, "href" | "children">;
 
@@ -25,6 +27,7 @@ export function TvRouterLink({
   className,
   children,
   accessibilityLabel,
+  onArrowPress,
   "data-slot": dataSlot,
 }: TvRouterLinkProps) {
   const tvMode = useTvMode();
@@ -41,7 +44,7 @@ export function TvRouterLink({
 
   return (
     <TvFocusable
-      tv={{ focusKey: tvFocusKey, onPress: go, accessibilityLabel }}
+      tv={{ focusKey: tvFocusKey, onPress: go, accessibilityLabel, onArrowPress }}
       className={className}
       role="link"
       data-slot={dataSlot}

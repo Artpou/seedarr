@@ -7,7 +7,7 @@ import { signToken } from "@/shared/helpers/crypto.helper";
 import { logger } from "@/shared/helpers/logger.helper";
 import { listPage } from "@/shared/helpers/pagination.helper";
 import type { Paginate } from "@/shared/helpers/pagination.types";
-import { resolveTorrentStorePath } from "@/shared/helpers/path.helper";
+import { removeLocalLibraryPath, resolveTorrentStorePath } from "@/shared/helpers/path.helper";
 import { IdentifiableService } from "@/shared/services/authenticated.service";
 
 import { ROLE_LEVELS } from "@/modules/auth/role.guard";
@@ -423,10 +423,15 @@ export class DownloadService extends IdentifiableService<Download> {
 
     if (scope === "all" || scope === "remote") {
       if (item.remoteLocation && !options?.unlink) {
-        remoteStorageService
-          .remove(item.remoteLocation)
-          .then(() => logger.info("DOWNLOAD", `Deleted remote file: ${item.remoteLocation}`))
-          .catch((err) => logger.warn("DOWNLOAD", `Failed to delete remote file: ${err}`));
+        const removedLocal = await removeLocalLibraryPath(item.remoteLocation).catch(() => false);
+        if (removedLocal) {
+          logger.info("DOWNLOAD", `Deleted local library path: ${item.remoteLocation}`);
+        } else {
+          remoteStorageService
+            .remove(item.remoteLocation)
+            .then(() => logger.info("DOWNLOAD", `Deleted remote file: ${item.remoteLocation}`))
+            .catch((err) => logger.warn("DOWNLOAD", `Failed to delete remote file: ${err}`));
+        }
       }
     }
 

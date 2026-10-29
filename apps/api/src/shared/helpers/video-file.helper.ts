@@ -50,6 +50,27 @@ export async function findLargestVideoInDirectory(rootDir: string): Promise<Larg
   return pickLargestBySize(videos, (v) => v.size) ?? null;
 }
 
+/** All video files under `rootDir` (recursive). */
+export async function findAllVideosInDirectory(rootDir: string): Promise<LargestVideoFile[]> {
+  const restrictToDownloads = isUnderDownloads(rootDir);
+  const entries = await fs.readdir(rootDir, { recursive: true, withFileTypes: true });
+  const videos = await Promise.all(
+    entries
+      .filter((entry) => entry.isFile() && VIDEO_EXTENSIONS.test(entry.name))
+      .map(async (entry) => {
+        const filePath = path.join(entry.parentPath || rootDir, entry.name);
+        if (restrictToDownloads) {
+          assertWithinDownloads(filePath);
+        } else {
+          assertWithinRoot(rootDir, filePath);
+        }
+        const size = (await fs.stat(filePath)).size;
+        return { filePath, fileName: entry.name, size };
+      }),
+  );
+  return videos;
+}
+
 /** Pick largest video entry from an in-memory list (torrent files, remote listing…). */
 export function pickLargestVideoFromEntries<T extends { name: string; length: number }>(files: T[]): T | undefined {
   const videos = files.filter((f) => VIDEO_EXTENSIONS.test(f.name));

@@ -57,7 +57,27 @@ describe("subtitle-tracks.helper", () => {
     expect(tracks[0]?.src).not.toContain("downloads");
   });
 
-  it("prefers blob URLs after successful prefetch", async () => {
+  it("scopes external tracks to the playing TV episode", () => {
+    const download = {
+      id: "dl-tv",
+      torrent: {
+        files: [
+          { name: "Show.S35E08.mkv", path: "Pack/Show.S35E08.mkv", length: 100 },
+          { name: "Show.S35E09.mkv", path: "Pack/Show.S35E09.mkv", length: 100 },
+        ],
+      },
+    } as never;
+
+    const tracks = buildSubtitleTracks(download, ["Pack/Show.S35E08.FR.srt", "Pack/Show.S35E09.ES.srt"], {
+      season: 35,
+      episode: 8,
+    });
+
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]?.src).toContain(encodeURIComponent("Pack/Show.S35E08.FR.srt"));
+  });
+
+  it("fetches subtitle text and builds blob URLs for movi", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({

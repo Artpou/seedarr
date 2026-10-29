@@ -5,6 +5,9 @@ import type { TorrentLiveData } from "@/modules/download/download.schema";
 import { download } from "@/modules/download/download.schema";
 import { media } from "@/modules/media/media.schema";
 import { createTestDb, sampleTorrent, seedTestUser, testDbRef } from "@/tests/test.helper";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { DownloadService } from "./download.service";
 
 const { isEnabled, isAvailable, listFiles, remove, pauseTorrent, destroyLocalTorrentFiles } = vi.hoisted(() => ({
@@ -193,6 +196,40 @@ describe("DownloadService", () => {
     const row = await testDbRef.current.query.download.findFirst({ where: eq(download.id, "dl-1") });
     expect(row).toBeUndefined();
     expect(destroyLocalTorrentFiles).toHaveBeenCalled();
+  });
+
+  it("delete remote scope removes local synced folder under DOWNLOADS_PATH", async () => {
+    const downloadsRoot = await fs.mkdtemp(path.join(os.tmpdir(), "seedarr-dl-root-"));
+    const previousDownloadsPath = process.env.DOWNLOADS_PATH;
+    process.env.DOWNLOADS_PATH = downloadsRoot;
+
+    const folder = path.join(downloadsRoot, "Avatar Aang The Last Airbender (2026)");
+    await fs.mkdir(folder);
+    await fs.writeFile(path.join(folder, "movie.mkv"), "video");
+
+    testDbRef.current.insert(media).values({ id: 980431, type: "movie", title: "Aang", imdbId: "tt1" }).run();
+    testDbRef.current
+      .insert(download)
+      .values({
+        id: "dl-local-sync",
+        userId: user.id,
+        mediaId: 980431,
+        origin: "remote-sync",
+        remoteLocation: folder,
+        torrent: null,
+        createdAt: new Date(),
+      })
+      .run();
+
+    await expect(service.delete("dl-local-sync", { scope: "remote" })).resolves.toEqual({ success: true });
+
+    const row = await testDbRef.current.query.download.findFirst({ where: eq(download.id, "dl-local-sync") });
+    expect(row).toBeUndefined();
+    await expect(fs.access(folder)).rejects.toThrow();
+    expect(remove).not.toHaveBeenCalled();
+
+    if (previousDownloadsPath === undefined) delete process.env.DOWNLOADS_PATH;
+    else process.env.DOWNLOADS_PATH = previousDownloadsPath;
   });
 
   it("batchDelete skips foreign downloads for members", async () => {

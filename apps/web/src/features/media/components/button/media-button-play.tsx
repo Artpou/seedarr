@@ -20,6 +20,8 @@ interface MediaButtonPlayProps extends ButtonProps {
   episode?: number;
   circular?: boolean;
   iconOnly?: boolean;
+  /** When false, episode rows own spatial focus (TV). */
+  spatialNav?: boolean;
 }
 
 export const MediaButtonPlay = ({
@@ -30,6 +32,7 @@ export const MediaButtonPlay = ({
   className,
   circular = false,
   iconOnly = false,
+  spatialNav = true,
   ...props
 }: MediaButtonPlayProps) => {
   const { t } = useLingui();
@@ -57,7 +60,7 @@ export const MediaButtonPlay = ({
   };
 
   const tv: TvFocusTarget | undefined =
-    tvMode && playDownloadId
+    tvMode && playDownloadId && spatialNav
       ? { focusKey: tvPlayFocusKey(playDownloadId), onPress: goPlay, accessibilityLabel: t`Play` }
       : undefined;
 

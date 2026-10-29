@@ -40,7 +40,7 @@ export function prefetchDiscoverRouteQueries(
   search: DiscoverRouteSearch,
   locale: string,
 ): Promise<unknown>[] {
-  const prefetch: Promise<unknown>[] = [context.queryClient.ensureQueryData(mediaQueries.inProgress(type))];
+  const prefetch: Promise<unknown>[] = [context.queryClient.ensureQueryData(mediaQueries.library(type))];
 
   if (isScopedDiscoverSearch(search)) {
     if (type === "movie") {

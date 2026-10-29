@@ -1,7 +1,13 @@
-import { buildOrganizedRemotePath, extractYearFromDate, VIDEO_EXTENSIONS } from "@seedarr/shared";
+import {
+  buildOrganizedRemotePath,
+  extractYearFromDate,
+  parseSeasonEpisode,
+  pickLargestBySize,
+  VIDEO_EXTENSIONS,
+} from "@seedarr/shared";
 
 import { getDownloadFolderName, resolveDownloadStagingPath } from "@/shared/helpers/path.helper";
-import { findLargestVideoInDirectory } from "@/shared/helpers/video-file.helper";
+import { findAllVideosInDirectory, findLargestVideoInDirectory } from "@/shared/helpers/video-file.helper";
 
 import type { Download } from "@/modules/download/download.schema";
 import {
@@ -72,6 +78,16 @@ export type ResolvedLocalVideo = {
   size: number;
 };
 
+export type PlaybackEpisodeScope = {
+  season?: number;
+  episode?: number;
+};
+
+function videoMatchesEpisodeScope(video: ResolvedLocalVideo, scope: { season: number; episode: number }): boolean {
+  const parsed = parseSeasonEpisode(video.fileName) ?? parseSeasonEpisode(video.filePath);
+  return parsed?.season === scope.season && parsed?.episode === scope.episode;
+}
+
 /** Ordered directories to search for video files (library paths before staging). */
 export async function listDownloadVideoSearchDirs(download: Download): Promise<string[]> {
   const folderName = getDownloadFolderName(download);
@@ -125,8 +141,23 @@ async function resolveVideoAtPath(fullPath: string): Promise<ResolvedLocalVideo 
 }
 
 /** Resolve largest local video: HARDLINK typed path → HARDLINK root → DOWNLOADS staging. */
-export async function resolveDownloadLocalVideo(download: Download): Promise<ResolvedLocalVideo | null> {
+export async function resolveDownloadLocalVideo(
+  download: Download,
+  scope?: PlaybackEpisodeScope,
+): Promise<ResolvedLocalVideo | null> {
   const searchDirs = await listDownloadVideoSearchDirs(download);
+
+  if (scope?.season != null && scope.episode != null) {
+    const episodeScope = { season: scope.season, episode: scope.episode };
+    for (const dir of searchDirs) {
+      const matches = (await findAllVideosInDirectory(dir)).filter((video) =>
+        videoMatchesEpisodeScope(video, episodeScope),
+      );
+      const picked = pickLargestBySize(matches, (video) => video.size);
+      if (picked) return picked;
+    }
+  }
+
   for (const dir of searchDirs) {
     const resolved = await resolveVideoAtPath(dir);
     if (resolved) return resolved;
