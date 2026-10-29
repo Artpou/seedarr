@@ -96,6 +96,10 @@ export const watchProgress = sqliteTable(
     position: integer("position").notNull().default(0),
     duration: integer("duration").notNull().default(0),
     completed: integer("completed", { mode: "boolean" }).notNull().default(false),
+    /** Subtitle sync offset in seconds (movi-player `subtitleDelay`). */
+    subtitleDelay: real("subtitleDelay").notNull().default(0),
+    /** Active track key — `/streaming/.../subtitles/` path suffix or blob URL fingerprint. */
+    subtitleTrackSrc: text("subtitleTrackSrc"),
     updatedAt: integer("updatedAt", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),

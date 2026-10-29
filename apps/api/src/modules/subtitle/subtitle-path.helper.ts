@@ -7,9 +7,23 @@ import { listDownloadVideoSearchDirs } from "@/modules/download/paths.helper";
 import fs from "node:fs/promises";
 import * as path from "node:path";
 
+/** Strip accidental `downloads/` prefix and normalize slashes (torrent + request paths). */
+export function normalizeSubtitleRelativePath(rawFilePath: string): string {
+  let filePath = rawFilePath.replace(/\\/g, "/").trim();
+  try {
+    filePath = decodeURIComponent(filePath);
+  } catch {
+    // already decoded (Hono path param)
+  }
+  if (filePath.startsWith("downloads/")) {
+    filePath = filePath.slice("downloads/".length);
+  }
+  return filePath;
+}
+
 /** Absolute candidate paths for a subtitle file (library dirs, then staging). */
 export async function resolveSubtitleFileCandidates(download: Download, rawFilePath: string): Promise<string[]> {
-  const filePath = decodeURIComponent(rawFilePath);
+  const filePath = normalizeSubtitleRelativePath(rawFilePath);
   const candidates: string[] = [];
   const searchDirs = await listDownloadVideoSearchDirs(download);
 

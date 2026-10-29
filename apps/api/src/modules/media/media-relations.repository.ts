@@ -90,11 +90,17 @@ export const mediaRelationsRepository = {
   updateProgress: async (
     userId: string,
     mediaId: number,
-    input: { downloadId?: string; position: number; duration: number },
+    input: {
+      downloadId?: string;
+      position: number;
+      duration: number;
+      subtitleDelay?: number;
+      subtitleTrackSrc?: string | null;
+    },
   ): Promise<void> => {
     if (input.downloadId) await downloadRepository.get(input.downloadId);
 
-    const update = {
+    const base = {
       userId,
       downloadId: input.downloadId ?? null,
       position: input.position,
@@ -104,10 +110,20 @@ export const mediaRelationsRepository = {
       updatedAt: new Date(),
     };
 
+    const set = {
+      ...base,
+      ...(input.subtitleDelay !== undefined ? { subtitleDelay: input.subtitleDelay } : {}),
+      ...(input.subtitleTrackSrc !== undefined ? { subtitleTrackSrc: input.subtitleTrackSrc } : {}),
+    };
+
     await db
       .insert(watchProgress)
-      .values(update)
-      .onConflictDoUpdate({ target: [watchProgress.userId, watchProgress.mediaId], set: update });
+      .values({
+        ...base,
+        subtitleDelay: input.subtitleDelay ?? 0,
+        subtitleTrackSrc: input.subtitleTrackSrc ?? null,
+      })
+      .onConflictDoUpdate({ target: [watchProgress.userId, watchProgress.mediaId], set });
   },
 
   applyUserReview: async (

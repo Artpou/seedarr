@@ -21,6 +21,8 @@ const mediaSchema = mediaSelectSchema.extend({
       duration: true,
       downloadId: true,
       completed: true,
+      subtitleDelay: true,
+      subtitleTrackSrc: true,
       updatedAt: true,
     })
     .optional(),

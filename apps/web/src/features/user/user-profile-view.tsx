@@ -29,6 +29,7 @@ import { mediaQueries } from "@/features/media/hooks/media.queries";
 import { RequestCarousel } from "@/features/request/components/request-carousel";
 import { requestQueries } from "@/features/request/hooks/request.queries";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
+import { ProfilePageNav } from "@/features/user/components/profile-page-nav";
 import { UserAvatar } from "@/features/user/components/user-avatar";
 import { UserProfileStats } from "@/features/user/components/user-profile-stats";
 import { userQueries } from "@/features/user/hooks/user.queries";
@@ -178,7 +179,8 @@ export function UserProfileView({ userId: id, search }: UserProfileViewProps) {
       )}
 
       {mobileOwnProfile && (
-        <div className="mb-2">
+        <div className="mb-2 space-y-2">
+          <ProfilePageNav userId={id} />
           <UserProfileStats userId={id} />
         </div>
       )}

@@ -102,7 +102,7 @@ export function LibraryStats() {
       {hasStorage ? (
         <StatSurfaceGlow className="flex flex-col justify-center gap-4 p-4">
           {stats.storage.local && <StorageBar space={stats.storage.local} kind="local" />}
-          {stats.storage.local && <StorageBar space={stats.storage.local} kind="remote" />}
+          {stats.storage.remote && <StorageBar space={stats.storage.remote} kind="remote" />}
         </StatSurfaceGlow>
       ) : null}
 

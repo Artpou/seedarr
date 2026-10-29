@@ -3,8 +3,13 @@ import { isSubtitleFile } from "@seedarr/shared";
 import { BadRequestError, NotFoundError } from "@/shared/errors/error";
 
 import type { Download } from "@/modules/download/download.schema";
-import { listExternalSubtitlePaths, resolveSubtitleFileCandidates } from "@/modules/subtitle/subtitle-path.helper";
+import {
+  listExternalSubtitlePaths,
+  normalizeSubtitleRelativePath,
+  resolveSubtitleFileCandidates,
+} from "@/modules/subtitle/subtitle-path.helper";
 import fs from "node:fs/promises";
+import * as nodePath from "node:path";
 
 function contentTypeForSubtitle(filePath: string): string {
   const lower = filePath.toLowerCase();
@@ -35,8 +40,8 @@ export class StreamingSubtitleService {
 
   /** Serve subtitle as WebVTT (SRT normalized) — movi-player parses client-side. */
   async getSubtitleFile(download: Download, rawFilePath: string): Promise<{ content: string; contentType: string }> {
-    const filePath = decodeURIComponent(rawFilePath);
-    if (!isSubtitleFile(filePath)) {
+    const filePath = normalizeSubtitleRelativePath(rawFilePath);
+    if (!isSubtitleFile(nodePath.basename(filePath))) {
       throw new BadRequestError("Only .srt, .vtt, .ass and .ssa files are supported");
     }
 

@@ -20,6 +20,8 @@ import { MediaServer } from "@/features/media/components/media-server";
 import { MediaSocialActions } from "@/features/media/components/media-social-actions";
 import { MediaSheetInfo } from "@/features/media/components/sheet/media-sheet-info";
 import { getBackdropUrl, getPosterUrl } from "@/features/media/helpers/media.helper";
+import { tvMediaDownloadPanelFocusKey } from "@/features/media/helpers/tv-media-download-focus.helper";
+import { useStorageModule } from "@/features/module/hooks/use-module";
 import { tvMediaDetailTabFocusPrefix } from "@/features/tv-mode/tv-focus-keys";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
@@ -48,6 +50,7 @@ export function MediaDetailView({
   const { theme } = useTheme();
   const isMobile = useIsMobile();
   const tvMode = useTvMode();
+  const { isEnabled: storageRemoteEnabled } = useStorageModule();
 
   const media = data.media;
   const isMovie = "movie" in data;
@@ -113,8 +116,20 @@ export function MediaDetailView({
       onValueChange={(v) => onTabChange(v as MediaDetailTab)}
       options={tabOptions}
       tvFocusKeyPrefix={tvMode ? detailTabFocusPrefix : undefined}
+      tvGetDownFocusKey={
+        tvMode && media
+          ? (tabValue) => {
+              if (tabValue === "downloads" && torrentDownloads[0]) {
+                return tvMediaDownloadPanelFocusKey(mediaType, media.id, torrentDownloads[0], storageRemoteEnabled);
+              }
+              return undefined;
+            }
+          : undefined
+      }
     />
   ) : null;
+
+  const downloadsTabFocusKey = tvMode && detailTabFocusPrefix ? `${detailTabFocusPrefix}-downloads` : undefined;
 
   return (
     <div>
@@ -144,9 +159,14 @@ export function MediaDetailView({
               tvMode ? "md:grid-cols-[minmax(0,300px)_minmax(0,1fr)] md:gap-10" : "lg:grid-cols-4 xl:grid-cols-5",
             )}
           >
-            <aside className={cn(!tvMode && "lg:col-span-1", tvMode && "md:sticky md:top-20 md:self-start")}>
+            <aside
+              className={cn(
+                !tvMode && "lg:col-span-1",
+                tvMode && "md:sticky md:top-20 md:self-start flex flex-col items-center",
+              )}
+            >
               <MediaPoster data={data} download={download ?? media?.download} />
-              {tvMode && media && <MediaSocialActions media={media} className="mt-4 justify-center" size="lg" />}
+              {tvMode && media && <MediaSocialActions media={media} className="mt-4" size="lg" />}
             </aside>
 
             <div className={cn("flex min-w-0", !tvMode && "lg:col-span-3 xl:col-span-4")}>
@@ -181,10 +201,18 @@ export function MediaDetailView({
                   tab === "downloads" &&
                   showDownloads &&
                   (isMobile ? (
-                    <MediaDownload downloads={torrentDownloads} mediaType={mediaType} />
+                    <MediaDownload
+                      downloads={torrentDownloads}
+                      mediaType={mediaType}
+                      tvDetailTabFocusKey={downloadsTabFocusKey}
+                    />
                   ) : (
                     <Card className="p-4">
-                      <MediaDownload downloads={torrentDownloads} mediaType={mediaType} />
+                      <MediaDownload
+                        downloads={torrentDownloads}
+                        mediaType={mediaType}
+                        tvDetailTabFocusKey={downloadsTabFocusKey}
+                      />
                     </Card>
                   ))}
                 {showTabs && tab === "server" && showServer && (

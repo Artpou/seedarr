@@ -98,6 +98,10 @@ export function TopbarRouteSearch({ classNameWrapper, autoFocus }: TopbarRouteSe
     );
   }
 
+  if (mode === "settings" && !settings.target) {
+    return null;
+  }
+
   const defaultType: SearchRouteType | undefined =
     mode === "tv" || mode === "tv-scoped" ? "tv" : mode === "movies" || mode === "movies-scoped" ? "movie" : undefined;
 

@@ -65,6 +65,15 @@ describe("StreamingSubtitleService", () => {
     expect(content).toContain("00:00:01.000");
   });
 
+  it("serves subtitles when the request path has a downloads/ prefix", async () => {
+    const folder = path.join(tmpRoot, "Movie");
+    await fs.mkdir(folder);
+    await fs.writeFile(path.join(folder, "Movie.en.srt"), "1\n0:00:01,000 --> 0:00:02,000\nHello\n");
+
+    const { content } = await service.getSubtitleFile(download("Movie"), "downloads/Movie/Movie.en.srt");
+    expect(content).toContain("WEBVTT");
+  });
+
   it("rejects non-subtitle files", async () => {
     await expect(service.getSubtitleFile(download("Movie"), "Movie/Movie.mkv")).rejects.toThrow(/Only/);
   });

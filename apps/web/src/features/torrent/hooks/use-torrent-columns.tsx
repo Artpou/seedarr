@@ -20,6 +20,7 @@ import { Button } from "@/shared/ui/button";
 import { DataTableColumnHeader } from "@/shared/ui/data-table-column-header";
 
 import { indexerModuleImages } from "@/features/torrent/helpers/indexer-images";
+import { torrentLanguageTags } from "@/features/torrent/helpers/torrent-filter.helper";
 
 export type TorrentWithMeta = Torrent & {
   indexerId?: string;
@@ -93,7 +94,9 @@ export function useTorrentColumns({
                       <Trans>In library</Trans>
                     </Badge>
                   )}
-                  <Flag lang={torrent.mediaInfos?.languages?.[0] || media.original_language || ""} />
+                  {torrentLanguageTags(torrent, media.original_language ?? undefined).map((lang) => (
+                    <Flag key={lang} lang={lang} />
+                  ))}
                   {torrent.mediaInfos?.resolution && <Badge variant="secondary">{torrent.mediaInfos.resolution}</Badge>}
                   {container && <Badge variant="secondary">{container}</Badge>}
                   <Badge variant="outline">{torrent.tracker}</Badge>

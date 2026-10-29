@@ -10,6 +10,8 @@ import { Flag } from "@/shared/components/flag";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+
 type TorrentFileRow = TorrentInspectFile & {
   progress?: number;
   downloaded?: number;
@@ -21,6 +23,7 @@ interface DownloadFilesListProps {
   title?: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  tvExpandFocusKey?: string;
 }
 
 type FileType = "video" | "subtitle" | "other";
@@ -59,7 +62,14 @@ function fileProgress(file: TorrentFileRow): number {
   return 0;
 }
 
-export function DownloadFilesList({ className, files, title, defaultExpanded = true }: DownloadFilesListProps) {
+export function DownloadFilesList({
+  className,
+  files,
+  title,
+  defaultExpanded = true,
+  tvExpandFocusKey,
+}: DownloadFilesListProps) {
+  const tvMode = useTvMode();
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   if (!files || files.length === 0) return null;
@@ -107,7 +117,21 @@ export function DownloadFilesList({ className, files, title, defaultExpanded = t
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => setExpanded(!expanded)}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setExpanded(!expanded)}
+            aria-label={expanded ? "Collapse files" : "Expand files"}
+            tv={
+              tvMode && tvExpandFocusKey
+                ? {
+                    focusKey: tvExpandFocusKey,
+                    onPress: () => setExpanded((value) => !value),
+                    accessibilityLabel: expanded ? "Collapse files" : "Expand files",
+                  }
+                : undefined
+            }
+          >
             {expanded ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
           </Button>
         </div>

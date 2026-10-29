@@ -7,12 +7,19 @@ import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 
 import { resolveSubtitleTracksToBlobs, type SubtitleTrack } from "@/features/downloads/helpers/subtitle-tracks.helper";
 import {
+  cancelScheduledPreferredSubtitleApply,
   ensureCcMenuAvailable,
   ensureMoviPlayerRegistered,
   errorDetail,
   type MoviPlayerHandle,
+  type SubtitlePreferenceTrack,
+  scheduleApplyPreferredSubtitleTrack,
 } from "@/features/player/helpers/movi-player.helper";
-import { injectTvMoviControlFocusStyle } from "@/features/tv-mode/tv-movi-player-controls.helper";
+import { setupPlayerSeekUx } from "@/features/player/helpers/player-seek.helper";
+import {
+  injectTvMoviControlFocusStyle,
+  injectTvSubtitleMenuLayoutStyle,
+} from "@/features/tv-mode/tv-movi-player-controls.helper";
 
 interface PlayerProps {
   src: string;
@@ -24,6 +31,9 @@ interface PlayerProps {
   onError?: (error?: unknown) => void;
   onAddSubtitles?: () => void;
   enableSubtitleDelay?: boolean;
+  initialSubtitleDelay?: number;
+  preferredSubtitleTrackSrc?: string | null;
+  onSubtitlePreferencesChange?: (prefs: { subtitleDelay: number; subtitleTrackSrc: string | null }) => void;
   className?: string;
   /** TV play page: fill the viewport (CSS only — no native fullscreen). */
   tvImmersive?: boolean;
@@ -47,6 +57,9 @@ export function Player({
   onError,
   onAddSubtitles,
   enableSubtitleDelay = false,
+  initialSubtitleDelay = 0,
+  preferredSubtitleTrackSrc = null,
+  onSubtitlePreferencesChange,
   className,
   tvImmersive = false,
 }: PlayerProps) {
@@ -56,10 +69,12 @@ export function Player({
   const onLoadedRef = useRef(onLoadedMetadata);
   const onErrorRef = useRef(onError);
   const onAddSubtitlesRef = useRef(onAddSubtitles);
+  const onSubtitlePrefsRef = useRef(onSubtitlePreferencesChange);
   onPlayerRef.current = onPlayer;
   onLoadedRef.current = onLoadedMetadata;
   onErrorRef.current = onError;
   onAddSubtitlesRef.current = onAddSubtitles;
+  onSubtitlePrefsRef.current = onSubtitlePreferencesChange;
 
   const [isEngineLoading, setIsEngineLoading] = useState(true);
   const [_remountKey, setRemountKey] = useState(0);
@@ -83,8 +98,25 @@ export function Player({
     let cancelled = false;
     let player: MoviPlayerHandle | null = null;
     let blobUrls: string[] = [];
+    let detachSeekUx: (() => void) | null = null;
+    let cancelPreferredSubtitleApply: (() => void) | null = null;
+    let preferredSubtitleApplyStarted = false;
+
+    const schedulePreferredSubtitleOnce = (): void => {
+      if (cancelled || preferredSubtitleApplyStarted || !player || !preferredSubtitleTrackSrc) return;
+      preferredSubtitleApplyStarted = true;
+      const preferenceTracks: SubtitlePreferenceTrack[] = JSON.parse(tracksKey).map(
+        ([trackSrc, label, srclang]: [string, string, string]) => ({ src: trackSrc, srclang, label }),
+      );
+      cancelPreferredSubtitleApply = scheduleApplyPreferredSubtitleTrack(
+        player,
+        preferenceTracks,
+        preferredSubtitleTrackSrc,
+      );
+    };
 
     const handleLoaded = (): void => {
+      schedulePreferredSubtitleOnce();
       if (!cancelled) onLoadedRef.current?.();
     };
     const handleError = (event: Event): void => {
@@ -203,6 +235,7 @@ export function Player({
 
         if (tvImmersive) {
           injectTvMoviControlFocusStyle(player, primary || undefined);
+          injectTvSubtitleMenuLayoutStyle(player);
           const progressBar = player.shadowRoot?.querySelector<HTMLElement>(".movi-progress-bar");
           if (progressBar) {
             progressBar.tabIndex = -1;
@@ -220,24 +253,41 @@ export function Player({
           if (pipBtn) pipBtn.style.display = "none";
         }
 
-        if (onAddSubtitlesRef.current || enableSubtitleDelay) {
+        if (onAddSubtitlesRef.current || enableSubtitleDelay || preferredSubtitleTrackSrc) {
+          const preferenceTracks: SubtitlePreferenceTrack[] = inputTracks.map((t) => ({
+            src: t.src,
+            srclang: t.srclang,
+            label: t.label,
+          }));
           ensureCcMenuAvailable(player, {
             onAddSubtitles: onAddSubtitlesRef.current ? () => onAddSubtitlesRef.current?.() : undefined,
             enableDelay: enableSubtitleDelay,
+            initialSubtitleDelay,
+            preferredSubtitleTrackSrc,
+            tracks: preferenceTracks,
+            onSubtitlePreferencesChange: (prefs) => onSubtitlePrefsRef.current?.(prefs),
             tv: tvImmersive,
             labels: {
               delay: t`Delay`,
+              delayReset: tvImmersive ? t`Reset` : undefined,
               addSubtitles: t`Add subtitles`,
               off: t`Off`,
               noTracks: t`No subtitle tracks available`,
             },
           });
         }
+
+        detachSeekUx = setupPlayerSeekUx(player, () => cancelled);
       })();
     }, 0);
 
     return () => {
       cancelled = true;
+      cancelPreferredSubtitleApply?.();
+      cancelPreferredSubtitleApply = null;
+      if (player) cancelScheduledPreferredSubtitleApply(player);
+      detachSeekUx?.();
+      detachSeekUx = null;
       window.clearTimeout(timer);
       for (const url of blobUrls) URL.revokeObjectURL(url);
       if (player) {
@@ -248,7 +298,7 @@ export function Player({
       onPlayerRef.current(null);
       host.replaceChildren();
     };
-  }, [src, tracksKey, enableSubtitleDelay, resumeAt, tvImmersive, t]);
+  }, [src, tracksKey, enableSubtitleDelay, initialSubtitleDelay, preferredSubtitleTrackSrc, resumeAt, tvImmersive, t]);
 
   return (
     <>

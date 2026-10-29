@@ -9,6 +9,7 @@ import { Button, type ButtonProps } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/shared/ui/dialog";
 import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
 
+import { useTvBackIntercept } from "@/features/tv-mode/tv-back-intercept";
 import { tvTrailerFocusKey } from "@/features/tv-mode/tv-focus-keys";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
@@ -24,6 +25,8 @@ export function MediaButtonTrailer({ title, data, className, ...props }: MediaBu
   const { i18n, t } = useLingui();
   const tvMode = useTvMode();
   const [open, setOpen] = useState(false);
+
+  useTvBackIntercept(tvMode && open, () => setOpen(false));
 
   const youtubeTrailer = useMemo(() => {
     const videos = item?.videos?.results;

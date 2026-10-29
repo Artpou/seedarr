@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 
@@ -23,11 +23,26 @@ export function useInfiniteSentinel<T>(query?: InfiniteResultsQuery<T>) {
   const fetchNextPage = query?.fetchNextPage;
   const hasNextPage = query?.hasNextPage;
   const isFetchingNextPage = query?.isFetchingNextPage;
+  /** While true, ignore intersection (avoids loading every page when sentinel stays on screen). */
+  const gateRef = useRef(false);
 
   useEffect(() => {
-    if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-      void fetchNextPage?.();
+    const releaseGate = (): void => {
+      gateRef.current = false;
+    };
+    window.addEventListener("scroll", releaseGate, { passive: true });
+    return () => window.removeEventListener("scroll", releaseGate);
+  }, []);
+
+  useEffect(() => {
+    if (!entry?.isIntersecting) {
+      gateRef.current = false;
+      return;
     }
+    if (!hasNextPage || isFetchingNextPage || gateRef.current) return;
+
+    gateRef.current = true;
+    void fetchNextPage?.();
   }, [entry?.isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return { sentinelRef };

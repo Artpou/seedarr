@@ -81,6 +81,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     disabled,
     tv,
     onKeyDown,
+    onClick,
     ...props
   },
   forwardedRef,
@@ -95,7 +96,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     focusKey: tv?.focusKey ?? "BUTTON-NOOP",
     focusable: tvActive,
     onEnterPress: tv?.onPress,
+    onArrowPress: tv?.onArrowPress,
     accessibilityLabel: tv?.accessibilityLabel,
+    onFocused: tv?.onFocused,
   });
 
   const setRef = (node: HTMLButtonElement | null) => {
@@ -161,6 +164,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       onKeyDown={(event) => {
         onKeyDown?.(event);
         if (tvActive && event.key === "Enter") tv?.onPress();
+      }}
+      onClick={(event) => {
+        onClick?.(event);
+        if (tvActive && !event.defaultPrevented) tv?.onPress();
       }}
       {...props}
     >

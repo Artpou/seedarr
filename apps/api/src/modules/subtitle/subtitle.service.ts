@@ -12,6 +12,8 @@ import {
 import { AuthenticatedService } from "@/shared/services/authenticated.service";
 
 import { downloadRepository } from "@/modules/download/download.repository";
+import type { Download } from "@/modules/download/download.schema";
+import { resolveDownloadLocalVideo } from "@/modules/download/paths.helper";
 import { moduleRepository } from "@/modules/module/module.repository";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -77,21 +79,21 @@ export class SubtitleService extends AuthenticatedService {
       throw new ForbiddenError();
     }
     const downloadFolderPath = resolveWithinDownloads(requireDownloadFolderName(download));
-    return this.download(downloadFolderPath, url, language, mediaTitle);
+    return this.download(download, downloadFolderPath, url, language, mediaTitle);
   }
 
   /**
-   * Download a subtitle zip from SUBDL, extract .srt/.vtt, save to the download folder,
-   * and return the path relative to DOWNLOADS_PATH for use in /downloads/:id/subtitles/:filePath.
+   * Download a subtitle zip from SUBDL, extract .srt/.vtt, save next to the playable video when possible,
+   * and return the path relative to DOWNLOADS_PATH for streaming subtitle routes.
    */
   async download(
+    download: Download,
     downloadFolderPath: string,
     url: string,
     language: string,
     mediaTitle: string,
   ): Promise<{ relativePath: string }> {
     assertWithinDownloads(downloadFolderPath);
-    const downloadsPath = getDownloadsRoot();
     let fullZipUrl: string;
     if (url.startsWith("http")) {
       const parsed = new URL(url);
@@ -120,17 +122,28 @@ export class SubtitleService extends AuthenticatedService {
     }
 
     const ext = subtitleEntry.path.toLowerCase().endsWith(".vtt") ? ".vtt" : ".srt";
-    const safeTitle = sanitizeFileName(mediaTitle);
     const safeLang = sanitizeFileName(language).slice(0, 10);
-    const fileName = `${safeTitle}.${safeLang}${ext}`;
-    const destPath = path.join(downloadFolderPath, fileName);
+    const downloadsRoot = getDownloadsRoot();
+
+    const localVideo = await resolveDownloadLocalVideo(download);
+    const videoBaseName = localVideo
+      ? path.basename(localVideo.fileName, path.extname(localVideo.fileName))
+      : sanitizeFileName(mediaTitle);
+    const fileName = `${sanitizeFileName(videoBaseName)}.${safeLang}${ext}`;
+
+    let destDir = downloadFolderPath;
+    if (localVideo?.filePath?.startsWith(downloadsRoot + path.sep)) {
+      destDir = path.dirname(localVideo.filePath);
+    }
+
+    const destPath = path.join(destDir, fileName);
     assertWithinDownloads(destPath);
 
-    await fs.mkdir(downloadFolderPath, { recursive: true });
+    await fs.mkdir(destDir, { recursive: true });
     const content = await subtitleEntry.buffer();
     await fs.writeFile(destPath, content);
 
-    const relativePath = path.relative(downloadsPath, destPath);
+    const relativePath = path.relative(downloadsRoot, destPath);
     logger.info("SUBTITLE", `Saved ${language} subtitle to ${relativePath.replace(/\\/g, "/")}`);
     return { relativePath: relativePath.replace(/\\/g, "/") };
   }

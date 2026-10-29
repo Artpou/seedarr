@@ -14,6 +14,8 @@ interface DownloadModalDeleteProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
   showLibraryOnly?: boolean;
+  tvCancelFocusKey?: string;
+  tvConfirmFocusKey?: string;
 }
 
 export function DownloadModalDelete({
@@ -24,6 +26,8 @@ export function DownloadModalDelete({
   title,
   description,
   showLibraryOnly,
+  tvCancelFocusKey,
+  tvConfirmFocusKey,
 }: DownloadModalDeleteProps) {
   const checkboxId = useId();
   const [libraryOnly, setLibraryOnly] = useState(false);
@@ -56,6 +60,8 @@ export function DownloadModalDelete({
           </div>
         ) : null
       }
+      tvCancelFocusKey={tvCancelFocusKey}
+      tvConfirmFocusKey={tvConfirmFocusKey}
     />
   );
 }

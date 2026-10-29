@@ -187,6 +187,8 @@ export async function listEnrichedMedia(userId: string, query: ListMediaQuery = 
             duration: progressItem.duration,
             downloadId: progressItem.downloadId,
             completed: progressItem.completed,
+            subtitleDelay: progressItem.subtitleDelay,
+            subtitleTrackSrc: progressItem.subtitleTrackSrc,
             updatedAt: progressItem.updatedAt,
           }
         : undefined,

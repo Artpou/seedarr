@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { Download } from "@seedarr/sdk";
 import {
   AlertCircleIcon,
@@ -30,13 +30,18 @@ import {
 } from "@/features/downloads/hooks/download.queries";
 import { MediaSearchModal } from "@/features/media/components/modal/media-search-modal";
 import { useStorageModule } from "@/features/module/hooks/use-module";
+import { tvArrowUpHandler } from "@/features/tv-mode/tv-arrow.helper";
+import { useTvBackIntercept } from "@/features/tv-mode/tv-back-intercept";
+import { tvMediaDownloadActionFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 interface MediaDownloadProps {
   downloads: Download[];
   mediaType?: "movie" | "tv";
+  tvDetailTabFocusKey?: string;
 }
 
-export function MediaDownload({ downloads, mediaType }: MediaDownloadProps) {
+export function MediaDownload({ downloads, mediaType, tvDetailTabFocusKey }: MediaDownloadProps) {
   if (downloads.length === 0) {
     return null;
   }
@@ -44,13 +49,35 @@ export function MediaDownload({ downloads, mediaType }: MediaDownloadProps) {
   return (
     <div className="space-y-6">
       {downloads.map((dl) => (
-        <DownloadEntry key={dl.id} download={dl} mediaType={mediaType} />
+        <DownloadEntry key={dl.id} download={dl} mediaType={mediaType} tvDetailTabFocusKey={tvDetailTabFocusKey} />
       ))}
     </div>
   );
 }
 
-function DownloadEntry({ download, mediaType }: { download: Download; mediaType?: "movie" | "tv" }) {
+function DownloadEntry({
+  download,
+  mediaType,
+  tvDetailTabFocusKey,
+}: {
+  download: Download;
+  mediaType?: "movie" | "tv";
+  tvDetailTabFocusKey?: string;
+}) {
+  const { t } = useLingui();
+  const tvMode = useTvMode();
+  const type = mediaType ?? "movie";
+  const mediaId = download.mediaId ?? download.id;
+  const dlFocus = (action: Parameters<typeof tvMediaDownloadActionFocusKey>[3]) =>
+    tvMediaDownloadActionFocusKey(type, mediaId, download.id, action);
+  const tvUp = tvArrowUpHandler(tvDetailTabFocusKey);
+  const tvBtn = (
+    action: Parameters<typeof tvMediaDownloadActionFocusKey>[3],
+    onPress: () => void,
+    accessibilityLabel: string,
+    enabled = true,
+  ) => (tvMode ? { focusKey: dlFocus(action), onPress, accessibilityLabel, enabled, ...tvUp } : undefined);
+
   const deleteTorrent = useDownloadDelete();
   const recheckTorrent = useDownloadRecheck();
   const reannounce = useDownloadReannounce();
@@ -72,6 +99,8 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
     Boolean(download.torrent?.done && !download.remoteLocation && !download.torrent?.transferring) &&
     storageRemoteEnabled;
 
+  useTvBackIntercept(tvMode && showChangeMedia, () => setShowChangeMedia(false));
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -87,7 +116,7 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           {hasActiveTorrentSession && !isCompleted && (
             <Button
               size="icon"
@@ -95,7 +124,13 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
               icon={RefreshCwIcon}
               disabled={recheckTorrent.isPending}
               onClick={() => recheckTorrent.mutate(download.id)}
-              tooltip={<Trans>Recheck torrent</Trans>}
+              tooltip={tvMode ? undefined : <Trans>Recheck torrent</Trans>}
+              tv={tvBtn(
+                "recheck",
+                () => recheckTorrent.mutate(download.id),
+                t`Recheck torrent`,
+                !recheckTorrent.isPending,
+              )}
             />
           )}
           {hasActiveTorrentSession && !isPaused && (
@@ -105,7 +140,13 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
               icon={MegaphoneIcon}
               disabled={reannounce.isPending}
               onClick={() => reannounce.mutate(download.id)}
-              tooltip={<Trans>Reannounce torrent</Trans>}
+              tooltip={tvMode ? undefined : <Trans>Reannounce torrent</Trans>}
+              tv={tvBtn(
+                "reannounce",
+                () => reannounce.mutate(download.id),
+                t`Reannounce torrent`,
+                !reannounce.isPending,
+              )}
             />
           )}
           {canTransfer && (
@@ -115,7 +156,8 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
               icon={ServerIcon}
               disabled={transfer.isPending}
               onClick={() => transfer.mutate(download.id)}
-              tooltip={<Trans>Transfer torrent</Trans>}
+              tooltip={tvMode ? undefined : <Trans>Transfer torrent</Trans>}
+              tv={tvBtn("transfer", () => transfer.mutate(download.id), t`Transfer torrent`, !transfer.isPending)}
             />
           )}
           <Button
@@ -123,7 +165,8 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
             variant="secondary"
             icon={ArrowRightLeftIcon}
             onClick={() => setShowChangeMedia(true)}
-            tooltip={<Trans>Change media</Trans>}
+            tooltip={tvMode ? undefined : <Trans>Change media</Trans>}
+            tv={tvBtn("change-media", () => setShowChangeMedia(true), t`Change media`)}
           />
           <Button
             size="icon"
@@ -131,7 +174,8 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
             icon={Trash2Icon}
             disabled={deleteTorrent.isPending}
             onClick={() => setShowDeleteConfirm(true)}
-            tooltip={<Trans>Delete torrent</Trans>}
+            tooltip={tvMode ? undefined : <Trans>Delete torrent</Trans>}
+            tv={tvBtn("delete", () => setShowDeleteConfirm(true), t`Delete torrent`, !deleteTorrent.isPending)}
           />
         </div>
       </div>
@@ -145,7 +189,12 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
 
       {showProgress && (
         <Card className="p-4 gap-0">
-          <DownloadProgress download={download} size="lg" />
+          <DownloadProgress
+            download={download}
+            size="lg"
+            tvPauseResumeFocusKey={tvMode ? dlFocus("pause-resume") : undefined}
+            tvArrowUpFocusKey={tvDetailTabFocusKey}
+          />
         </Card>
       )}
 
@@ -161,7 +210,7 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
           </div>
           {torrentFiles.length > 0 && (
             <Card className="p-4 gap-0 w-full">
-              <DownloadFilesList files={torrentFiles} />
+              <DownloadFilesList files={torrentFiles} tvExpandFocusKey={tvMode ? dlFocus("files-toggle") : undefined} />
             </Card>
           )}
         </div>
@@ -177,7 +226,7 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
           </div>
           {torrentFiles.length > 0 && (
             <Card className="p-4 gap-0">
-              <DownloadFilesList files={torrentFiles} />
+              <DownloadFilesList files={torrentFiles} tvExpandFocusKey={tvMode ? dlFocus("files-toggle") : undefined} />
             </Card>
           )}
         </div>
@@ -190,6 +239,8 @@ function DownloadEntry({ download, mediaType }: { download: Download; mediaType?
         setOpen={setShowDeleteConfirm}
         showLibraryOnly
         pending={deleteTorrent.isPending}
+        tvCancelFocusKey={tvMode ? dlFocus("delete-cancel") : undefined}
+        tvConfirmFocusKey={tvMode ? dlFocus("delete-confirm") : undefined}
         description={
           <Trans>
             This will stop the torrent and delete local files. If a remote copy exists, it will not be affected.

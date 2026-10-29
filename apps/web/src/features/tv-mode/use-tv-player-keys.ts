@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "@tanstack/react-router";
 
 import type { MoviPlayerHandle } from "@/features/player/helpers/movi-player.helper";
+import { PLAYER_SEEK_SECONDS, seekMoviPlayer } from "@/features/player/helpers/player-seek.helper";
 import {
   activateTvMoviBarControl,
   activateTvMoviMenuItem,
@@ -10,13 +11,14 @@ import {
   closeOpenTvMoviMenus,
   focusTvMoviBarControl,
   focusTvMoviMenuItem,
+  getFocusedTvMoviMenuButton,
   getOpenTvMoviMenu,
   hideMoviControlBar,
+  moveTvMoviMenuFocusHorizontal,
   showMoviControlBar,
+  syncTvMoviMenuFocusIndex,
 } from "@/features/tv-mode/tv-movi-player-controls.helper";
 import { useTvMode } from "./tv-mode-store";
-
-const SEEK_SECONDS = 10;
 
 type Options = {
   playerRef: React.RefObject<MoviPlayerHandle | null>;
@@ -34,16 +36,6 @@ export function useTvPlayerKeys({ playerRef, active }: Options) {
 
   useEffect(() => {
     if (!tvMode || !active) return;
-
-    const tryAutoplay = (): void => {
-      const player = playerRef.current;
-      if (!player || !player.paused) return;
-      void player.play().catch(() => {
-        /* user gesture / policy — Enter still toggles play */
-      });
-    };
-
-    const autoplayTimer = window.setTimeout(tryAutoplay, 400);
 
     const stopKeepBarVisible = (): void => {
       if (keepBarVisibleTimerRef.current !== undefined) {
@@ -164,7 +156,24 @@ export function useTvPlayerKeys({ playerRef, active }: Options) {
         if (key === "ArrowLeft") {
           event.preventDefault();
           event.stopPropagation();
+          if (inMenu && moveTvMoviMenuFocusHorizontal(player, -1)) {
+            const synced = syncTvMoviMenuFocusIndex(player);
+            if (synced >= 0) menuFocusIndexRef.current = synced;
+            return;
+          }
           closeMenuFocus(player);
+          return;
+        }
+
+        if (key === "ArrowRight") {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!inMenu) enterMenuFocus(player);
+          if (moveTvMoviMenuFocusHorizontal(player, 1)) {
+            const synced = syncTvMoviMenuFocusIndex(player);
+            if (synced >= 0) menuFocusIndexRef.current = synced;
+            return;
+          }
           return;
         }
 
@@ -190,6 +199,11 @@ export function useTvPlayerKeys({ playerRef, active }: Options) {
           if (key === "Enter") {
             event.preventDefault();
             event.stopPropagation();
+            const delayBtn = getFocusedTvMoviMenuButton(player);
+            if (delayBtn?.closest("[data-seedarr-delay-row]")) {
+              delayBtn.click();
+              return;
+            }
             activateTvMoviMenuItem(player, menuFocusIndexRef.current);
             window.requestAnimationFrame(() => {
               const p = playerRef.current;
@@ -252,21 +266,19 @@ export function useTvPlayerKeys({ playerRef, active }: Options) {
       if (key === "ArrowLeft") {
         event.preventDefault();
         event.stopPropagation();
-        player.currentTime = Math.max(0, player.currentTime - SEEK_SECONDS);
+        seekMoviPlayer(player, -PLAYER_SEEK_SECONDS);
         return;
       }
 
       if (key === "ArrowRight") {
         event.preventDefault();
         event.stopPropagation();
-        const duration = Number.isFinite(player.duration) ? player.duration : Number.POSITIVE_INFINITY;
-        player.currentTime = Math.min(duration, player.currentTime + SEEK_SECONDS);
+        seekMoviPlayer(player, PLAYER_SEEK_SECONDS);
       }
     };
 
     window.addEventListener("keydown", onKeyDown, true);
     return () => {
-      window.clearTimeout(autoplayTimer);
       window.clearInterval(attachPoll);
       stopKeepBarVisible();
       playerChromeCleanupRef.current?.();

@@ -70,7 +70,7 @@ function SelectTriggerButton({
       className={cn("w-full justify-between gap-2", variant !== "ghost" && "bg-input hover:bg-input/80", className)}
       {...props}
     >
-      <span className="truncate font-medium">{children}</span>
+      <span className="min-w-0 flex-1 truncate text-left font-medium">{children}</span>
       <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
     </Button>
   );

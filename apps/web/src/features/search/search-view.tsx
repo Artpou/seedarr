@@ -17,6 +17,7 @@ import { MediaTabsViewMode } from "@/features/media/components/tabs/media-tabs-v
 import { buildMovieDiscoverOptions, buildTvDiscoverOptions } from "@/features/media/helpers/discover-search.helper";
 import { MovieFiltersSheet } from "@/features/movies/components/movie-filters-sheet";
 import { movieQueries } from "@/features/movies/hooks/movie.queries";
+import { TvSearchView } from "@/features/search/tv-search-view";
 import { useEffectiveViewMode } from "@/features/settings/hooks/use-effective-view-mode";
 import { TvFiltersSheet } from "@/features/tv/components/tv-filters-sheet";
 import { tvQueries } from "@/features/tv/hooks/tv.queries";
@@ -35,11 +36,18 @@ export interface SearchViewProps {
 }
 
 export function SearchView({ search }: SearchViewProps) {
+  const tvMode = useTvMode();
+  if (tvMode) {
+    return <TvSearchView search={search} />;
+  }
+  return <SearchViewStandard search={search} />;
+}
+
+function SearchViewStandard({ search }: SearchViewProps) {
   const { q, type } = search;
   const navigate = useNavigate();
   const locale = useTmdbLocale();
   const viewMode = useEffectiveViewMode(type);
-  const tvMode = useTvMode();
 
   const isSearching = shouldLoadSearchResults(q);
 
@@ -142,40 +150,38 @@ export function SearchView({ search }: SearchViewProps) {
 
   return (
     <Container className="sm:space-y-3">
-      {!tvMode && (
-        <div className="flex flex-row items-center justify-between gap-2">
-          <Tabs value={type} onValueChange={handleTypeChange} className="min-w-0 flex-1">
-            <TabsList size="lg" className="w-full sm:w-fit">
-              <TabsTrigger value="movie" size="lg" className="flex-1 sm:flex-none">
-                <FilmIcon className="size-4" />
-                <Trans>Movies</Trans>
-              </TabsTrigger>
-              <TabsTrigger value="tv" size="lg" className="flex-1 sm:flex-none">
-                <TvIcon className="size-4" />
-                <Trans>TV Shows</Trans>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+      <div className="flex flex-row items-center justify-between gap-2">
+        <Tabs value={type} onValueChange={handleTypeChange} className="min-w-0 flex-1">
+          <TabsList size="lg" className="w-full sm:w-fit">
+            <TabsTrigger value="movie" size="lg" className="flex-1 sm:flex-none">
+              <FilmIcon className="size-4" />
+              <Trans>Movies</Trans>
+            </TabsTrigger>
+            <TabsTrigger value="tv" size="lg" className="flex-1 sm:flex-none">
+              <TvIcon className="size-4" />
+              <Trans>TV Shows</Trans>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-          <div className="flex shrink-0 items-center gap-2">
-            {!isSearching &&
-              (type === "movie" ? (
-                <MovieFiltersSheet
-                  value={pickMovieSearchFilters(search)}
-                  onChange={handleMovieFiltersChange}
-                  triggerVariant="secondary"
-                />
-              ) : (
-                <TvFiltersSheet
-                  value={pickTvSearchFilters(search)}
-                  onChange={handleTvFiltersChange}
-                  triggerVariant="secondary"
-                />
-              ))}
-            <MediaTabsViewMode scope={type} />
-          </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {!isSearching &&
+            (type === "movie" ? (
+              <MovieFiltersSheet
+                value={pickMovieSearchFilters(search)}
+                onChange={handleMovieFiltersChange}
+                triggerVariant="secondary"
+              />
+            ) : (
+              <TvFiltersSheet
+                value={pickTvSearchFilters(search)}
+                onChange={handleTvFiltersChange}
+                triggerVariant="secondary"
+              />
+            ))}
+          <MediaTabsViewMode scope={type} />
         </div>
-      )}
+      </div>
 
       {resultsContent}
     </Container>

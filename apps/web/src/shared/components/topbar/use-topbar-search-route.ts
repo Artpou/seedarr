@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useDebounce } from "@uidotdev/usehooks";
@@ -24,11 +24,15 @@ export function useTopbarSearchRoute(preferredType?: SearchRouteType) {
 
   const [query, setQuery] = useState(urlQ);
   const debouncedQuery = useDebounce(query, SEARCH_INPUT_DEBOUNCE_MS);
+  /** Skip one off-route `/search` push after leaving the page (back button; stale query before setState). */
+  const suppressOffRouteSearchNavRef = useRef(false);
 
   useEffect(() => {
     if (onSearchRoute) {
+      suppressOffRouteSearchNavRef.current = false;
       setQuery(urlQ);
     } else {
+      suppressOffRouteSearchNavRef.current = true;
       setQuery("");
     }
   }, [urlQ, onSearchRoute]);
@@ -50,7 +54,11 @@ export function useTopbarSearchRoute(preferredType?: SearchRouteType) {
       return;
     }
 
-    // Leaving `/search` clears `query` immediately; ignore stale debounced values (would trap navigation).
+    if (suppressOffRouteSearchNavRef.current) {
+      suppressOffRouteSearchNavRef.current = false;
+      return;
+    }
+
     if (query.trim().length === 0) return;
     if (debouncedQuery !== query) return;
     if (debouncedQuery.trim().length === 0) return;

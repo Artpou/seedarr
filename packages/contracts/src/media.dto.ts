@@ -69,5 +69,7 @@ export const updateProgressDto = z.object({
   position: z.number().int().min(0),
   duration: z.number().int().min(0),
   downloadId: z.string().optional(),
+  subtitleDelay: z.number().min(-3600).max(3600).optional(),
+  subtitleTrackSrc: z.string().max(2048).nullable().optional(),
 });
 export type UpdateProgressQuery = z.infer<typeof updateProgressDto>;

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react";
 import { useLingui } from "@lingui/react/macro";
-import { Link, useLocation, useParams, useRouter } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { ArrowLeftIcon, MoonIcon, SettingsIcon, SunIcon, UserIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -13,7 +13,6 @@ import { TopbarDownloads } from "@/shared/components/topbar/topbar-downloads";
 import { TopbarProfile } from "@/shared/components/topbar/topbar-profile";
 import { getTopbarMode } from "@/shared/components/topbar/topbar-route.helper";
 import { TopbarRouteSearch } from "@/shared/components/topbar/topbar-route-search";
-import { TopbarSettings } from "@/shared/components/topbar/topbar-settings";
 import { APP_NAV_ITEMS } from "@/shared/config/nav";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useTheme } from "@/shared/hooks/use-theme";
@@ -23,6 +22,7 @@ import { TvRouterLink } from "@/shared/ui/tv/tv-router-link";
 import { useAuth } from "@/features/auth/auth-store";
 import { DownloadButtonSynchronize } from "@/features/downloads/components/button/download-button-synchronize";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { validateSearchRouteSearch } from "@/routes/helpers/search-route.helper";
 
 interface AppTopbarProps {
   isAuthenticated?: boolean;
@@ -97,6 +97,7 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const router = useRouter();
+  const navigate = useNavigate();
   const params = useParams({ strict: false });
   const { t } = useLingui();
   const currentUser = useAuth((s) => s.user);
@@ -118,6 +119,15 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
   const profileUserId = typeof params.id === "string" ? params.id : currentUser?.id;
   const tvLibraryTopbar = tvMode && (location.pathname === "/downloads" || location.pathname === "/downloads/");
 
+  const handleMobileBack = () => {
+    if (mobileMode === "search") {
+      const type = validateSearchRouteSearch(location.search as Record<string, unknown>).type;
+      void navigate({ to: type === "tv" ? "/tv" : "/movies", search: {}, resetScroll: false });
+      return;
+    }
+    router.history.back();
+  };
+
   return (
     <header
       data-slot="app-topbar"
@@ -136,6 +146,14 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
                 <>
                   <TopbarProfile userId={profileUserId} />
                   <TopbarRouteSearch classNameWrapper="min-w-0 flex-1" />
+                  <Button
+                    variant="ghost"
+                    className="shrink-0 rounded-full border border-border"
+                    size="icon"
+                    aria-label={t`Settings`}
+                    icon={SettingsIcon}
+                    onClick={() => navigate({ to: "/settings", search: {} })}
+                  />
                 </>
               ) : mobileMode === "movies-scoped" ? (
                 <TopbarDiscoverScoped mediaType="movie" />
@@ -143,11 +161,11 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
                 <TopbarDiscoverScoped mediaType="tv" />
               ) : (
                 <>
-                  {mobileMode === "default" || mobileMode === "search" ? (
+                  {mobileMode === "default" || mobileMode === "search" || mobileMode === "settings" ? (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => router.history.back()}
+                      onClick={handleMobileBack}
                       aria-label={t`Go back`}
                       icon={ArrowLeftIcon}
                     />
@@ -157,10 +175,19 @@ export function AppTopbar({ isAuthenticated = true }: AppTopbarProps) {
                   {mobileMode === "downloads" ? (
                     <TopbarDownloads />
                   ) : mobileMode === "settings" ? (
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <TopbarSettings />
-                      <TopbarRouteSearch classNameWrapper="min-w-0 flex-1" />
-                    </div>
+                    <>
+                      <div className="min-w-0 flex-1">
+                        <TopbarRouteSearch classNameWrapper="w-full" />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        className="shrink-0 rounded-full border border-border"
+                        size="icon"
+                        onClick={toggleTheme}
+                        aria-label={theme === "dark" ? t`Light mode` : t`Dark mode`}
+                        icon={theme === "dark" ? SunIcon : MoonIcon}
+                      />
+                    </>
                   ) : (
                     <TopbarRouteSearch classNameWrapper="min-w-0 flex-1" autoFocus={mobileMode === "search"} />
                   )}

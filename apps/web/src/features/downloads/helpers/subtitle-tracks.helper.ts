@@ -7,6 +7,17 @@ import { getTorrentFiles } from "@/features/downloads/helpers/downloads.helper";
 const VIDEO_EXTENSIONS = /\.(mp4|mkv|avi|mov|webm|flv|wmv|m4v)$/i;
 const SUBTITLE_EXTENSIONS = /\.(srt|vtt|ass|ssa)$/i;
 
+function mediaDir(filePath: string): string {
+  const slash = filePath.lastIndexOf("/");
+  return slash >= 0 ? filePath.slice(0, slash) : "";
+}
+
+/** Torrent paths are relative to the download folder; drop stray `downloads/` prefixes. */
+function normalizeTorrentPath(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, "/");
+  return normalized.startsWith("downloads/") ? normalized.slice("downloads/".length) : normalized;
+}
+
 export interface SubtitleTrack {
   kind: "subtitles";
   label: string;
@@ -40,23 +51,34 @@ export function buildSubtitleTracks(download: Download, externalPaths: string[])
     const videoFiles = torrentFiles.filter((f) => VIDEO_EXTENSIONS.test(f.name));
     if (videoFiles.length > 0) {
       const largestVideo = videoFiles.sort((a, b) => b.length - a.length)[0];
+      const videoPath = normalizeTorrentPath(largestVideo.path);
+      const videoDir = mediaDir(videoPath);
       const videoBaseName = largestVideo.name.replace(/\.[^.]+$/, "");
+      const topSegment = videoPath.split("/")[0] ?? "";
 
       const subtitleFiles = torrentFiles.filter((f) => {
         if (!SUBTITLE_EXTENSIONS.test(f.name)) return false;
+        const subPath = normalizeTorrentPath(f.path);
         const fileBaseName = f.name.replace(/\.[^.]+$/, "");
-        return fileBaseName.startsWith(videoBaseName) || f.path.includes(largestVideo.path.split("/")[0]);
+        if (fileBaseName.startsWith(videoBaseName)) return true;
+        if (topSegment && subPath.includes(topSegment)) return true;
+        if (!videoDir) return true;
+        return mediaDir(subPath) === videoDir;
       });
 
+      const seenPaths = new Set<string>();
       for (let i = 0; i < subtitleFiles.length; i++) {
         const file = subtitleFiles[i];
+        const relativePath = normalizeTorrentPath(file.path);
+        if (seenPaths.has(relativePath)) continue;
+        seenPaths.add(relativePath);
         const fileNameOnly = file.name.split("/").pop() || file.name;
         const { label, srclang } = extractLangInfo(fileNameOnly);
         tracks.push({
           kind: "subtitles",
           label,
           srclang: `${srclang}-${i}`,
-          src: `/streaming/${id}/subtitles/${encodeURIComponent(file.path)}`,
+          src: `/streaming/${id}/subtitles/${encodeURIComponent(relativePath)}`,
           default: i === 0 && tracks.length === 0,
           format: "vtt",
         });
@@ -64,15 +86,19 @@ export function buildSubtitleTracks(download: Download, externalPaths: string[])
     }
   }
 
+  const seenExternal = new Set(tracks.map((t) => t.src));
   for (let i = 0; i < externalPaths.length; i++) {
-    const filePath = externalPaths[i];
+    const filePath = normalizeTorrentPath(externalPaths[i]);
     const fileName = filePath.split("/").pop() || filePath;
     const { label, srclang } = extractLangInfo(fileName);
+    const src = `/streaming/${id}/subtitles/${encodeURIComponent(filePath)}`;
+    if (seenExternal.has(src)) continue;
+    seenExternal.add(src);
     tracks.push({
       kind: "subtitles",
       label,
       srclang: `${srclang}-ext-${i}`,
-      src: `/streaming/${id}/subtitles/${encodeURIComponent(filePath)}`,
+      src,
       default: tracks.length === 0,
       format: "vtt",
     });

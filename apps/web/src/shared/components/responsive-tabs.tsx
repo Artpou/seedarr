@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { CheckIcon, ChevronDownIcon, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -32,6 +33,8 @@ interface ResponsiveTabsProps {
   forceSelect?: boolean;
   /** Spatial-nav focus keys: `{prefix}-{option.value}` per tab. */
   tvFocusKeyPrefix?: string;
+  /** ArrowDown from a tab jumps into panel content (TV). */
+  tvGetDownFocusKey?: (tabValue: string) => string | undefined;
 }
 
 export function ResponsiveTabs({
@@ -42,6 +45,7 @@ export function ResponsiveTabs({
   listClassName,
   forceSelect = false,
   tvFocusKeyPrefix,
+  tvGetDownFocusKey,
 }: ResponsiveTabsProps) {
   const isMobile = useIsMobile();
   const tvMode = useTvMode();
@@ -64,11 +68,19 @@ export function ResponsiveTabs({
               tv={{
                 focusKey: `${tvFocusKeyPrefix}-${option.value}`,
                 onPress: () => onValueChange(option.value),
+                onFocused: () => onValueChange(option.value),
                 accessibilityLabel: typeof option.label === "string" ? option.label : option.value,
+                onArrowPress: (direction) => {
+                  if (direction !== "down" || !tvGetDownFocusKey) return true;
+                  const target = tvGetDownFocusKey(option.value);
+                  if (!target) return true;
+                  setFocus(target);
+                  return false;
+                },
               }}
             >
-              {Icon ? <Icon className="size-4" /> : null}
-              <span className="font-medium">{option.label}</span>
+              {Icon ? <Icon className="size-4 shrink-0" /> : null}
+              <span className="inline-flex min-w-0 max-w-full items-center font-medium">{option.label}</span>
             </Button>
           );
         })}

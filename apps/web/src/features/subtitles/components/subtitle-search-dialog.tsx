@@ -2,21 +2,27 @@ import { useMemo, useState } from "react";
 
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { SubdlSubtitle } from "@seedarr/sdk";
 import { useQuery } from "@tanstack/react-query";
-import { DownloadIcon, StarIcon, SubtitlesIcon } from "lucide-react";
+import { CheckIcon, DownloadIcon, StarIcon, SubtitlesIcon } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+import { Flag } from "@/shared/components/flag";
 import { Select } from "@/shared/components/select/select";
-import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { Label } from "@/shared/ui/label";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
 
 import { getTorrentFiles } from "@/features/downloads/helpers/downloads.helper";
 import { downloadQueries } from "@/features/downloads/hooks/download.queries";
+import { useTvBackIntercept } from "@/features/tv-mode/tv-back-intercept";
+import { tvSubtitleLangFocusPrefix, tvSubtitleRowFocusKey } from "@/features/tv-mode/tv-focus-keys";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { useTvInitialFocus } from "@/features/tv-mode/use-tv-initial-focus";
 import {
   collectAddedSubtitleLanguages,
   isMatchingSubtitleRelease,
@@ -58,6 +64,8 @@ export function SubtitleSearchDialog({
   const { t } = useLingui();
   const tvMode = useTvMode();
   const [language, setLanguage] = useState("EN");
+  const langFocusPrefix = tvSubtitleLangFocusPrefix(downloadId);
+
   const { data, isLoading, error } = useQuery({
     ...subtitleQueries.search(tmdbId, language),
     enabled: open,
@@ -82,6 +90,27 @@ export function SubtitleSearchDialog({
     [data?.subtitles, mediaTitle],
   );
 
+  const languageOptions = useMemo(
+    () =>
+      SUBDL_LANGUAGE_CODES.map((code) => ({
+        value: code,
+        label: (
+          <SubtitleLanguageOptionLabel
+            code={code}
+            name={t(SUBDL_LANGUAGE_LABELS[code])}
+            alreadyAdded={addedLanguages.has(code)}
+            tvMode={tvMode}
+          />
+        ),
+      })),
+    [addedLanguages, t, tvMode],
+  );
+
+  const firstRowFocusKey = subtitles.length > 0 ? tvSubtitleRowFocusKey(downloadId, 0) : undefined;
+
+  useTvBackIntercept(tvMode && open, () => onOpenChange(false));
+  useTvInitialFocus(tvMode && open ? `${langFocusPrefix}-${language}` : undefined);
+
   const handleDownload = (input: { downloadId: string; url: string; language: string; mediaTitle: string }): void => {
     downloadSubtitle.mutate(input, {
       onSuccess: () => onOpenChange(false),
@@ -91,67 +120,107 @@ export function SubtitleSearchDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={tvMode ? "max-w-3xl overflow-y-auto max-h-[90vh]" : "max-w-2xl overflow-y-auto max-h-[85vh]"}
+        showCloseButton={!tvMode}
+        className={
+          tvMode
+            ? "flex max-h-[92vh] max-w-[min(96vw,56rem)] flex-col gap-6 overflow-hidden p-8"
+            : "max-h-[85vh] max-w-2xl overflow-y-auto"
+        }
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <SubtitlesIcon className="size-5" />
+          <DialogTitle className={cn("flex items-center gap-2", tvMode && "gap-3 text-2xl")}>
+            <SubtitlesIcon className={tvMode ? "size-7" : "size-5"} aria-hidden />
             <Trans>Download subtitles</Trans>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <Select
-            value={language}
-            onValueChange={setLanguage}
-            label={<Trans>Language</Trans>}
-            options={SUBDL_LANGUAGE_CODES.map((code) => ({
-              value: code,
-              label: (
-                <span className="flex w-full items-center justify-between gap-2">
-                  <span>{t(SUBDL_LANGUAGE_LABELS[code])}</span>
-                  {addedLanguages.has(code) && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      <Trans>Already added</Trans>
-                    </Badge>
-                  )}
-                </span>
-              ),
-            }))}
-          />
+        <div className={tvMode ? "flex min-h-0 flex-1 flex-col gap-5" : "space-y-4"}>
+          <div className="space-y-2">
+            <Label className={tvMode ? "text-base font-semibold" : undefined}>
+              <Trans>Language</Trans>
+            </Label>
+            {tvMode ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {SUBDL_LANGUAGE_CODES.map((code) => (
+                  <Button
+                    key={code}
+                    type="button"
+                    variant={language === code ? "default" : "secondary"}
+                    size="lg"
+                    className="h-auto min-w-0 justify-start gap-2 px-3 py-2.5"
+                    onClick={() => setLanguage(code)}
+                    tv={{
+                      focusKey: `${langFocusPrefix}-${code}`,
+                      onPress: () => setLanguage(code),
+                      onFocused: () => setLanguage(code),
+                      accessibilityLabel: t(SUBDL_LANGUAGE_LABELS[code]),
+                      onArrowPress: (direction) => {
+                        if (direction !== "down" || !firstRowFocusKey || isLoading || error) return true;
+                        setFocus(firstRowFocusKey);
+                        return false;
+                      },
+                    }}
+                  >
+                    <SubtitleLanguageOptionLabel
+                      code={code}
+                      name={t(SUBDL_LANGUAGE_LABELS[code])}
+                      alreadyAdded={addedLanguages.has(code)}
+                      tvMode
+                    />
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <Select value={language} onValueChange={setLanguage} options={languageOptions} />
+            )}
+          </div>
 
           {isLoading && (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-32 w-full" />
+            <div className="space-y-3">
+              <Skeleton className={tvMode ? "h-14 w-full" : "h-10 w-full"} />
+              <Skeleton className={tvMode ? "h-48 w-full" : "h-32 w-full"} />
             </div>
           )}
 
           {error && (
-            <p className="text-destructive text-sm">
+            <p className={tvMode ? "text-destructive text-base" : "text-destructive text-sm"}>
               <Trans>Failed to load subtitles</Trans>: {(error as Error).message}
             </p>
           )}
 
           {!isLoading && !error && (
-            <div className="space-y-2">
-              <Label>
+            <div className={tvMode ? "flex min-h-0 flex-1 flex-col gap-3" : "space-y-2"}>
+              <Label className={tvMode ? "text-base font-semibold" : undefined}>
                 <Trans>Available subtitles</Trans> ({subtitles.length})
               </Label>
-              <ScrollArea className="h-[280px] rounded-md border p-2">
-                <ul className="space-y-2">
+              <ScrollArea
+                className={
+                  tvMode
+                    ? "min-h-[min(42vh,28rem)] w-full min-w-0 flex-1 rounded-lg border-2 border-border/80 p-3 [&_[data-slot=scroll-area-viewport]]:min-w-0"
+                    : "h-[280px] w-full min-w-0 rounded-md border p-2 [&_[data-slot=scroll-area-viewport]]:min-w-0"
+                }
+              >
+                <ul className={cn("w-full min-w-0", tvMode ? "space-y-3" : "space-y-2")}>
                   {subtitles.length === 0 ? (
-                    <li className="text-muted-foreground text-sm py-4 text-center">
+                    <li
+                      className={
+                        tvMode
+                          ? "text-muted-foreground py-8 text-center text-base"
+                          : "text-muted-foreground py-4 text-center text-sm"
+                      }
+                    >
                       <Trans>No subtitles found for this language.</Trans>
                     </li>
                   ) : (
-                    subtitles.map((sub) => (
+                    subtitles.map((sub, index) => (
                       <SubtitleRow
                         key={sub.url}
                         subtitle={sub}
                         mediaTitle={mediaTitle}
                         downloadId={downloadId}
                         language={language}
+                        rowIndex={index}
+                        langFocusKey={`${langFocusPrefix}-${language}`}
                         tvMode={tvMode}
                         onDownload={handleDownload}
                         isDownloading={downloadSubtitle.isPending && downloadSubtitle.variables?.url === sub.url}
@@ -168,11 +237,39 @@ export function SubtitleSearchDialog({
   );
 }
 
+function SubtitleLanguageOptionLabel({
+  code,
+  name,
+  alreadyAdded,
+  tvMode,
+}: {
+  code: (typeof SUBDL_LANGUAGE_CODES)[number];
+  name: string;
+  alreadyAdded: boolean;
+  tvMode: boolean;
+}) {
+  const { t } = useLingui();
+  return (
+    <span className={cn("flex items-center gap-2", tvMode ? "whitespace-nowrap" : "w-full min-w-0")}>
+      <Flag lang={code} className={cn("shrink-0", tvMode ? "size-5" : "size-4")} />
+      <span className={cn(!tvMode && "min-w-0 flex-1 truncate")}>{name}</span>
+      {alreadyAdded && (
+        <CheckIcon
+          className={cn("shrink-0 text-primary", tvMode ? "size-5" : "size-4")}
+          aria-label={t`Already added`}
+        />
+      )}
+    </span>
+  );
+}
+
 function SubtitleRow({
   subtitle,
   mediaTitle,
   downloadId,
   language,
+  rowIndex,
+  langFocusKey,
   tvMode,
   onDownload,
   isDownloading,
@@ -181,10 +278,13 @@ function SubtitleRow({
   mediaTitle: string;
   downloadId: string;
   language: string;
+  rowIndex: number;
+  langFocusKey: string;
   tvMode: boolean;
   onDownload: (input: { downloadId: string; url: string; language: string; mediaTitle: string }) => void;
   isDownloading: boolean;
 }) {
+  const { t } = useLingui();
   const isBestMatch = isMatchingSubtitleRelease(subtitle.release_name, mediaTitle);
 
   const download = () =>
@@ -195,41 +295,99 @@ function SubtitleRow({
       mediaTitle,
     });
 
-  return (
-    <li className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
-      <div className="min-w-0 flex-1 flex items-start gap-2">
-        {isBestMatch && <StarIcon className="mt-0.5 size-4 shrink-0 fill-primary text-primary" aria-hidden />}
-        <div className="min-w-0">
-          <p className="font-medium truncate" title={subtitle.release_name}>
-            {subtitle.release_name}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {subtitle.author} · {subtitle.lang}
-            {subtitle.hi && (
-              <span className="ml-1 inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
-                HI
+  const rowLayoutClass = "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 overflow-hidden";
+
+  const rowBody = (
+    <>
+      <div className="min-w-0 overflow-hidden">
+        <div className="flex min-w-0 items-start gap-3">
+          {isBestMatch && (
+            <StarIcon
+              className={
+                tvMode
+                  ? "mt-1 size-6 shrink-0 fill-primary text-primary"
+                  : "mt-0.5 size-4 shrink-0 fill-primary text-primary"
+              }
+              aria-hidden
+            />
+          )}
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <p className={cn("truncate font-medium", tvMode ? "text-base" : "text-sm")} title={subtitle.release_name}>
+              {subtitle.release_name}
+            </p>
+            <div
+              className={cn(
+                "text-muted-foreground mt-1 flex min-w-0 items-center gap-1.5",
+                tvMode ? "text-sm" : "text-xs",
+              )}
+              title={`${subtitle.author} · ${subtitle.lang}`}
+            >
+              <Flag lang={subtitle.lang} className="size-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">
+                {subtitle.author} · {subtitle.lang}
               </span>
-            )}
-          </p>
+              {subtitle.hi && (
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center rounded bg-muted font-medium",
+                    tvMode ? "rounded-md px-2 py-0.5 text-xs" : "px-1.5 py-0.5 text-[10px]",
+                  )}
+                >
+                  HI
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-      <Button
-        variant="default"
-        size={tvMode ? "default" : "sm"}
-        disabled={isDownloading}
-        onClick={download}
-        icon={DownloadIcon}
-        tv={
-          tvMode
-            ? {
-                focusKey: `tv-subtitle-download:${subtitle.url}`,
-                onPress: download,
-              }
-            : undefined
-        }
-      >
-        {isDownloading ? <Trans>Adding…</Trans> : <Trans>Add</Trans>}
-      </Button>
-    </li>
+      {tvMode ? (
+        <span className="flex shrink-0 items-center gap-2 self-center rounded-md bg-primary/90 px-4 py-2 text-sm font-semibold text-primary-foreground">
+          <DownloadIcon className="size-5" aria-hidden />
+          {isDownloading ? <Trans>Adding…</Trans> : <Trans>Add</Trans>}
+        </span>
+      ) : (
+        <Button
+          variant="default"
+          size="sm"
+          className="shrink-0 self-center"
+          disabled={isDownloading}
+          onClick={download}
+          icon={DownloadIcon}
+        >
+          {isDownloading ? <Trans>Adding…</Trans> : <Trans>Add</Trans>}
+        </Button>
+      )}
+    </>
   );
+
+  if (tvMode) {
+    return (
+      <li className="min-w-0">
+        <TvFocusable
+          focusRoot
+          className={cn(
+            rowLayoutClass,
+            "gap-x-4 rounded-lg border-2 border-border/70 bg-card/40 p-4 text-left transition-colors",
+          )}
+          tv={{
+            focusKey: tvSubtitleRowFocusKey(downloadId, rowIndex),
+            onPress: download,
+            accessibilityLabel: t`Add subtitle ${subtitle.release_name}`,
+            enabled: !isDownloading,
+            onArrowPress: (direction) => {
+              if (direction === "up") {
+                setFocus(langFocusKey);
+                return false;
+              }
+              return true;
+            },
+          }}
+        >
+          {rowBody}
+        </TvFocusable>
+      </li>
+    );
+  }
+
+  return <li className={cn(rowLayoutClass, "rounded-md border p-2 text-sm")}>{rowBody}</li>;
 }

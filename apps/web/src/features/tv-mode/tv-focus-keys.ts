@@ -24,7 +24,21 @@ export function tvSeeMoreCarouselFocusKey(route: string, searchKey?: string): st
   return `SEE_MORE-CAROUSEL-${route}${searchKey ? `-${searchKey}` : ""}`;
 }
 
+export const tvSearchFilterFocusPrefix = "TV-SEARCH-FILTER";
+
+export function tvSearchKeyFocusKey(key: string): string {
+  return `TV-SEARCH-KEY-${key}`;
+}
+
+export const tvTorrentLangFilterFocusPrefix = "TV-TORRENT-LANG";
+
+export const tvTorrentQualityFilterFocusPrefix = "TV-TORRENT-QUALITY";
+
 export const tvNavLibrarySearchFocusKey = "NAV-LIBRARY-SEARCH";
+
+export const tvExitCancelFocusKey = "TV-EXIT-CANCEL";
+
+export const tvExitConfirmFocusKey = "TV-EXIT-CONFIRM";
 
 export function tvNavPrimaryFocusKey(mediaType: "movie" | "tv"): string {
   return mediaType === "movie" ? "NAV-/movies" : "NAV-/tv";
@@ -54,6 +68,24 @@ export function tvMediaDetailTabFocusPrefix(mediaType: "movie" | "tv", mediaId: 
   return `MEDIA-TAB-${mediaType}-${mediaId}`;
 }
 
+export function tvMediaDownloadActionFocusKey(
+  mediaType: "movie" | "tv",
+  mediaId: number | string,
+  downloadId: string,
+  action:
+    | "recheck"
+    | "reannounce"
+    | "transfer"
+    | "change-media"
+    | "delete"
+    | "delete-cancel"
+    | "delete-confirm"
+    | "pause-resume"
+    | "files-toggle",
+): string {
+  return `MEDIA-DL-${mediaType}-${mediaId}-${downloadId}-${action}`;
+}
+
 export function tvDetailInitialFocusKey(options: {
   mediaType: "movie" | "tv";
   mediaId: number | string;
@@ -63,4 +95,12 @@ export function tvDetailInitialFocusKey(options: {
   if (options.downloadId) return tvPlayFocusKey(options.downloadId);
   if (options.isViewer) return tvRequestFocusKey(options.mediaId, options.mediaType);
   return tvTorrentsFocusKey(options.mediaId);
+}
+
+export function tvSubtitleLangFocusPrefix(downloadId: string): string {
+  return `SUBTITLE-LANG-${downloadId}`;
+}
+
+export function tvSubtitleRowFocusKey(downloadId: string, index: number): string {
+  return `SUBTITLE-ROW-${downloadId}-${index}`;
 }

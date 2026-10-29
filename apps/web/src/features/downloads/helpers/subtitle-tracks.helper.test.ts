@@ -20,6 +20,43 @@ describe("subtitle-tracks.helper", () => {
     expect(tracks.some((t) => t.default)).toBe(true);
   });
 
+  it("includes torrent subtitles in the same folder as the video without matching basename", () => {
+    const download = {
+      id: "dl-1",
+      torrent: {
+        files: [
+          { name: "American.Psycho.2000.mp4", path: "Release/American.Psycho.2000.mp4", length: 100 },
+          { name: "Release.en.srt", path: "Release/Release.en.srt", length: 1 },
+        ],
+      },
+    } as never;
+
+    const tracks = buildSubtitleTracks(download, []);
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]?.src).toContain("Release.en.srt");
+  });
+
+  it("strips downloads/ prefix from torrent paths in track URLs", () => {
+    const download = {
+      id: "dl-1",
+      torrent: {
+        files: [
+          {
+            name: "American.Psycho.mp4",
+            path: "downloads/Release/American.Psycho.mp4",
+            length: 100,
+          },
+          { name: "Release.en.srt", path: "downloads/Release/Release.en.srt", length: 1 },
+        ],
+      },
+    } as never;
+
+    const tracks = buildSubtitleTracks(download, []);
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]?.src).toContain(encodeURIComponent("Release/Release.en.srt"));
+    expect(tracks[0]?.src).not.toContain("downloads");
+  });
+
   it("prefers blob URLs after successful prefetch", async () => {
     vi.stubGlobal(
       "fetch",

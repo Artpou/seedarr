@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { EmptyState } from "@/shared/components/empty-state";
 import { Flag } from "@/shared/components/flag";
+import { ResponsiveTabs } from "@/shared/components/responsive-tabs";
 import { SeedarrLoader } from "@/shared/components/seedarr-loader";
 import { SelectLang } from "@/shared/components/select/select-lang";
 import { QUALITY_LEVELS, SelectQuality } from "@/shared/components/select/select-quality";
@@ -25,13 +26,23 @@ import { TvFocusable } from "@/shared/ui/tv/tv-focusable";
 import { useStartDownload } from "@/features/downloads/hooks/download.queries";
 import { useUserPreferences } from "@/features/settings/stores/user-preference-store";
 import { indexerModuleImages } from "@/features/torrent/helpers/indexer-images";
+import {
+  collectTorrentLanguages,
+  torrentLanguageTags,
+  torrentMatchesLanguageFilter,
+  torrentMatchesQualityFilter,
+} from "@/features/torrent/helpers/torrent-filter.helper";
 import { getTorrentInfoHash, getTorrentUri } from "@/features/torrent/helpers/torrent-uri.helper";
 import {
   type TorrentWithMeta,
   torrentTableFeatures,
   useTorrentColumns,
 } from "@/features/torrent/hooks/use-torrent-columns";
-import { tvTorrentRowFocusKey } from "@/features/tv-mode/tv-focus-keys";
+import {
+  tvTorrentLangFilterFocusPrefix,
+  tvTorrentQualityFilterFocusPrefix,
+  tvTorrentRowFocusKey,
+} from "@/features/tv-mode/tv-focus-keys";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 import { useTvInitialFocus } from "@/features/tv-mode/use-tv-initial-focus";
 import { TorrentInspectModal } from "./torrent-inspect-modal";
@@ -106,7 +117,9 @@ function TorrentMobileCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mt-2">
-        <Flag lang={torrent.mediaInfos?.languages?.[0] || media.original_language || ""} />
+        {torrentLanguageTags(torrent, media.original_language ?? undefined).map((lang) => (
+          <Flag key={lang} lang={lang} />
+        ))}
         {torrent.mediaInfos?.resolution && <Badge variant="secondary">{torrent.mediaInfos.resolution}</Badge>}
         {container && <Badge variant="secondary">{container}</Badge>}
         <Badge variant="outline">{torrent.tracker}</Badge>
@@ -189,36 +202,48 @@ export function TorrentTable({
     const maxSizeBytes = preferenceMaxSize !== null ? preferenceMaxSize * 1024 * 1024 * 1024 : null;
 
     return torrents.filter((torrent) => {
-      if (selectedQuality !== null) {
-        if (!torrent.mediaInfos?.resolution) return false;
-        const minQualityIndex = QUALITY_LEVELS.indexOf(selectedQuality);
-        const torrentQualityIndex = QUALITY_LEVELS.indexOf(torrent.mediaInfos.resolution);
-        if (torrentQualityIndex === -1 || torrentQualityIndex < minQualityIndex) {
-          return false;
-        }
+      if (!torrentMatchesQualityFilter(torrent.mediaInfos?.resolution, selectedQuality)) {
+        return false;
       }
 
       if (maxSizeBytes !== null && torrent.size > maxSizeBytes) {
         return false;
       }
 
-      if (selectedLanguage !== "all") {
-        if (torrent.mediaInfos?.languages?.[0] !== selectedLanguage) {
-          return false;
-        }
+      if (!torrentMatchesLanguageFilter(torrent.mediaInfos?.languages, selectedLanguage)) {
+        return false;
       }
 
       return true;
     });
   }, [torrents, selectedQuality, selectedLanguage, preferenceMaxSize]);
 
-  const availableLanguages = useMemo(() => {
-    const langs = new Set<string>();
-    for (const torrent of torrents) {
-      if (torrent.mediaInfos?.languages?.[0]) langs.add(torrent.mediaInfos.languages[0]);
-    }
-    return Array.from(langs).sort();
-  }, [torrents]);
+  const availableLanguages = useMemo(() => collectTorrentLanguages(torrents), [torrents]);
+
+  const languageTabOptions = useMemo(
+    () => [
+      { value: "all", label: <Trans>All languages</Trans> },
+      ...availableLanguages.map((lang) => ({
+        value: lang,
+        label: (
+          <span className="flex items-center gap-2">
+            <Flag lang={lang} />
+            {lang.toUpperCase()}
+          </span>
+        ),
+      })),
+    ],
+    [availableLanguages],
+  );
+
+  const qualityTabOptions = useMemo(
+    () =>
+      QUALITY_LEVELS.map((level) => ({
+        value: level ?? "all",
+        label: !level ? <Trans>All qualities</Trans> : level,
+      })),
+    [],
+  );
 
   const handleOpenInspectModal = useCallback((torrent: TorrentWithMeta) => {
     setSelectedTorrent(torrent);
@@ -365,16 +390,42 @@ export function TorrentTable({
 
   return (
     <div className="w-full overflow-hidden">
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center py-4">
-        {availableLanguages.length > 0 && (
-          <SelectLang
-            value={selectedLanguage}
-            onValueChange={setSelectedLanguage}
-            languages={availableLanguages}
-            triggerClassName="w-full sm:w-auto"
-          />
+      <div className="flex flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        {tvMode ? (
+          <>
+            {availableLanguages.length > 0 && (
+              <ResponsiveTabs
+                value={selectedLanguage}
+                onValueChange={setSelectedLanguage}
+                options={languageTabOptions}
+                tvFocusKeyPrefix={tvTorrentLangFilterFocusPrefix}
+              />
+            )}
+            {availableLanguages.length > 0 && <div className="h-px w-full shrink-0 bg-border/70" aria-hidden />}
+            <ResponsiveTabs
+              value={selectedQuality ?? "all"}
+              onValueChange={(next) => setSelectedQuality(next === "all" ? null : (next as Resolution))}
+              options={qualityTabOptions}
+              tvFocusKeyPrefix={tvTorrentQualityFilterFocusPrefix}
+            />
+          </>
+        ) : (
+          <>
+            {availableLanguages.length > 0 && (
+              <SelectLang
+                value={selectedLanguage}
+                onValueChange={setSelectedLanguage}
+                languages={availableLanguages}
+                triggerClassName="w-full sm:w-auto"
+              />
+            )}
+            <SelectQuality
+              value={selectedQuality}
+              onValueChange={setSelectedQuality}
+              triggerClassName="w-full sm:w-auto"
+            />
+          </>
         )}
-        <SelectQuality value={selectedQuality} onValueChange={setSelectedQuality} triggerClassName="w-full sm:w-auto" />
         {preferenceMaxSize !== null && (
           <Badge variant="outline">
             <Trans>Max {preferenceMaxSize} GB</Trans>

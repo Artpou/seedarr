@@ -10,6 +10,7 @@ import { Container } from "@/shared/ui/container";
 import { useAuth } from "@/features/auth/auth-store";
 import { MediaGrid } from "@/features/media/components/media-grid";
 import { useMediaList } from "@/features/media/hooks/use-media";
+import { ProfilePageNav } from "@/features/user/components/profile-page-nav";
 import { type ProfileRouteSearch, pickProfileLibraryFilters } from "@/routes/helpers/profile-route.helper";
 
 export interface UserListViewProps {
@@ -37,6 +38,7 @@ export function UserListView({ userId, filter, title, search }: UserListViewProp
   return (
     <Container>
       <div className="space-y-6">
+        {hideTitle && <ProfilePageNav userId={userId} />}
         {!hideTitle && <h1 className="text-2xl font-bold">{title}</h1>}
 
         {!query.isPending && flattenInfiniteResults(query).length === 0 ? (

@@ -46,13 +46,13 @@ function UnhandledView({ error, reset }: ErrorViewProps) {
         onRetry={reset}
       >
         {message && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-left">
-            <p className="text-destructive font-mono text-xs break-all">{message}</p>
+          <div className="max-w-full rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-left sm:p-4">
+            <p className="font-mono text-xs text-destructive wrap-break-word">{message}</p>
           </div>
         )}
 
         {error?.stack && import.meta.env.DEV && (
-          <pre className="bg-destructive/10 border border-destructive/20 text-destructive mt-2 max-h-60 overflow-x-auto rounded-lg p-4 font-mono text-xs">
+          <pre className="mt-2 max-h-48 max-w-full overflow-y-auto rounded-lg border border-destructive/20 bg-destructive/10 p-3 font-mono text-[11px] leading-relaxed text-destructive wrap-break-word whitespace-pre-wrap sm:max-h-60 sm:p-4 sm:text-xs">
             <code>{error.stack}</code>
           </pre>
         )}

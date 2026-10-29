@@ -12,6 +12,8 @@ import { ProgressCircular } from "@/shared/ui/progress-circular";
 
 import { getDownloadStatus } from "@/features/downloads/helpers/downloads.helper";
 import { useDownloadPause, useDownloadResume } from "@/features/downloads/hooks/download.queries";
+import { tvArrowUpHandler } from "@/features/tv-mode/tv-arrow.helper";
+import { useTvMode } from "@/features/tv-mode/tv-mode-store";
 
 const CIRCULAR_SIZE = 50;
 const CIRCULAR_STROKE = 4;
@@ -23,6 +25,10 @@ interface DownloadProgressProps {
   size?: "sm" | "md" | "lg";
   /** Override pause/resume (e.g. when the parent already owns the mutations). */
   onPauseResume?: () => void;
+  /** Spatial-nav focus key for pause/resume (TV). */
+  tvPauseResumeFocusKey?: string;
+  /** ArrowUp returns to this focus key (TV). */
+  tvArrowUpFocusKey?: string;
 }
 
 function usePauseToggle(download: Download, onPauseResume?: () => void) {
@@ -57,10 +63,21 @@ export function DownloadProgress({
   variant = "bar",
   size = "md",
   onPauseResume,
+  tvPauseResumeFocusKey,
+  tvArrowUpFocusKey,
 }: DownloadProgressProps) {
   if (variant === "circular") return <CircularProgress download={download} onPauseResume={onPauseResume} />;
 
-  return <BarProgress download={download} className={className} size={size} onPauseResume={onPauseResume} />;
+  return (
+    <BarProgress
+      download={download}
+      className={className}
+      size={size}
+      onPauseResume={onPauseResume}
+      tvPauseResumeFocusKey={tvPauseResumeFocusKey}
+      tvArrowUpFocusKey={tvArrowUpFocusKey}
+    />
+  );
 }
 
 function CircularProgress({ download, onPauseResume }: { download: Download; onPauseResume?: () => void }) {
@@ -120,14 +137,28 @@ function BarProgress({
   className,
   size,
   onPauseResume,
+  tvPauseResumeFocusKey,
+  tvArrowUpFocusKey,
 }: {
   download: Download;
   className?: string;
   size: "sm" | "md" | "lg";
   onPauseResume?: () => void;
+  tvPauseResumeFocusKey?: string;
+  tvArrowUpFocusKey?: string;
 }) {
   const { t } = useLingui();
+  const tvMode = useTvMode();
   const { toggle, isPending } = usePauseToggle(download, onPauseResume);
+  const tvPause = (label: string) =>
+    tvMode && tvPauseResumeFocusKey
+      ? {
+          focusKey: tvPauseResumeFocusKey,
+          onPress: () => toggle(),
+          accessibilityLabel: label,
+          ...tvArrowUpHandler(tvArrowUpFocusKey),
+        }
+      : undefined;
 
   const textSize =
     size === "lg" ? "text-xl font-bold" : size === "sm" ? "text-xs font-medium" : "text-sm font-semibold";
@@ -190,6 +221,7 @@ function BarProgress({
           disabled={!onPauseResume && isPending}
           icon={isPaused ? DownloadIcon : PauseIcon}
           aria-label={isPaused ? t`Resume` : t`Pause`}
+          tv={tvPause(isPaused ? t`Resume` : t`Pause`)}
         />
       </div>
     );
@@ -225,6 +257,7 @@ function BarProgress({
           onClick={toggle}
           disabled={!onPauseResume && isPending}
           icon={isPaused ? DownloadIcon : PauseIcon}
+          tv={tvPause(isPaused ? t`Resume` : t`Pause`)}
         >
           {isPaused ? <Trans>Resume</Trans> : <Trans>Pause</Trans>}
         </Button>

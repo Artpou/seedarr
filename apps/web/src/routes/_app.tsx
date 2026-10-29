@@ -19,7 +19,9 @@ import { APP_NAV_ITEMS } from "@/shared/config/nav";
 import { useAuth } from "@/features/auth/auth-store";
 import { useRole } from "@/features/auth/hooks/use-role";
 import { TvAppFocus } from "@/features/tv-mode/tv-app-focus";
+import { TvBackNavigation } from "@/features/tv-mode/tv-back-navigation";
 import { useTvMode } from "@/features/tv-mode/tv-mode-store";
+import { isSearchPath } from "@/routes/helpers/search-route.helper";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ context }) => {
@@ -78,7 +80,7 @@ function AuthenticatedLayout() {
   const { t } = useLingui();
   const router = useRouter();
   const tvMode = useTvMode();
-  const hideAppChrome = tvMode && pathname.includes("/play");
+  const hideAppChrome = tvMode && (pathname.includes("/play") || isSearchPath(pathname));
 
   const stateRef = useRef<unknown>(null);
 
@@ -112,6 +114,7 @@ function AuthenticatedLayout() {
     <div className="relative min-h-svh bg-background">
       <AppAmbientBackground variant="subtle" />
       <TvAppFocus className="relative z-10 flex min-h-svh min-w-0 flex-col">
+        <TvBackNavigation />
         {!hideAppChrome && <AppTopbar isAuthenticated={true} />}
         <main
           className={cn("flex-1 md:pb-0", hideAppChrome ? "pb-0" : "pb-[calc(4rem+env(safe-area-inset-bottom,0px))]")}

@@ -70,6 +70,51 @@ export function injectTvMoviControlFocusStyle(player: MoviPlayerHandle, ringColo
   root.appendChild(style);
 }
 
+/** Wider CC panel + readable track rows on TV. */
+export function injectTvSubtitleMenuLayoutStyle(player: MoviPlayerHandle): void {
+  const root = player.shadowRoot;
+  if (!root || root.getElementById("seedarr-tv-subtitle-menu-style")) return;
+
+  const style = document.createElement("style");
+  style.id = "seedarr-tv-subtitle-menu-style";
+  style.textContent = `
+    .movi-subtitle-track-menu {
+      min-width: min(32rem, 94vw) !important;
+      width: min(32rem, 94vw) !important;
+      max-width: 94vw !important;
+    }
+    .movi-subtitle-track-menu .movi-subtitle-track-header {
+      padding: 0.65rem 0.85rem !important;
+      font-size: 0.8rem !important;
+      letter-spacing: 0.06em !important;
+    }
+    .movi-subtitle-track-item {
+      padding: 0.7rem 0.85rem !important;
+      min-height: 2.85rem !important;
+      font-size: 0.92rem !important;
+    }
+    .movi-subtitle-track-label {
+      font-size: 0.92rem !important;
+    }
+    .movi-subtitle-track-footer {
+      padding: 0.4rem 0.85rem 0.55rem !important;
+      font-size: 0.8rem !important;
+    }
+    [data-seedarr-cc-extras] {
+      padding: 0.55rem 0.65rem 0.7rem !important;
+      gap: 0.55rem !important;
+    }
+    [data-seedarr-cc-extras] > button.seedarr-tv-cc-menu-btn {
+      min-height: 2.85rem !important;
+      font-size: 0.95rem !important;
+    }
+    [data-seedarr-delay-controls] button.seedarr-tv-cc-menu-btn {
+      min-height: 2.5rem !important;
+    }
+  `;
+  root.appendChild(style);
+}
+
 function isVisibleBarControl(el: HTMLElement): boolean {
   if (el.closest(".movi-volume-container") || el.closest(".movi-time")) return false;
   if (el.classList.contains("movi-progress-bar") || el.classList.contains("movi-live-badge")) return false;
@@ -145,12 +190,54 @@ export function closeOpenTvMoviMenus(player: MoviPlayerHandle): void {
 function listTvMoviMenuItems(menu: HTMLElement): HTMLElement[] {
   const items: HTMLElement[] = [];
   const nodes = menu.querySelectorAll<HTMLElement>(
-    ".movi-subtitle-track-item, .movi-audio-track-item, .movi-speed-item, .movi-quality-item, [data-seedarr-cc-extras] button",
+    ".movi-subtitle-track-item, .movi-audio-track-item, .movi-speed-item, .movi-quality-item, [data-seedarr-cc-extras] button[data-seedarr-cc-focus]",
   );
   for (const el of nodes) {
     if (isVisibleBarControl(el)) items.push(el);
   }
   return items;
+}
+
+/** Move focus between delay − / + / 0 buttons (same row). */
+export function moveTvMoviMenuFocusHorizontal(player: MoviPlayerHandle, direction: -1 | 1): boolean {
+  const menu = getOpenTvMoviMenu(player);
+  if (!menu) return false;
+
+  const focused = menu.querySelector<HTMLElement>("[data-seedarr-tv-focus='true']");
+  if (!focused) return false;
+
+  const row = focused.closest<HTMLElement>("[data-seedarr-delay-row]");
+  if (!row) return false;
+
+  const buttons = [...row.querySelectorAll<HTMLElement>("button[data-seedarr-cc-focus]")];
+  const index = buttons.indexOf(focused);
+  if (index < 0) return false;
+
+  const next = buttons[index + direction];
+  if (!next) return false;
+
+  clearTvMoviControlFocus(player);
+  applyTvMoviFocus(next);
+  next.scrollIntoView({ block: "nearest", inline: "nearest" });
+  return true;
+}
+
+/** Keep menu focus index aligned after horizontal moves in the delay row. */
+export function syncTvMoviMenuFocusIndex(player: MoviPlayerHandle): number {
+  const menu = getOpenTvMoviMenu(player);
+  if (!menu) return -1;
+  const focused = menu.querySelector<HTMLElement>("[data-seedarr-tv-focus='true']");
+  if (!focused) return -1;
+  const items = listTvMoviMenuItems(menu);
+  const index = items.indexOf(focused);
+  return index;
+}
+
+export function getFocusedTvMoviMenuButton(player: MoviPlayerHandle): HTMLButtonElement | null {
+  const menu = getOpenTvMoviMenu(player);
+  if (!menu) return null;
+  const focused = menu.querySelector<HTMLElement>("[data-seedarr-tv-focus='true']");
+  return focused instanceof HTMLButtonElement ? focused : null;
 }
 
 export function focusTvMoviMenuItem(player: MoviPlayerHandle, index: number): number {
