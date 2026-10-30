@@ -43,6 +43,11 @@ export const downloadRepository = {
     return db.select().from(download);
   },
 
+  findVisible: async (id: string): Promise<Download | undefined> => {
+    const rows = await downloadRepository.findManyVisible({ ids: [id] });
+    return rows[0];
+  },
+
   findManyVisible: async (options?: { ids?: string[]; limit?: number; offset?: number }): Promise<Download[]> => {
     const visibility = await visibleDownloadSql();
     const where = options?.ids?.length ? and(inArray(download.id, options.ids), visibility) : visibility;

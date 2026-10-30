@@ -4,9 +4,9 @@ import { NotFoundError, UnauthorizedError } from "@/shared/errors/error";
 import { verifyToken } from "@/shared/helpers/crypto.helper";
 import { logger } from "@/shared/helpers/logger.helper";
 
-import { downloadRepository } from "@/modules/download/download.repository";
+import { getVisibleDownload } from "@/modules/download/download.access";
 import type { Download } from "@/modules/download/download.schema";
-import { resolveDownloadLocalVideo } from "@/modules/download/paths.helper";
+import { listVideoFilesAtLocation, resolveDownloadLocalVideo } from "@/modules/download/paths.helper";
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
 import { resolveRemoteVideoInfo } from "@/modules/streaming/streaming.helper";
 import fs from "node:fs/promises";
@@ -36,7 +36,7 @@ async function resolveReadableRemoteFile(item: Download): Promise<DownloadableFi
     const info = await resolveRemoteVideoInfo(item, item.remoteLocation);
     if (!info) return null;
 
-    const files = await remoteStorageService.listFiles(item.remoteLocation);
+    const files = await listVideoFilesAtLocation(item.remoteLocation);
     const videos = files
       .filter((f) => VIDEO_EXTENSIONS.test(f.name) && f.length > 0)
       .sort((a, b) => b.length - a.length);
@@ -60,16 +60,16 @@ async function resolveReadableRemoteFile(item: Download): Promise<DownloadableFi
 
 /**
  * Resolve a downloadable attachment by id.
- * Prefers a verified remote file, otherwise a completed local torrent file.
+ * Local disk first (staging / library path), then a verified remote file.
  */
 export async function getDownloadableFile(id: string): Promise<DownloadableFile> {
-  const item = await downloadRepository.get(id);
-
-  const remote = await resolveReadableRemoteFile(item);
-  if (remote) return remote;
+  const item = await getVisibleDownload(id);
 
   const local = await resolveDownloadLocalVideo(item);
   if (local && local.size > 0) return { fileName: local.fileName, size: local.size, filePath: local.filePath };
+
+  const remote = await resolveReadableRemoteFile(item);
+  if (remote) return remote;
 
   throw new NotFoundError("Downloadable file");
 }

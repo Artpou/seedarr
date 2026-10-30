@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { download } from "@/modules/download/download.schema";
+import { media } from "@/modules/media/media.schema";
 import { createTestDb, sampleTorrent, seedTestUser, testDbRef } from "@/tests/test.helper";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -56,6 +57,30 @@ describe("getDownloadableFile", () => {
     expect(result.fileName).toBe("sample.mp4");
     expect(result.size).toBe(4096);
     expect(result.filePath).toBe(path.join(folder, "sample.mp4"));
+  });
+
+  it("returns a local library file as filePath when torrent is cleared", async () => {
+    const folder = path.join(tmpRoot, "Synced (2024)");
+    await fs.mkdir(folder);
+    await fs.writeFile(path.join(folder, "movie.mkv"), Buffer.alloc(100));
+
+    testDbRef.current.insert(media).values({ id: 9, type: "movie", title: "Synced", imdbId: "tt9" }).run();
+    testDbRef.current
+      .insert(download)
+      .values({
+        id: "dl-sync",
+        userId: user.id,
+        mediaId: 9,
+        origin: "remote-sync",
+        remoteLocation: folder,
+        torrent: null,
+        createdAt: new Date(),
+      })
+      .run();
+
+    const result = await getDownloadableFile("dl-sync");
+    expect(result.filePath).toBe(path.join(folder, "movie.mkv"));
+    expect(result.remotePath).toBeUndefined();
   });
 
   it("throws when no readable file exists", async () => {

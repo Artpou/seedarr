@@ -13,7 +13,7 @@ export async function requireDownloadExists(
   const downloadId = c.req.param("id");
   if (!downloadId) throw new BadRequestError("Missing download id");
 
-  if (!(await downloadRepository.exists(downloadId))) throw new NotFoundError("Download");
+  if (!(await downloadRepository.findVisible(downloadId))) throw new NotFoundError("Download");
 
   await next();
 }

@@ -6,7 +6,7 @@ import { pipeNodeStream } from "@/shared/helpers/stream.helper";
 import { convertToFragmentedMp4Stream, getVideoInputFormat, type RemuxInput } from "@/shared/helpers/video.helper";
 import { AuthenticatedService } from "@/shared/services/authenticated.service";
 
-import { downloadRepository } from "@/modules/download/download.repository";
+import { getVisibleDownload } from "@/modules/download/download.access";
 import type { Download } from "@/modules/download/download.schema";
 import { resolveDownloadLocalVideo } from "@/modules/download/paths.helper";
 import { findLargestVideoFile } from "@/modules/download/webtorrent/webtorrent.service";
@@ -50,7 +50,7 @@ export class StreamingService extends AuthenticatedService {
   private readonly subtitles = new StreamingSubtitleService();
 
   async getDownload(id: string): Promise<Download> {
-    return downloadRepository.get(id);
+    return getVisibleDownload(id);
   }
 
   async resolveSourceInfo(download: Download): Promise<StreamSourceInfo | undefined> {

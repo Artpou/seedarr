@@ -12,7 +12,6 @@ import {
 import { type Context, Hono } from "hono";
 import { stream } from "hono/streaming";
 
-import { NotFoundError } from "@/shared/errors/error";
 import { pipeNodeStream } from "@/shared/helpers/stream.helper";
 import { downloadStartRateLimiter, fileTokenRateLimiter } from "@/shared/middlewares/rate-limiter.middleware";
 
@@ -56,9 +55,7 @@ export const downloadRoutes = DownloadService.createRouter()
   )
   .get("/:id", zValidator("param", stringIdParamDto), async (c) => {
     const { id } = c.req.valid("param");
-    const download = await c.var.service.get(id);
-    if (!download) throw new NotFoundError("Download");
-    return c.json(download);
+    return c.json(await c.var.service.get(id));
   })
   .post("/", requireRole("member"), downloadStartRateLimiter, zValidator("json", downloadTorrentDto), async (c) => {
     const body = c.req.valid("json");

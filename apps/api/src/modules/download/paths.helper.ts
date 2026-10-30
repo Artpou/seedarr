@@ -6,7 +6,11 @@ import {
   VIDEO_EXTENSIONS,
 } from "@seedarr/shared";
 
-import { getDownloadFolderName, resolveDownloadStagingPath } from "@/shared/helpers/path.helper";
+import {
+  getDownloadFolderName,
+  resolveDownloadStagingPath,
+  resolveLocalLibraryPath,
+} from "@/shared/helpers/path.helper";
 import { findAllVideosInDirectory, findLargestVideoInDirectory } from "@/shared/helpers/video-file.helper";
 
 import type { Download } from "@/modules/download/download.schema";
@@ -165,7 +169,23 @@ export async function resolveDownloadLocalVideo(
   return null;
 }
 
-type DownloadFileEntry = { name: string; path: string; length: number };
+export type DownloadFileEntry = { name: string; path: string; length: number };
+
+/** Local DOWNLOADS/HARDLINK tree or remote storage listing for a download location. */
+export async function listVideoFilesAtLocation(location: string): Promise<DownloadFileEntry[]> {
+  const localPath = resolveLocalLibraryPath(location);
+  if (localPath) {
+    const stat = await fs.stat(localPath).catch(() => null);
+    if (!stat) return [];
+    if (stat.isFile()) {
+      const name = path.basename(localPath);
+      if (!VIDEO_EXTENSIONS.test(name)) return [];
+      return [{ name, path: name, length: stat.size }];
+    }
+    return listVideosInDir(localPath);
+  }
+  return remoteStorageService.listFiles(location);
+}
 
 async function listVideosInDir(dir: string, prefix = ""): Promise<DownloadFileEntry[]> {
   const entries: DownloadFileEntry[] = [];

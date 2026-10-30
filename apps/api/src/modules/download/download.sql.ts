@@ -14,7 +14,10 @@ function localLibraryPathLikeSql(): SQL {
     if (base) prefixes.add(path.resolve(base));
   }
 
-  const clauses = [...prefixes].map((prefix) => sql`${download.remoteLocation} LIKE ${`${prefix}${path.sep}%`}`);
+  const clauses = [...prefixes].map(
+    (prefix) =>
+      sql`(${download.remoteLocation} = ${prefix} OR ${download.remoteLocation} LIKE ${`${prefix}${path.sep}%`})`,
+  );
   if (clauses.length === 0) return sql`0`;
   if (clauses.length === 1) return clauses[0];
   return sql`(${sql.join(clauses, sql` OR `)})`;

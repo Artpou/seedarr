@@ -8,9 +8,14 @@ import {
   createTestDb,
   json,
   sampleTorrent,
+  seedDisabledStorageModule,
+  seedLocalLibrarySyncDownload,
   seedTestUser,
   testDbRef,
+  withTempDownloadsRoot,
 } from "@/tests/test.helper";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 process.env.STORAGE_ENCRYPTION_KEY = "test-storage-encryption-key";
 
@@ -22,12 +27,15 @@ const { fakeUser } = vi.hoisted(() => {
 vi.mock("@/modules/auth/auth.guard", () => ({
   authGuard: createAuthGuardMock(fakeUser),
 }));
+const { listFiles } = vi.hoisted(() => ({ listFiles: vi.fn() }));
+
 vi.mock("@/modules/storage-config/remote/remote-storage.service", () => ({
   remoteStorageService: {
     shouldDeleteLocalAfterTransfer: vi.fn().mockResolvedValue(false),
     isEnabled: vi.fn().mockResolvedValue(false),
     isAvailable: vi.fn().mockResolvedValue(true),
     remove: vi.fn().mockResolvedValue(undefined),
+    listFiles,
   },
 }));
 vi.mock("@/modules/download/webtorrent/webtorrent-manager", () => {
@@ -128,6 +136,7 @@ describe("Download Routes", () => {
   beforeEach(() => {
     testDbRef.current = createTestDb();
     seedTestUser(testDbRef.current, fakeUser);
+    listFiles.mockReset().mockResolvedValue([{ name: "remote.mkv", path: "remote.mkv", length: 3 }]);
   });
 
   describe("GET / - list downloads", () => {
@@ -281,6 +290,55 @@ describe("Download Routes", () => {
 
       const body = await bodyOf(await downloadRoutes.request("/dl-del", { method: "DELETE" }));
       expect(body.success).toBe(true);
+    });
+  });
+
+  describe("local library sync (visible + remote-files)", () => {
+    it("GET /:id and GET /by-media expose sync rows when storage is disabled", async () => {
+      await withTempDownloadsRoot(async (root) => {
+        seedDisabledStorageModule(testDbRef.current);
+        const folder = path.join(root, "Synced (2024)");
+        await fs.mkdir(folder);
+        await fs.writeFile(path.join(folder, "movie.mkv"), "0123456789");
+
+        seedLocalLibrarySyncDownload(testDbRef.current, {
+          downloadId: "dl-sync",
+          userId: fakeUser.id,
+          media: { id: 900, type: "movie", title: "Synced", imdbId: "tt900" },
+          folderPath: folder,
+        });
+
+        const detail = await bodyOf(await downloadRoutes.request("/dl-sync"));
+        expect(detail).toMatchObject({ id: "dl-sync", remoteLocation: folder });
+
+        const byMedia = await bodyOf(await downloadRoutes.request("/by-media/900"));
+        expect(byMedia).toHaveLength(1);
+        expect(byMedia[0].id).toBe("dl-sync");
+
+        const files = await bodyOf(await downloadRoutes.request("/dl-sync/remote-files"));
+        expect(files.some((f: { name: string }) => f.name === "movie.mkv")).toBe(true);
+        expect(listFiles).not.toHaveBeenCalled();
+      });
+    });
+
+    it("GET /:id returns 404 for legacy NAS-only remote paths", async () => {
+      testDbRef.current.insert(media).values({ id: 1, type: "movie", title: "Old", imdbId: "tt1" }).run();
+      testDbRef.current
+        .insert(download)
+        .values({
+          id: "dl-hidden",
+          userId: fakeUser.id,
+          mediaId: 1,
+          origin: "remote-sync",
+          remoteLocation: "movies/Old (2019)",
+          torrent: null,
+          createdAt: new Date(),
+        })
+        .run();
+
+      expect((await downloadRoutes.request("/dl-hidden")).status).toBe(404);
+      const err = await bodyOf(await downloadRoutes.request("/dl-hidden"));
+      expect(err.error).toBe("Download not found");
     });
   });
 

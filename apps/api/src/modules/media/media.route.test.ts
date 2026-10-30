@@ -1,7 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { media } from "@/modules/media/media.schema";
-import { bodyOf, createAuthGuardMock, createTestDb, json, seedTestUser, testDbRef } from "@/tests/test.helper";
+import {
+  bodyOf,
+  createAuthGuardMock,
+  createTestDb,
+  json,
+  seedDisabledStorageModule,
+  seedLocalLibrarySyncDownload,
+  seedTestUser,
+  testDbRef,
+  withTempDownloadsRoot,
+} from "@/tests/test.helper";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 const { fakeUser } = vi.hoisted(() => {
   const fakeUser = { id: "user-1", username: "testuser", role: "member" as const, createdAt: new Date("2024-01-01") };
@@ -106,6 +118,28 @@ describe("Media Routes", () => {
       const body = await bodyOf(res);
       expect(body.results.length).toBeGreaterThanOrEqual(2);
       expect(body.results.every((r: { id: number }) => [1, 3].includes(r.id))).toBe(true);
+    });
+
+    it("filter=downloaded includes local library sync when storage module is disabled", async () => {
+      await withTempDownloadsRoot(async (root) => {
+        seedDisabledStorageModule(testDbRef.current);
+        const folder = path.join(root, "Library Title (2020)");
+        await fs.mkdir(folder);
+
+        seedLocalLibrarySyncDownload(testDbRef.current, {
+          downloadId: "dl-lib",
+          userId: fakeUser.id,
+          media: { id: 88, type: "movie", title: "Library Title", imdbId: "tt88" },
+          folderPath: folder,
+        });
+
+        const body = await bodyOf(await mediaRoutes.request("/?filter=downloaded&page=1&limit=10"));
+        expect(
+          body.results.some(
+            (r: { id: number; download?: { id: string } }) => r.id === 88 && r.download?.id === "dl-lib",
+          ),
+        ).toBe(true);
+      });
     });
 
     describe("Sorting", () => {

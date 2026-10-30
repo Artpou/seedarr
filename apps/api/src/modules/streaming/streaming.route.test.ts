@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { download } from "@/modules/download/download.schema";
+import { media } from "@/modules/media/media.schema";
 import {
   bodyOf,
   createAuthGuardMock,
@@ -9,7 +10,9 @@ import {
   seedTestUser,
   type TestDb,
   testDbRef,
+  withTempDownloadsRoot,
 } from "@/tests/test.helper";
+import path from "node:path";
 
 const { fakeUser, playbackInfo, directStream, liveStream, listSubtitles, getSubtitle } = vi.hoisted(() => {
   const fakeUser = { id: "user-1", username: "member", role: "member" as const, createdAt: new Date("2024-01-01") };
@@ -30,10 +33,6 @@ vi.mock("./streaming.service", async (importOriginal) => {
   const mod = await importOriginal<typeof import("./streaming.service")>();
   return {
     StreamingService: class extends mod.StreamingService {
-      getDownload = async (id: string) => {
-        const { downloadRepository } = await import("@/modules/download/download.repository");
-        return downloadRepository.get(id);
-      };
       getPlaybackInfo = playbackInfo;
       prepareDirectStream = directStream;
       prepareLiveStream = liveStream;
@@ -77,6 +76,46 @@ describe("Streaming Routes", () => {
 
     it("returns 404 for unknown download", async () => {
       expect((await streamingRoutes.request("/missing/info")).status).toBe(404);
+    });
+
+    it("returns 404 for hidden legacy remote-only download", async () => {
+      testDbRef.current.insert(media).values({ id: 2, type: "movie", title: "Old", imdbId: "tt2" }).run();
+      testDbRef.current
+        .insert(download)
+        .values({
+          id: "dl-hidden",
+          userId: fakeUser.id,
+          mediaId: 2,
+          origin: "remote-sync",
+          remoteLocation: "movies/Old (2019)",
+          torrent: null,
+          createdAt: new Date(),
+        })
+        .run();
+
+      expect((await streamingRoutes.request("/dl-hidden/info")).status).toBe(404);
+      expect(playbackInfo).not.toHaveBeenCalled();
+    });
+
+    it("resolves visible local sync download through getVisibleDownload", async () => {
+      await withTempDownloadsRoot(async (root) => {
+        testDbRef.current.insert(media).values({ id: 3, type: "movie", title: "Local", imdbId: "tt3" }).run();
+        testDbRef.current
+          .insert(download)
+          .values({
+            id: "dl-local",
+            userId: fakeUser.id,
+            mediaId: 3,
+            origin: "remote-sync",
+            remoteLocation: path.join(root, "Local (2024)"),
+            torrent: null,
+            createdAt: new Date(),
+          })
+          .run();
+
+        playbackInfo.mockResolvedValue({ mode: "direct", duration: 90, seekable: true, origin: "local" });
+        expect((await streamingRoutes.request("/dl-local/info")).status).toBe(200);
+      });
     });
   });
 

@@ -4,8 +4,14 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 
 import { schema } from "@/db/schema";
 import type { TorrentLiveData } from "@/modules/download/download.schema";
+import { download } from "@/modules/download/download.schema";
+import type { Media } from "@/modules/media/media.schema";
+import { media } from "@/modules/media/media.schema";
+import { module } from "@/modules/module/module.schema";
 import type { User } from "@/modules/user/user.schema";
 import { user } from "@/modules/user/user.schema";
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 const MIGRATIONS_FOLDER = path.resolve(__dirname, "../db/drizzle");
@@ -107,4 +113,69 @@ export function json(method: "POST" | "PATCH" | "PUT", body: unknown) {
 // biome-ignore lint/suspicious/noExplicitAny: test helper for untyped JSON responses
 export async function bodyOf(res: Response): Promise<any> {
   return res.json();
+}
+
+/** Disabled FTP module — reproduces NULL moduleStorageId + storage-off visibility cases. */
+export function seedDisabledStorageModule(db: TestDb, id = "storage-off"): void {
+  db.insert(module)
+    .values({
+      id,
+      type: "ftp",
+      category: "storage",
+      enabled: false,
+      config: {
+        host: "nas",
+        port: 21,
+        secure: false,
+        moviePath: "movies",
+        tvPath: "tv",
+        autoTransfer: false,
+        deleteLocalAfterTransfer: false,
+      },
+      updatedAt: new Date(),
+    })
+    .run();
+}
+
+export async function withTempDownloadsRoot<T>(run: (root: string) => Promise<T>): Promise<T> {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "seedarr-dl-"));
+  const previous = process.env.DOWNLOADS_PATH;
+  process.env.DOWNLOADS_PATH = root;
+  try {
+    return await run(root);
+  } finally {
+    if (previous === undefined) delete process.env.DOWNLOADS_PATH;
+    else process.env.DOWNLOADS_PATH = previous;
+  }
+}
+
+/** Remote-sync row under DOWNLOADS_PATH (torrent cleared). */
+export function seedLocalLibrarySyncDownload(
+  db: TestDb,
+  input: {
+    downloadId: string;
+    userId: string;
+    media: Pick<Media, "id" | "type" | "title"> & { imdbId: string };
+    folderPath: string;
+  },
+): void {
+  db.insert(media)
+    .values({
+      id: input.media.id,
+      type: input.media.type,
+      title: input.media.title,
+      imdbId: input.media.imdbId,
+    })
+    .run();
+  db.insert(download)
+    .values({
+      id: input.downloadId,
+      userId: input.userId,
+      mediaId: input.media.id,
+      origin: "remote-sync",
+      remoteLocation: input.folderPath,
+      torrent: null,
+      createdAt: new Date(),
+    })
+    .run();
 }

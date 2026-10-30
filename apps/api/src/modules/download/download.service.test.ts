@@ -175,6 +175,57 @@ describe("DownloadService", () => {
   it("listRemoteFiles proxies remote listing", async () => {
     seedDownload("dl-remote", { remoteLocation: "/movies/X" });
     await expect(service.listRemoteFiles("dl-remote")).resolves.toEqual([{ name: "a.mkv", path: "a.mkv", length: 10 }]);
+    expect(listFiles).toHaveBeenCalledWith("/movies/X");
+  });
+
+  it("listRemoteFiles reads local disk under DOWNLOADS_PATH without FTP", async () => {
+    const downloadsRoot = await fs.mkdtemp(path.join(os.tmpdir(), "seedarr-list-"));
+    const previousDownloadsPath = process.env.DOWNLOADS_PATH;
+    process.env.DOWNLOADS_PATH = downloadsRoot;
+
+    const folder = path.join(downloadsRoot, "Synced (2024)");
+    await fs.mkdir(folder);
+    await fs.writeFile(path.join(folder, "movie.mkv"), "0123456789");
+
+    testDbRef.current.insert(media).values({ id: 42, type: "movie", title: "Synced", imdbId: "tt42" }).run();
+    testDbRef.current
+      .insert(download)
+      .values({
+        id: "dl-local-list",
+        userId: user.id,
+        mediaId: 42,
+        origin: "remote-sync",
+        remoteLocation: folder,
+        torrent: null,
+        createdAt: new Date(),
+      })
+      .run();
+
+    const files = await service.listRemoteFiles("dl-local-list");
+    expect(files.some((f) => f.name === "movie.mkv" && f.length === 10)).toBe(true);
+    expect(listFiles).not.toHaveBeenCalled();
+
+    if (previousDownloadsPath === undefined) delete process.env.DOWNLOADS_PATH;
+    else process.env.DOWNLOADS_PATH = previousDownloadsPath;
+  });
+
+  it("get returns local sync download (visible gate)", async () => {
+    const downloadsRoot = path.resolve(process.env.DOWNLOADS_PATH || "./downloads");
+    testDbRef.current.insert(media).values({ id: 7, type: "movie", title: "X", imdbId: "tt7" }).run();
+    testDbRef.current
+      .insert(download)
+      .values({
+        id: "dl-get-visible",
+        userId: user.id,
+        mediaId: 7,
+        origin: "remote-sync",
+        remoteLocation: path.join(downloadsRoot, "X (2020)"),
+        torrent: null,
+        createdAt: new Date(),
+      })
+      .run();
+
+    await expect(service.get("dl-get-visible")).resolves.toMatchObject({ id: "dl-get-visible" });
   });
 
   it("reassignMedia updates mediaId", async () => {

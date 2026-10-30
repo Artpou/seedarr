@@ -11,6 +11,7 @@ import { removeLocalLibraryPath, resolveTorrentStorePath } from "@/shared/helper
 import { IdentifiableService } from "@/shared/services/authenticated.service";
 
 import { ROLE_LEVELS } from "@/modules/auth/role.guard";
+import { getVisibleDownload } from "@/modules/download/download.access";
 import { downloadRepository } from "@/modules/download/download.repository";
 import type { Download, DownloadStats, TvScope } from "@/modules/download/download.schema";
 import {
@@ -27,6 +28,7 @@ import {
   enrichDownloadWithFiles,
   getPlannedRemoteDownloadFields,
   getTvDownloadsFolder,
+  listVideoFilesAtLocation,
 } from "@/modules/download/paths.helper";
 import { mediaRepository } from "@/modules/media/media.repository";
 import { remoteStorageService } from "@/modules/storage-config/remote/remote-storage.service";
@@ -55,6 +57,10 @@ const METADATA_TIMEOUT_MAGNET_MS = 10_000;
 const METADATA_TIMEOUT_FILE_MS = 5_000;
 
 export class DownloadService extends IdentifiableService<Download> {
+  override async get(id: string): Promise<Download> {
+    return getVisibleDownload(id);
+  }
+
   async getMany(args?: { ids?: string[] }): Promise<Download[]> {
     return downloadRepository.findManyVisible({ ids: args?.ids });
   }
@@ -77,10 +83,8 @@ export class DownloadService extends IdentifiableService<Download> {
     return Promise.all(downloads.map((d) => enrichDownloadWithFiles(d)));
   }
 
-  private async requireDownload(id: string): Promise<Download> {
-    const [item] = await this.getMany({ ids: [id] });
-    if (!item) throw new NotFoundError("Download");
-    return item;
+  private requireDownload(id: string): Promise<Download> {
+    return getVisibleDownload(id);
   }
 
   async getStats(): Promise<DownloadStats> {
@@ -351,7 +355,7 @@ export class DownloadService extends IdentifiableService<Download> {
   async listRemoteFiles(id: string): Promise<{ name: string; path: string; length: number }[]> {
     const item = await this.requireDownload(id);
     if (!item.remoteLocation) return [];
-    return remoteStorageService.listFiles(item.remoteLocation);
+    return listVideoFilesAtLocation(item.remoteLocation);
   }
 
   createFileToken(id: string): { token: string } {

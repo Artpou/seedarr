@@ -11,7 +11,7 @@ import {
 } from "@/shared/helpers/path.helper";
 import { AuthenticatedService } from "@/shared/services/authenticated.service";
 
-import { downloadRepository } from "@/modules/download/download.repository";
+import { getVisibleDownload } from "@/modules/download/download.access";
 import type { Download } from "@/modules/download/download.schema";
 import { resolveDownloadLocalVideo } from "@/modules/download/paths.helper";
 import { moduleRepository } from "@/modules/module/module.repository";
@@ -75,7 +75,7 @@ export class SubtitleService extends AuthenticatedService {
     mediaTitle: string,
     scope?: { season?: number; episode?: number },
   ): Promise<{ relativePath: string }> {
-    const download = await downloadRepository.get(downloadId);
+    const download = await getVisibleDownload(downloadId);
     if (download.userId !== this.user.id && !["owner", "admin"].includes(this.user.role)) {
       throw new ForbiddenError();
     }
